@@ -217,3 +217,41 @@ class SimBackend:
             torch.tensor(np.array([carry_pos]), dtype=torch.float32, device=self._device),
             env_ids=torch.tensor([EXEC_ENV], dtype=torch.long, device=self._device),
         )
+
+
+# --------------------------------------------------------- policy-driven executor
+
+
+class PolicySimExecutor:
+    """ExecutorFn: physically execute the selected plan with the walking policy.
+
+    Unlike :class:`SimBackend` (kinematic, tool-by-tool), this executor runs the
+    whole plan as one locomotion mission via
+    :func:`physgate.gate.l2_physics.rollout_plans_with_policy` on env 0 — the
+    robot actually walks, the obstacle actually blocks, the placement actually
+    settles. The orchestrator consumes its structured result dict directly.
+    """
+
+    def __init__(self, world: FetchSimWorld, policy_path):
+        self._world = world
+        self._policy_path = policy_path
+
+    def __call__(self, plan, scene: Scene) -> dict[str, Any]:
+        from physgate.gate.l2_physics import rollout_plans_with_policy
+
+        result = rollout_plans_with_policy(self._world, [plan], self._policy_path)[0]
+        return {
+            "success": result.success,
+            "steps_completed": len(plan.steps) if result.success else 0,
+            "steps_total": len(plan.steps),
+            "error": (
+                result.failure.violations[0].detail
+                if (result.failure and result.failure.violations)
+                else None
+            ),
+            "physics": {
+                "completion_time_s": result.completion_time_s,
+                "energy_j": result.energy_j,
+                "collision_count": result.collision_count,
+            },
+        }

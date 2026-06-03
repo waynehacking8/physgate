@@ -131,7 +131,9 @@ class FetchSimWorld:
     #: prim entity name -> symbolic scene object id
     ENTITY_TO_OBJECT_ID = {"box": "box_03", "shelf": "shelf_A", "obstacle": "obstacle_P", "waypoint": "waypoint_W"}
 
-    def __init__(self, num_envs: int = 8, device: str = "cuda:0", physics_dt: float = 1.0 / 120.0):
+    def __init__(self, num_envs: int = 8, device: str = "cuda:0", physics_dt: float = 0.005):
+        # default physics_dt matches the Go2 locomotion policy's training timestep
+        # (velocity_env_cfg: sim.dt = 0.005, decimation 4 -> 50 Hz policy)
         self.sim = SimulationContext(sim_utils.SimulationCfg(dt=physics_dt, device=device))
         self.scene = InteractiveScene(FetchSceneCfg(num_envs=num_envs, env_spacing=10.0))
         self.sim.reset()
@@ -180,6 +182,14 @@ class FetchSimWorld:
             self.robot.data.default_joint_pos.clone(),
             self.robot.data.default_joint_vel.clone(),
         )
+
+    def apply_joint_targets(self, targets: torch.Tensor) -> None:
+        """Drive the robots via joint position targets (policy control mode).
+
+        Unlike :meth:`write_robot_poses` (kinematic mode), the base is NOT
+        written — the robot moves itself through its actuators and physics.
+        """
+        self.robot.set_joint_position_target(targets)
 
     def write_box_poses(self, positions: torch.Tensor, env_ids: torch.Tensor | None = None) -> None:
         """Kinematically place boxes (carried), world frame."""

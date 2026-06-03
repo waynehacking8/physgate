@@ -40,10 +40,11 @@ def main() -> int:
 
         _simulation_app = AppLauncher(headless=True).app  # noqa: F841 — keeps the app alive
 
-        from physgate.executor.sim_backend import SimBackend
-        from physgate.gate.l2_physics import IsaacL2Gate
+        from physgate.executor.sim_backend import PolicySimExecutor, SimBackend
+        from physgate.gate.l2_physics import IsaacL2Gate, PolicyL2Gate
         from physgate.gate.reset_workaround import reset_scene_to_identical_state
         from physgate.world.fetch_scene import get_shared_world
+        from physgate.world.locomotion import find_exported_policy
         from physgate.world.usd_semantics import scene_from_stage
 
         print("[isaac] building 8-env fetch-and-place scene...")
@@ -53,8 +54,18 @@ def main() -> int:
         # perceive the symbolic scene FROM the simulation (USD semantics, C13)
         print("[isaac] perceiving scene from USD stage semantics...")
         kwargs["scene"] = scene_from_stage(env_index=0)
-        kwargs["l2_fn"] = IsaacL2Gate(world)
-        kwargs["backend_factory"] = lambda scene: SimBackend(scene, world=world)
+
+        policy = find_exported_policy()
+        if policy is not None:
+            # trained Go2 locomotion policy: robots WALK (L2 gate + executor)
+            print(f"[isaac] using trained locomotion policy: {policy}")
+            kwargs["l2_fn"] = PolicyL2Gate(world, policy)
+            kwargs["executor_fn_override"] = PolicySimExecutor(world, policy)
+        else:
+            # fall back to kinematic base driving
+            print("[isaac] no trained policy found -> kinematic base driving")
+            kwargs["l2_fn"] = IsaacL2Gate(world)
+            kwargs["backend_factory"] = lambda scene: SimBackend(scene, world=world)
 
     from physgate.examples_lib.fetch_and_place import run_fetch_and_place
 

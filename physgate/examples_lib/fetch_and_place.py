@@ -117,6 +117,7 @@ def run_fetch_and_place(
     scene: Scene | None = None,
     l2_fn: L2Fn = symbolic_l2,
     backend_factory: Callable[[Scene], WorldBackend] = MockWorldBackend,
+    executor_fn_override: Callable[[Plan, Scene], dict[str, Any]] | None = None,
     auto_approve: bool = True,
     config: OrchestratorConfig | None = None,
 ) -> dict[str, Any]:
@@ -129,6 +130,10 @@ def run_fetch_and_place(
             Lab gate from gate/l2_physics.py for real physics).
         backend_factory: builds the execution backend from the initial scene
             (MockWorldBackend by default; SimBackend for Isaac Sim execution).
+        executor_fn_override: replaces the backend-based executor entirely
+            (e.g. PolicySimExecutor — the robot walks the plan with the trained
+            locomotion policy). When given, backend_factory is only used for
+            final-scene readout.
         auto_approve: approve the gate's selection without human input (demo).
         config: orchestrator budgets (default: N=8, 2 replans, 3 retries).
     """
@@ -147,10 +152,12 @@ def run_fetch_and_place(
     def gate_fn(plans: list[Plan], gate_scene: Scene) -> SelectionResult:
         return run_gate(plans, gate_scene, l2_fn=l2_fn)
 
-    def executor_fn(plan: Plan, _scene: Scene) -> dict[str, Any]:
+    def default_executor_fn(plan: Plan, _scene: Scene) -> dict[str, Any]:
         execution_backend = backend_factory(initial_scene)
         backends.append(execution_backend)
         return execute_plan(plan, execution_backend)
+
+    executor_fn = executor_fn_override or default_executor_fn
 
     def approval_fn(selection: SelectionResult) -> bool:
         return auto_approve
@@ -166,7 +173,13 @@ def run_fetch_and_place(
     final_state = run_task(graph, task=task, scene=initial_scene)
 
     # final world state comes from the backend that actually executed
-    final_backend = backends[-1] if backends else backend_factory(initial_scene)
+    if executor_fn_override is not None:
+        executor_name = type(executor_fn_override).__name__
+        final_scene = initial_scene  # physical truth lives in the sim / execution result
+    else:
+        final_backend = backends[-1] if backends else backend_factory(initial_scene)
+        executor_name = type(final_backend).__name__
+        final_scene = final_backend.get_scene()
 
     report = _format_report(
         task=task,
@@ -174,11 +187,11 @@ def run_fetch_and_place(
         planner_name=type(planner).__name__,
         critic_name=type(critic).__name__,
         l2_name=getattr(l2_fn, "__name__", type(l2_fn).__name__),
-        backend_name=type(final_backend).__name__,
+        backend_name=executor_name,
     )
 
     return {
         **final_state,
-        "final_scene": final_backend.get_scene(),
+        "final_scene": final_scene,
         "report": report,
     }

@@ -173,6 +173,84 @@ def test_scene_from_stage_derives_on_floor_relation(sim_world):
     assert box.is_anomaly
 
 
+# --------------------------------------------------- policy locomotion (goal #1)
+
+
+def _policy_path():
+    from physgate.world.locomotion import find_exported_policy
+
+    return find_exported_policy()
+
+
+def test_policy_robot_walks_to_goal(sim_world):
+    """The trained policy makes the Go2 physically walk to a nearby goal."""
+    import torch
+
+    from physgate.gate.reset_workaround import reset_scene_to_identical_state
+    from physgate.world.locomotion import Go2PolicyController, WaypointNavigator, base_yaws
+
+    policy = _policy_path()
+    if policy is None:
+        pytest.skip("no exported Go2 policy (run rsl_rl play.py first)")
+
+    reset_scene_to_identical_state(sim_world.scene, sim_world.sim)
+    controller = Go2PolicyController(policy, num_envs=NUM_ENVS, device=sim_world.device)
+    navigator = WaypointNavigator(num_envs=NUM_ENVS, device=sim_world.device)
+
+    goal = torch.tensor([1.5, 0.0, 0.0], device=sim_world.device).repeat(NUM_ENVS, 1)
+    speeds = torch.full((NUM_ENVS,), 0.5, device=sim_world.device)
+
+    # walk for up to 15 simulated seconds (50 Hz control)
+    arrived_any = False
+    for _ in range(750):
+        pos = sim_world.robot.data.root_pos_w - sim_world.env_origins
+        yaw = base_yaws(sim_world.robot)
+        commands, arrived = navigator.velocity_commands(pos, yaw, goal, speeds)
+        if bool(arrived.all()):
+            arrived_any = True
+            break
+        targets = controller.joint_position_targets(sim_world.robot, commands)
+        sim_world.apply_joint_targets(targets)
+        for _ in range(4):
+            sim_world.step()
+
+    final_pos = (sim_world.robot.data.root_pos_w - sim_world.env_origins).cpu().numpy()
+    # robots walked forward (started at x=0) and stayed upright
+    assert arrived_any or final_pos[:, 0].mean() > 1.0, (
+        f"robots did not walk: mean x = {final_pos[:, 0].mean():.2f}"
+    )
+    upright = sim_world.robot.data.projected_gravity_b[:, 2] < -0.6
+    assert bool(upright.all()), "some robots fell over while walking"
+
+
+def test_policy_rollout_physically_discriminates_plans(sim_world, demo_scene):
+    """With real walking: detour plans complete the task; straight-line plans are
+    physically blocked by the obstacle (timeout or collision)."""
+    from physgate.gate.l2_physics import rollout_plans_with_policy
+    from physgate.planner.planner import MockPlanner
+
+    policy = _policy_path()
+    if policy is None:
+        pytest.skip("no exported Go2 policy (run rsl_rl play.py first)")
+
+    plans = MockPlanner()(TASK, demo_scene, 8, None)
+    results = {r.plan_id: r for r in rollout_plans_with_policy(sim_world, plans, policy)}
+
+    cautious = [r for pid, r in results.items() if "cautious" in pid]
+    direct = [r for pid, r in results.items() if "direct" in pid]
+    assert cautious and direct
+
+    # at least one detour plan must physically complete the task
+    assert any(r.success for r in cautious), (
+        "no cautious plan succeeded: "
+        + str([(r.plan_id, r.failure.violations[0].detail if r.failure else "") for r in cautious])
+    )
+    # straight-line plans must be physically penalized: blocked (fail) or collide
+    assert all((not r.success) or r.collision_count > 0 for r in direct), (
+        f"direct plans were not penalized: {[(r.plan_id, r.success, r.collision_count) for r in direct]}"
+    )
+
+
 # -------------------------------------------------------------- E17 SimBackend
 
 

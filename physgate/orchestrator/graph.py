@@ -53,6 +53,7 @@ class OrchestratorState(TypedDict, total=False):
     """Mutable state carried through the LangGraph nodes."""
 
     task: str
+    task_id: str
     scene: Scene
     candidates: list[Plan]
     survivors: list[Plan]
@@ -85,9 +86,28 @@ def build_orchestrator(
     approval_fn: ApprovalFn,
     config: OrchestratorConfig | None = None,
     checkpointer: Any = None,
+    audit_trail: Any = None,
 ):
-    """Build and compile the orchestrator graph with injected components."""
+    """Build and compile the orchestrator graph with injected components.
+
+    Args:
+        audit_trail: optional :class:`physgate.audit.trail.AuditTrail`; when
+            given, every pipeline phase emits decision/human/physical records
+            (architecture doc §4 three-stream audit).
+    """
     cfg = config or OrchestratorConfig()
+
+    def _audit(stream_name: str, event: str, state: OrchestratorState, payload: dict) -> None:
+        if audit_trail is None:
+            return
+        from physgate.audit.records import AuditStream
+
+        audit_trail.record(
+            AuditStream(stream_name),
+            event,
+            correlation_id=f"{state.get('task_id', 'task')}/{event}",
+            payload=payload,
+        )
 
     def plan_node(state: OrchestratorState) -> dict:
         candidates = planner_fn(
@@ -96,6 +116,7 @@ def build_orchestrator(
             cfg.num_candidates,
             state.get("failure_feedback"),
         )
+        _audit("decision", "candidates_generated", state, {"n": len(candidates)})
         return {
             "candidates": candidates,
             # reset downstream state for this fresh planning round
@@ -109,6 +130,12 @@ def build_orchestrator(
 
     def review_node(state: OrchestratorState) -> dict:
         survivors = critic_fn(state["candidates"], state["scene"])
+        _audit(
+            "decision",
+            "critic_verdict",
+            state,
+            {"survivors": len(survivors), "rejected": len(state["candidates"]) - len(survivors)},
+        )
         update: dict = {
             "survivors": survivors,
             "trace": state["trace"] + ["reviewing"],
@@ -122,6 +149,16 @@ def build_orchestrator(
 
     def validate_node(state: OrchestratorState) -> dict:
         selection = gate_fn(state["survivors"], state["scene"])
+        _audit(
+            "decision",
+            "plan_selected",
+            state,
+            {
+                "best_plan_id": selection.best_plan_id,
+                "any_feasible": selection.any_feasible,
+                "scores": selection.scores,
+            },
+        )
         update: dict = {
             "selection": selection,
             "trace": state["trace"] + ["validating"],
@@ -148,6 +185,7 @@ def build_orchestrator(
             )
         else:
             approved = approval_fn(selection)
+        _audit("human", "approval", state, {"approved": bool(approved)})
         return {
             "approved": bool(approved),
             "trace": state["trace"] + ["awaiting_approval"],
@@ -159,6 +197,12 @@ def build_orchestrator(
             p for p in state["survivors"] if p.plan_id == selection.best_plan_id
         )
         result = executor_fn(best_plan, state["scene"])
+        _audit(
+            "physical",
+            "execution_result",
+            state,
+            {"plan_id": best_plan.plan_id, "success": bool(result.get("success"))},
+        )
         update: dict = {
             "execution_result": result,
             "trace": state["trace"] + ["executing"],
@@ -266,6 +310,7 @@ def run_task(
     """Run one task through a compiled orchestrator graph and return final state."""
     initial: OrchestratorState = {
         "task": task,
+        "task_id": thread_id,
         "scene": scene,
         "candidates": [],
         "survivors": [],
