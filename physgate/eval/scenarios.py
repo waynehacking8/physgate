@@ -126,6 +126,40 @@ def _two_box_scene() -> Scene:
     )
 
 
+def _two_shelf_scene() -> Scene:
+    """Two shelves — the task names a specific shelf the MockPlanner might not target."""
+    return Scene(
+        objects=[
+            SceneObject(
+                id="box_03", label="cardboard_box", affordances=["graspable"], is_anomaly=True
+            ),
+            SceneObject(id="shelf_A", label="shelf", affordances=["placeable"]),
+            SceneObject(id="shelf_B", label="shelf", affordances=["placeable"]),
+            SceneObject(id="floor_01", label="floor"),
+            SceneObject(id="go2", label="robot"),
+        ],
+        relations=[("box_03", "on", "floor_01")],
+        gripper_empty=True,
+    )
+
+
+def _partial_infeasible_scene() -> Scene:
+    """One feasible target + one infeasible (no graspable affordance)."""
+    return Scene(
+        objects=[
+            SceneObject(
+                id="box_03", label="cardboard_box", affordances=["graspable"], is_anomaly=True
+            ),
+            SceneObject(id="safe_01", label="safe", affordances=[], is_anomaly=True),
+            SceneObject(id="shelf_A", label="shelf", affordances=["placeable"]),
+            SceneObject(id="floor_01", label="floor"),
+            SceneObject(id="go2", label="robot"),
+        ],
+        relations=[("box_03", "on", "floor_01"), ("safe_01", "on", "floor_01")],
+        gripper_empty=True,
+    )
+
+
 def _ungraspable_scene() -> Scene:
     """The fallen object cannot be grasped — the task is genuinely infeasible."""
     return Scene(
@@ -321,5 +355,48 @@ def build_scenario_suite() -> list[OrchestrationScenario]:
             task="put the fallen safe back on shelf A",
             scene=_ungraspable_scene(),
             expected_outcome="escalated",
+        ),
+        # ---- harder scenarios (H2: break the 100% ceiling) ----
+        OrchestrationScenario(
+            scenario_id="ambiguous_multi_shelf",
+            category="multi_step",
+            description=(
+                "two shelves — the task says 'the shelf' (ambiguous). The planner "
+                "must pick ONE and place on it consistently. MockPlanner defaults to "
+                "shelf_A even if the task says 'shelf B'."
+            ),
+            task="put the fallen box on shelf B",
+            scene=_two_shelf_scene(),
+            expected_outcome="done",
+            required_final_relations=(("box_03", "on", "shelf_B"),),
+        ),
+        OrchestrationScenario(
+            scenario_id="partial_infeasible_two_tasks",
+            category="infeasible",
+            description=(
+                "two sub-tasks: one feasible (box_03 → shelf_A), one infeasible "
+                "(safe_01 has no graspable affordance). The orchestrator must complete "
+                "the feasible part and report the infeasible part."
+            ),
+            task=(
+                "put the fallen box (box_03) on shelf A AND put the safe (safe_01) "
+                "on shelf A"
+            ),
+            scene=_partial_infeasible_scene(),
+            expected_outcome="done",
+            required_final_relations=(("box_03", "on", "shelf_A"),),
+        ),
+        OrchestrationScenario(
+            scenario_id="recovery_place_failure_replan",
+            category="recovery",
+            description=(
+                "the place step fails twice — the orchestrator must replan and try a "
+                "different approach (e.g. place on the floor first then retry)"
+            ),
+            task=TASK_FETCH,
+            scene=_basic_scene(),
+            expected_outcome="done",
+            required_final_relations=(("box_03", "on", "shelf_A"),),
+            fault=FaultSpec(skill="place", fail_count=2),
         ),
     ]

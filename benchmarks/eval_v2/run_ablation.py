@@ -31,8 +31,8 @@ RESULTS_DIR = Path(__file__).parent / "results"
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--feasible", type=int, default=20)
-    parser.add_argument("--infeasible", type=int, default=8)
+    parser.add_argument("--feasible", type=int, default=50)
+    parser.add_argument("--infeasible", type=int, default=20)
     parser.add_argument("--seed", type=int, default=2026)
     args = parser.parse_args()
 

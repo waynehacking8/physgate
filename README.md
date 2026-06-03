@@ -182,10 +182,10 @@ rejected.
 |---|---|---|
 | A0 — No validation | 0.43 [0.43, 0.43] | 0.00 |
 | A1 — + LLM critic | 0.50 [0.50, 0.50] | 0.00 |
-| A2 — + Symbolic gate | 1.00 [0.84, 1.00] | 0.00 |
-| A3 — + Physics gate (nav + goal) | 1.00 [0.84, 1.00] | 1.00 |
+| A2 — + Symbolic gate | 1.00 [0.93, 1.00] | 0.00 |
+| A3 — + Physics gate (nav + goal) | 1.00 [0.93, 1.00] | 1.00 |
 
-n = 20 feasible + 8 infeasible
+n = 50 feasible + 20 infeasible
 procedurally generated layouts (A*-certified labels); plan pool of
 21 plans. CIs are instance-level
 (n = number of independent generated layouts, not plan × instance):
@@ -237,14 +237,14 @@ regression test; the headline evidence is E1/E2 above.
 
 ![Orchestrator metrics](docs/media/charts/orchestrator.png)
 
-| Metric | Mock planner | Real Claude |
-|---|---|---|
-| End-to-end success (feasible tasks) | 0.60 | 1.00 |
-| Infeasible-task recognition | 1.00 | 1.00 |
-| Transient-failure recovery | 1.00 | 1.00 |
-| Decomposition validity | 1.00 | 1.00 |
-| Invalid-plan catch rate | 1.00 | 1.00 |
-| **Orchestrator score** | 0.92 | 1.00 |
+| Metric | Mock planner |
+|---|---|
+| End-to-end success (feasible tasks) | 0.62 |
+| Infeasible-task recognition | 1.00 |
+| Transient-failure recovery | 1.00 |
+| Decomposition validity | 1.00 |
+| Invalid-plan catch rate | 1.00 |
+| **Orchestrator score** | 0.93 |
 
 Error bars: mean ± sd over 3 independent runs (fresh LLM plan generations each run).
 
