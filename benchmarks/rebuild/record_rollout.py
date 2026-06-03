@@ -307,11 +307,11 @@ def main() -> int:
     topdown_frames = render_topdown_animation(
         layout=SCENE_LAYOUT,
         planned_path=planned_path,
-        samples=samples[::2],  # 12.5 fps from 25 fps samples
-        hold_last_frames=18,
+        samples=samples,  # all samples for smooth 24fps playback
+        hold_last_frames=24,
         check_collisions=True,
     )
-    encode_frames_to_gif(topdown_frames, MEDIA_DIR / "topdown_trajectory.gif", fps=10)
+    encode_frames_to_gif(topdown_frames, MEDIA_DIR / "topdown_trajectory.gif", fps=24)
 
     # raw trajectory log (the evidence the checks ran against)
     log = {

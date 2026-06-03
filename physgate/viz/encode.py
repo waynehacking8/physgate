@@ -13,9 +13,7 @@ from pathlib import Path
 
 import numpy as np
 
-#: GIF palette size — 128 colors keeps README GIFs small with no visible loss
-#: on synthetic scenes (flat-shaded boxes + robot).
-_GIF_MAX_COLORS = 128
+_GIF_MAX_COLORS = 256
 
 
 def _validate_frames(frames: list[np.ndarray]) -> tuple[int, int]:
@@ -112,8 +110,8 @@ def encode_frames_to_gif(frames: list[np.ndarray], output: str | Path, fps: int 
             # two-pass palette in one filtergraph: generate then apply
             "-vf",
             (
-                f"split[a][b];[a]palettegen=max_colors={_GIF_MAX_COLORS}[p];"
-                "[b][p]paletteuse=dither=bayer:bayer_scale=3"
+                f"split[a][b];[a]palettegen=max_colors={_GIF_MAX_COLORS}:stats_mode=diff[p];"
+                "[b][p]paletteuse=dither=sierra2_4a:diff_mode=rectangle"
             ),
             "-loop",
             "0",

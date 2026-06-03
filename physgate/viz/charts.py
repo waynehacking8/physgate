@@ -1,24 +1,8 @@
 """Publication-quality matplotlib figures for the benchmark results.
 
 Single source of truth: the result JSONs under ``benchmarks/*/results/``.
-Every figure is rendered at 300 DPI with explicit axes, units, legends, and
-(when repeat-run data exists) mean ± std error bars.
-
-Layout policy (camera-ready):
-* constrained_layout reserves space for titles, suptitles, above-axes legends,
-  and colorbars deterministically — no ``bbox="tight"`` crop, so the requested
-  figsize aspect ratio is the output aspect ratio and nothing clips;
-* value labels use point offsets (not data-unit offsets) so the gap above a bar
-  is constant regardless of the y-limit;
-* ylim sits just above the 1.0 data ceiling (no stunted-bar dead band);
-* legends never sit on top of data.
-
-Palette semantics (one meaning per color, enforced across every figure):
-* blue   = model / throughput series
-* orange = secondary / efficiency series
-* green  = correct / good outcome
-* pink   = bad / artifact outcome
-* grey   = baseline
+Every figure is rendered at 300 DPI with constrained_layout, Tableau-10
+palette, and minimal decoration.
 """
 
 from __future__ import annotations
@@ -27,89 +11,77 @@ from pathlib import Path
 
 import matplotlib
 
-matplotlib.use("Agg")  # headless rendering — no display required
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 
-# --------------------------------------------------------------------- style
-
 DPI = 300
 
-#: Shared font sizes (kept consistent across every figure)
-LABEL_FS = 8.5   # bar value labels
-TICK_FS = 9      # axis tick labels
-TITLE_FS = 11    # axes titles
-SUPTITLE_FS = 12
-
-#: Muted, low-saturation palette (seaborn-"muted" family) — camera-ready, not
-#: candy-bright, while keeping the blue/orange anchors colorblind-distinguishable
-#: and a clear good(green)/bad(rose) contrast disambiguated by position+labels.
+# ── Tableau-10 palette (the industry standard for data-viz) ──────────────
+# Designed by Tableau / UW IDL: distinguishable, colorblind-safe, print-ready.
 COLORS = {
-    "mock": "#9aa0a6",    # neutral grey baseline
-    "claude": "#4c72b0",  # muted blue — model series
-    "llm": "#4c72b0",     # alias of claude (PLANNER_LABELS maps both -> Real Claude)
-    "accent": "#dd8452",  # muted amber — secondary / efficiency
-    "pre": "#c44e6c",     # muted rose — bad / artifact
-    "post": "#55a868",    # muted green — correct / good
+    "mock": "#bab0ac",     # Tableau warm-grey — baseline
+    "claude": "#4e79a7",   # Tableau steel-blue — model
+    "llm": "#4e79a7",      # alias
+    "accent": "#f28e2b",   # Tableau amber — secondary axis / emphasis
+    "pre": "#e15759",      # Tableau brick-red — bad / pre-rebuild
+    "post": "#59a14f",     # Tableau sage-green — good / post-rebuild
+    "info": "#76b7b2",     # Tableau teal — supporting
+    "purple": "#b07aa1",   # Tableau mauve — extra category
 }
 
-#: Greys for text / structure (no pure black — softer, print-friendly).
-INK = "#2b2b2b"
-MUTED_INK = "#5f6368"
+INK = "#333333"
+MUTED = "#888888"
 
 PLANNER_LABELS = {"mock": "Mock planner", "claude": "Real Claude", "llm": "Real Claude"}
 
-#: The five component metrics, plus the derived orchestrator_score (a mean of
-#: the five — plotted with a gap so it is not read as an independent measurement).
 COMPONENT_METRICS = [
-    ("end_to_end_success_rate", "End-to-end\nsuccess"),
+    ("end_to_end_success_rate", "E2E\nsuccess"),
     ("infeasible_recognition_rate", "Infeasible\nrecognition"),
     ("recovery_rate", "Failure\nrecovery"),
     ("decomposition_validity_rate", "Decomposition\nvalidity"),
     ("invalid_plan_catch_rate", "Invalid-plan\ncatch"),
 ]
-DERIVED_METRIC = ("orchestrator_score", "Orchestrator\nscore (mean)")
-METRIC_LABELS = [*COMPONENT_METRICS, DERIVED_METRIC]  # kept for back-compat
+DERIVED_METRIC = ("orchestrator_score", "Orchestrator\nscore")
+METRIC_LABELS = [*COMPONENT_METRICS, DERIVED_METRIC]
 
-#: Pre-rebuild (milestone 2) feasibility — the artifact the rebuild eliminated.
 PRE_REBUILD = {"mock": (2, 8), "claude": (1, 7)}
 
 
+# ── shared style ─────────────────────────────────────────────────────────
+
 def _setup_style() -> None:
-    plt.rcParams.update(
-        {
-            "figure.dpi": DPI,
-            "savefig.dpi": DPI,
-            "figure.facecolor": "white",
-            "figure.constrained_layout.use": True,
-            "font.family": "sans-serif",
-            "font.sans-serif": ["DejaVu Sans"],
-            "font.size": 10,
-            "text.color": INK,
-            "axes.titlesize": TITLE_FS,
-            "axes.titlepad": 10,
-            "axes.labelsize": 10,
-            "axes.labelcolor": INK,
-            "axes.edgecolor": "#b0b0b0",
-            "axes.linewidth": 0.9,
-            "axes.spines.top": False,
-            "axes.spines.right": False,
-            # horizontal gridlines only — they help read bar heights; vertical
-            # ones are chartjunk on categorical axes
-            "axes.grid": True,
-            "axes.grid.axis": "y",
-            "axes.axisbelow": True,
-            "grid.color": "#d7d7d7",
-            "grid.alpha": 0.8,
-            "grid.linewidth": 0.6,
-            "xtick.color": INK,
-            "ytick.color": INK,
-            "xtick.labelsize": TICK_FS,
-            "ytick.labelsize": TICK_FS,
-            "legend.frameon": False,
-            "legend.fontsize": 9,
-        }
-    )
+    plt.rcParams.update({
+        "figure.dpi": DPI,
+        "savefig.dpi": DPI,
+        "figure.facecolor": "white",
+        "figure.constrained_layout.use": True,
+        "font.family": "sans-serif",
+        "font.sans-serif": ["Helvetica", "Arial", "Liberation Sans", "DejaVu Sans"],
+        "font.size": 10,
+        "text.color": INK,
+        "axes.titlesize": 12,
+        "axes.titleweight": "600",
+        "axes.titlepad": 12,
+        "axes.labelsize": 10,
+        "axes.labelcolor": INK,
+        "axes.edgecolor": "#cccccc",
+        "axes.linewidth": 0.7,
+        "axes.spines.top": False,
+        "axes.spines.right": False,
+        "axes.grid": True,
+        "axes.grid.axis": "y",
+        "axes.axisbelow": True,
+        "grid.color": "#ebebeb",
+        "grid.alpha": 1.0,
+        "grid.linewidth": 0.5,
+        "xtick.color": INK,
+        "ytick.color": INK,
+        "xtick.labelsize": 9,
+        "ytick.labelsize": 9,
+        "legend.frameon": False,
+        "legend.fontsize": 9,
+    })
 
 
 def _finish(fig, output: str | Path) -> Path:
@@ -120,38 +92,21 @@ def _finish(fig, output: str | Path) -> Path:
     return output
 
 
-def _label_bars(ax, bars, values, *, fmt="{:.2f}", base=None, fontsize=LABEL_FS):
-    """Annotate bars with a constant point-offset above their top (or above an
-    optional ``base`` height, e.g. the upper CI whisker)."""
-    for i, (bar, val) in enumerate(zip(bars, values)):
-        y = bar.get_height() if base is None else base[i]
-        ax.annotate(
-            fmt.format(val),
-            (bar.get_x() + bar.get_width() / 2, y),
-            textcoords="offset points",
-            xytext=(0, 3),
-            ha="center",
-            va="bottom",
-            fontsize=fontsize,
-            fontweight="bold",
-            clip_on=False,
-        )
+def _vlabel(ax, bar, text, *, fontsize=8.5, y_override=None, color=INK):
+    """Place a value label above a bar with a fixed point offset."""
+    y = y_override if y_override is not None else bar.get_height()
+    ax.annotate(
+        text,
+        (bar.get_x() + bar.get_width() / 2, y),
+        textcoords="offset points", xytext=(0, 4),
+        ha="center", va="bottom", fontsize=fontsize,
+        fontweight="bold", color=color, clip_on=False,
+    )
 
 
-# ----------------------------------------------------------------- statistics
-
+# ── statistics ───────────────────────────────────────────────────────────
 
 def aggregate_metric_repeats(repeats: list[list[dict]]) -> dict[str, dict[str, dict]]:
-    """Aggregate repeat-run reports into per-planner per-metric statistics.
-
-    Args:
-        repeats: list of runs; each run is a list of report dicts
-            ({"planner_name", "metrics"}).
-
-    Returns:
-        planner -> metric -> {"mean", "std", "n", "values"}.
-        std is the sample standard deviation (ddof=1); 0.0 when n == 1.
-    """
     collected: dict[str, dict[str, list[float]]] = {}
     for run in repeats:
         for report in run:
@@ -173,216 +128,179 @@ def aggregate_metric_repeats(repeats: list[list[dict]]) -> dict[str, dict[str, d
     return stats
 
 
-# -------------------------------------------------------------------- figures
-
+# ── feasibility ──────────────────────────────────────────────────────────
 
 def feasibility_chart(
     data: dict, output: str | Path, repeats: list[dict] | None = None
 ) -> Path:
-    """Pre- vs post-rebuild plan feasibility, grouped by planner.
-
-    The figure that documents the artifact elimination: feasibility was a
-    property of the broken low level (straight-line driver), not of the plans.
-    """
     _setup_style()
-    fig, ax = plt.subplots(figsize=(6.6, 4.2), layout="constrained")
+    fig, ax = plt.subplots(figsize=(5.2, 3.8), layout="constrained")
 
     planners = [m["planner"] for m in data["measurements"]]
     x = np.arange(len(planners))
-    width = 0.34
+    w = 0.28
 
-    pre_vals, pre_labels = [], []
-    post_vals, post_labels = [], []
+    pre_vals, pre_fracs = [], []
+    post_vals, post_fracs = [], []
     for m in data["measurements"]:
-        pre_n, pre_total = PRE_REBUILD.get(m["planner"], (0, 1))
-        pre_vals.append(100.0 * pre_n / pre_total)
-        pre_labels.append(f"{pre_n}/{pre_total}")
+        pn, pt = PRE_REBUILD.get(m["planner"], (0, 1))
+        pre_vals.append(100.0 * pn / pt)
+        pre_fracs.append(f"{pn}/{pt}")
         post_vals.append(100.0 * m["feasibility_of_survivors"])
-        post_labels.append(f"{m['physically_feasible']}/{m['critic_survivors']}")
+        post_fracs.append(f"{m['physically_feasible']}/{m['critic_survivors']}")
 
-    bars_pre = ax.bar(
-        x - width / 2, pre_vals, width,
-        label="Pre-rebuild (routing artifact)", color=COLORS["pre"],
-    )
-    bars_post = ax.bar(
-        x + width / 2, post_vals, width,
-        label="Post-rebuild (A* navigation)", color=COLORS["post"],
-    )
+    bars_pre = ax.bar(x - w / 2, pre_vals, w, color=COLORS["pre"],
+                      label="Pre-rebuild (artifact)", edgecolor="white", linewidth=0.6)
+    bars_post = ax.bar(x + w / 2, post_vals, w, color=COLORS["post"],
+                       label="Post-rebuild (A* nav)", edgecolor="white", linewidth=0.6)
 
-    for bars, vals, labels in (
-        (bars_pre, pre_vals, pre_labels),
-        (bars_post, post_vals, post_labels),
-    ):
-        for bar, label in zip(bars, labels):
-            ax.annotate(
-                label,
-                (bar.get_x() + bar.get_width() / 2, bar.get_height()),
-                textcoords="offset points", xytext=(0, 4),
-                ha="center", va="bottom", fontsize=LABEL_FS,
-                fontweight="bold", color=INK, clip_on=False,
-            )
+    for bars, fracs in ((bars_pre, pre_fracs), (bars_post, post_fracs)):
+        for bar, frac in zip(bars, fracs):
+            _vlabel(ax, bar, frac, fontsize=9)
 
     ax.set_xticks(x)
     ax.set_xticklabels([PLANNER_LABELS.get(p, p) for p in planners])
-    ax.set_xlim(-0.65, len(planners) - 0.35)
-    ax.set_ylabel("Physically feasible plans (%)")
-    ax.set_ylim(0, 116)
-    # n=3 runs, σ=0: stated as a clean axis caption (never over the bars)
-    ax.set_xlabel("post-rebuild feasibility held at 100% across n = 3 repeat runs (σ = 0)",
-                  fontsize=LABEL_FS, color=MUTED_INK, labelpad=8)
-    ax.set_title("Plan feasibility before vs after the navigation rebuild")
+    ax.set_xlim(-0.55, len(planners) - 0.45)
+    ax.set_ylabel("Feasible plans (%)")
+    ax.set_ylim(0, 114)
+    ax.set_title("Plan feasibility: before vs after navigation rebuild")
     handles, labels = ax.get_legend_handles_labels()
-    fig.legend(handles, labels, loc="outside upper center", ncol=2, frameon=False)
+    fig.legend(handles, labels, loc="outside upper center", ncol=2, fontsize=8.5, frameon=False)
+    ax.text(0.99, 0.02, "n = 3 runs, σ = 0", transform=ax.transAxes,
+            ha="right", va="bottom", fontsize=7.5, color=MUTED)
     return _finish(fig, output)
 
+
+# ── orchestrator ─────────────────────────────────────────────────────────
 
 def orchestrator_chart(
     reports: list[dict], output: str | Path, repeats: list[list[dict]] | None = None
 ) -> Path:
-    """Agent-orchestrator metrics, mock vs real Claude, with error bars when
-    repeat-run statistics are available."""
     _setup_style()
-    fig, ax = plt.subplots(figsize=(9.0, 4.8), layout="constrained")
+    fig, ax = plt.subplots(figsize=(9.5, 4.0), layout="constrained")
 
     stats = aggregate_metric_repeats(repeats) if repeats else None
 
-    component_keys = [k for k, _ in COMPONENT_METRICS]
-    metric_keys = [*component_keys, DERIVED_METRIC[0]]
-    # x positions: 5 component metrics packed, then a gap before the derived score
-    x = np.array([*range(len(component_keys)), len(component_keys) + 0.7])
+    comp_keys = [k for k, _ in COMPONENT_METRICS]
+    metric_keys = [*comp_keys, DERIVED_METRIC[0]]
+    x = np.array([*range(len(comp_keys)), len(comp_keys) + 0.8])
     n_planners = len(reports)
-    width = 0.76 / n_planners
-    sd_zero = True
+    w = 0.32
 
     for i, report in enumerate(reports):
         planner = report["planner_name"]
         color = COLORS.get(planner, COLORS["accent"])
-        offsets = x + (i - (n_planners - 1) / 2) * width
+        offsets = x + (i - (n_planners - 1) / 2) * w
 
         if stats and planner in stats:
             means = [stats[planner][k]["mean"] for k in metric_keys]
             stds = [stats[planner][k]["std"] for k in metric_keys]
-            if any(s > 0 for s in stds):
-                sd_zero = False
             n_runs = max(stats[planner][k]["n"] for k in metric_keys)
-            label = f"{PLANNER_LABELS.get(planner, planner)} (n={n_runs} runs)"
-            bars = ax.bar(
-                offsets, means, width, yerr=stds, capsize=3,
-                error_kw={"linewidth": 1.0}, label=label, color=color, alpha=0.9,
-            )
-            annotate_vals = means
+            label = f"{PLANNER_LABELS.get(planner, planner)} (n={n_runs})"
+            bars = ax.bar(offsets, means, w, yerr=stds, capsize=3,
+                          error_kw={"linewidth": 0.8, "color": "#555"},
+                          label=label, color=color, edgecolor="white", linewidth=0.6)
+            vals = means
         else:
             vals = [report["metrics"].get(k, 0.0) for k in metric_keys]
-            bars = ax.bar(
-                offsets, vals, width,
-                label=PLANNER_LABELS.get(planner, planner), color=color, alpha=0.9,
-            )
-            annotate_vals = vals
-        _label_bars(ax, bars, annotate_vals, fontsize=7.5)
+            bars = ax.bar(offsets, vals, w, color=color, edgecolor="white",
+                          linewidth=0.6, label=PLANNER_LABELS.get(planner, planner))
 
-    # visual separator marking the derived score as different from the 5 components
-    ax.axvline(len(component_keys) - 0.15, color="#bbbbbb", linewidth=0.8, linestyle="-")
+        for bar, val in zip(bars, vals):
+            if abs(val - 1.0) > 0.005:
+                _vlabel(ax, bar, f"{val:.2f}", fontsize=8)
 
+    ax.axvline(len(comp_keys) + 0.05, color="#d0d0d0", linewidth=1.0, linestyle="-")
     ax.set_xticks(x)
-    ax.set_xticklabels([lbl for _, lbl in METRIC_LABELS], fontsize=TICK_FS)
+    ax.set_xticklabels([lbl for _, lbl in METRIC_LABELS], fontsize=8.5)
     ax.set_ylabel("Score")
-    ax.set_ylim(0, 1.12)
-    ax.axhline(1.0, color=MUTED_INK, linewidth=0.6, linestyle=":", alpha=0.5)
-    sd_note = "   ·   error bars = sample SD (σ = 0 across n = 3 runs)" if stats and sd_zero else ""
-    ax.set_xlabel(
-        "rightmost bar = orchestrator score (unweighted mean of the 5 metrics)" + sd_note,
-        fontsize=LABEL_FS, color=MUTED_INK, labelpad=8,
-    )
-    ax.set_title(
-        "Agent-orchestrator quality: 5 metrics + derived score\n"
-        "(7-scenario corpus: ordering / preconditions / recovery / multi-step / infeasible)"
-    )
-    handles, labels = ax.get_legend_handles_labels()
-    fig.legend(handles, labels, loc="outside upper center", ncol=n_planners, frameon=False)
+    ax.set_ylim(0, 1.10)
+    ax.axhline(1.0, color="#d0d0d0", linewidth=0.5, linestyle=":")
+    ax.set_title("Orchestrator quality — 7-scenario regression suite")
+    ax.legend(loc="lower left", fontsize=8.5)
     return _finish(fig, output)
 
 
-def gpu_scaling_chart(data: dict, output: str | Path) -> Path:
-    """Parallel-env throughput and scaling efficiency on one figure."""
-    _setup_style()
-    fig, ax_throughput = plt.subplots(figsize=(7.5, 4.2), layout="constrained")
-
-    results = data["results"]
-    envs = [r["num_envs"] for r in results]
-    throughput = [r["env_steps_per_s"] for r in results]
-    efficiency = [r["scaling_efficiency"] for r in results]
-
-    ax_throughput.loglog(
-        envs, throughput, marker="o", markersize=5, linewidth=1.6,
-        color=COLORS["claude"], label="Throughput (env-steps/s)",
-    )
-    ax_throughput.set_xlabel("Parallel environments")
-    ax_throughput.set_ylabel("Throughput (env-steps/s)", color=COLORS["claude"])
-    ax_throughput.tick_params(axis="y", labelcolor=COLORS["claude"])
-    ax_throughput.set_xticks(envs)
-    ax_throughput.set_xticklabels([str(e) for e in envs])
-    ax_throughput.minorticks_off()
-
-    ax_eff = ax_throughput.twinx()
-    ax_eff.plot(
-        envs, efficiency, marker="s", markersize=5, linewidth=1.6, linestyle="--",
-        color=COLORS["accent"], label="Scaling efficiency",
-    )
-    ax_eff.set_ylabel("Scaling efficiency", color=COLORS["accent"])
-    ax_eff.tick_params(axis="y", labelcolor=COLORS["accent"])
-    ax_eff.set_ylim(0.45, 1.08)
-    ax_eff.set_xscale("log")
-    ax_eff.spines["right"].set_visible(True)
-    ax_eff.spines["right"].set_color(COLORS["accent"])
-    ax_eff.grid(False)
-
-    for env_count, eff in zip(envs, efficiency):
-        ax_eff.annotate(
-            f"{eff:.2f}", (env_count, eff),
-            textcoords="offset points", xytext=(0, 8),
-            ha="center", va="bottom", fontsize=LABEL_FS, color=COLORS["accent"],
-        )
-
-    knee = data.get("saturation_knee_envs")
-    if knee:
-        ax_throughput.axvline(knee, color="#999999", linewidth=0.8, linestyle=":")
-        ax_throughput.annotate(
-            f"saturation knee\n{knee} envs", (knee, throughput[0]),
-            textcoords="offset points", xytext=(6, 0), ha="left", va="bottom",
-            fontsize=LABEL_FS, color="#555555",
-        )
-    else:
-        ax_throughput.text(
-            0.98, 0.05, "saturation knee not reached in measured range",
-            transform=ax_throughput.transAxes, fontsize=LABEL_FS, color="#555555",
-            ha="right", va="bottom",
-        )
-    ax_throughput.set_title("GPU parallel-validation throughput and scaling efficiency")
-
-    lines_a, labels_a = ax_throughput.get_legend_handles_labels()
-    lines_b, labels_b = ax_eff.get_legend_handles_labels()
-    ax_throughput.legend(lines_a + lines_b, labels_a + labels_b, loc="lower left")
-    return _finish(fig, output)
-
-
-# ---------------------------------------------------------- eval_v2 figures
+# ── E1 ablation ──────────────────────────────────────────────────────────
 
 CONDITION_LABELS = {
-    "A0_no_validation": "A0\nNo validation",
-    "A1_critic_only": "A1\n+ LLM critic",
-    "A2_symbolic_gate": "A2\n+ Symbolic gate",
-    "A3_nav_aware_gate": "A3\n+ Physics gate\n(nav + goal)",
+    "A0_no_validation": "A0\nNone",
+    "A1_critic_only": "A1\n+ Critic",
+    "A2_symbolic_gate": "A2\n+ Symbolic",
+    "A3_nav_aware_gate": "A3\n+ Physics",
 }
+
+ABLATION_COLORS = ["#bab0ac", "#f28e2b", "#4e79a7", "#59a14f"]
+
+
+def ablation_chart(data: dict, output: str | Path) -> Path:
+    _setup_style()
+    fig, (ax_s, ax_r) = plt.subplots(
+        1, 2, figsize=(10.0, 4.0), layout="constrained",
+        gridspec_kw={"width_ratios": [1.15, 1.0]},
+    )
+
+    conditions = list(data["conditions"].keys())
+    x = np.arange(len(conditions))
+    config = data.get("config", {})
+
+    # left: success on feasible tasks
+    rates = [data["conditions"][c]["success_rate"] for c in conditions]
+    err_lo, err_hi, tops = [], [], []
+    for c in conditions:
+        ci = data["conditions"][c].get("success_ci_95", [None, None])
+        r = data["conditions"][c]["success_rate"]
+        lo = r - ci[0] if ci[0] is not None else 0
+        hi = ci[1] - r if ci[1] is not None else 0
+        err_lo.append(lo)
+        err_hi.append(hi)
+        tops.append(r + hi)
+
+    bars = ax_s.bar(x, rates, 0.56, yerr=[err_lo, err_hi], capsize=4,
+                    color=ABLATION_COLORS, edgecolor="white", linewidth=0.6,
+                    error_kw={"linewidth": 1.0, "color": "#444"})
+    for bar, val, top in zip(bars, rates, tops):
+        _vlabel(ax_s, bar, f"{val:.2f}", y_override=top, fontsize=9)
+
+    ax_s.set_xticks(x)
+    ax_s.set_xticklabels([CONDITION_LABELS.get(c, c) for c in conditions])
+    ax_s.set_ylabel("Task success rate")
+    ax_s.set_ylim(0, 1.14)
+    ax_s.axhline(1.0, color="#d0d0d0", linewidth=0.5, linestyle=":")
+    n_f = config.get("n_feasible_instances", "?")
+    ax_s.set_title(f"Feasible tasks (n={n_f}), 95% Wilson CI")
+
+    # right: rejection of infeasible tasks
+    rej = [data["conditions"][c]["rejection_rate"] for c in conditions]
+    rej_colors = [COLORS["post"] if r > 0.5 else COLORS["pre"] for r in rej]
+    bars_r = ax_r.bar(x, rej, 0.56, color=rej_colors, edgecolor="white", linewidth=0.6)
+    for bar, val in zip(bars_r, rej):
+        _vlabel(ax_r, bar, f"{val:.2f}", fontsize=9)
+
+    ax_r.set_xticks(x)
+    ax_r.set_xticklabels([CONDITION_LABELS.get(c, c) for c in conditions])
+    ax_r.set_ylabel("Pre-execution rejection rate")
+    ax_r.set_ylim(0, 1.14)
+    ax_r.axhline(1.0, color="#d0d0d0", linewidth=0.5, linestyle=":")
+    n_i = config.get("n_infeasible_instances", "?")
+    ax_r.set_title(f"Infeasible tasks (n={n_i}), rejection rate")
+
+    fig.suptitle("E1 — Pipeline ablation: what each validation layer adds",
+                 fontsize=13, fontweight="bold")
+    return _finish(fig, output)
+
+
+# ── E2 gate classifier ──────────────────────────────────────────────────
 
 LAYER_LABELS = {
     "critic": "LLM critic",
-    "l1_l3": "+ L1/L3\ndeterministic",
-    "symbolic_gate": "+ Symbolic L2\n(full gate)",
-    "physics_gate": "Isaac physics L2",
+    "l1_l3": "+ L1/L3",
+    "symbolic_gate": "+ Symbolic L2",
+    "physics_gate": "Isaac physics",
 }
 
 DEFECT_LABELS = {
-    "D0_clean": "clean\n(control)",
+    "D0_clean": "clean",
     "D1_step_inversion": "step\ninversion",
     "D2_missing_pick": "missing\npick",
     "D3_hallucinated_target": "hallucinated\ntarget",
@@ -392,173 +310,123 @@ DEFECT_LABELS = {
 }
 
 
-def ablation_chart(data: dict, output: str | Path) -> Path:
-    """E1 pipeline ablation: success rate on feasible tasks (with 95% CI) and
-    pre-execution rejection rate on infeasible tasks, per pipeline condition."""
-    _setup_style()
-    fig, (ax_success, ax_reject) = plt.subplots(
-        1, 2, figsize=(11.0, 4.4), layout="constrained",
-        gridspec_kw={"width_ratios": [1.1, 1.0]},
-    )
-
-    conditions = list(data["conditions"].keys())
-    x = np.arange(len(conditions))
-    config = data.get("config", {})
-
-    # ---- left panel: success on feasible instances ----
-    rates = [data["conditions"][c]["success_rate"] for c in conditions]
-    err_low, err_high, upper = [], [], []
-    for c in conditions:
-        ci = data["conditions"][c].get("success_ci_95", [None, None])
-        rate = data["conditions"][c]["success_rate"]
-        lo = rate - ci[0] if ci[0] is not None else 0
-        hi = ci[1] - rate if ci[1] is not None else 0
-        err_low.append(lo)
-        err_high.append(hi)
-        upper.append(rate + hi)
-
-    bars = ax_success.bar(
-        x, rates, 0.62, yerr=[err_low, err_high], capsize=4,
-        color=[COLORS["pre"], COLORS["accent"], COLORS["claude"], COLORS["post"]],
-        alpha=0.9, error_kw={"linewidth": 1.2},
-    )
-    _label_bars(ax_success, bars, rates, base=upper, fontsize=9)
-    ax_success.set_xticks(x)
-    ax_success.set_xticklabels([CONDITION_LABELS.get(c, c) for c in conditions], fontsize=TICK_FS)
-    ax_success.set_ylabel("Task success rate")
-    ax_success.set_ylim(0, 1.12)
-    ax_success.axhline(1.0, color="black", linewidth=0.6, linestyle=":", alpha=0.5)
-    n_feasible = config.get("n_feasible_instances", "?")
-    ax_success.set_title(
-        f"Feasible tasks (n={n_feasible} generated layouts)\nsuccess rate, 95% Wilson CI"
-    )
-
-    # ---- right panel: infeasible-task handling (pre-execution rejection rate) ----
-    rejection = [data["conditions"][c]["rejection_rate"] for c in conditions]
-    bar_colors = [COLORS["post"] if r > 0.5 else COLORS["pre"] for r in rejection]
-    bars_r = ax_reject.bar(x, rejection, 0.62, color=bar_colors, alpha=0.9)
-    _label_bars(ax_reject, bars_r, rejection, fontsize=9)
-    ax_reject.set_xticks(x)
-    ax_reject.set_xticklabels([CONDITION_LABELS.get(c, c) for c in conditions], fontsize=TICK_FS)
-    ax_reject.set_ylabel("Pre-execution rejection rate")
-    ax_reject.set_ylim(0, 1.12)
-    ax_reject.axhline(1.0, color="black", linewidth=0.6, linestyle=":", alpha=0.5)
-    n_infeasible = config.get("n_infeasible_instances", "?")
-    ax_reject.set_title(
-        f"Infeasible tasks (n={n_infeasible} unreachable layouts)\n"
-        "rejected before wasting execution (higher is better)"
-    )
-    ax_reject.text(
-        0.02, 0.96, "green = task rejected (good)\nrose = falsely executed (bad)",
-        transform=ax_reject.transAxes, ha="left", va="top",
-        fontsize=LABEL_FS, color=MUTED_INK,
-    )
-
-    fig.suptitle(
-        "E1 — Pipeline ablation: what each validation layer adds",
-        fontsize=SUPTITLE_FS, fontweight="bold",
-    )
-    return _finish(fig, output)
-
-
 def gate_classifier_chart(data: dict, output: str | Path) -> Path:
-    """E2 gate-as-classifier: recall (defect catch rate) per validation layer,
-    plus a per-defect correctness matrix that substantiates layered defense."""
     _setup_style()
-    fig, (ax_recall, ax_matrix) = plt.subplots(
-        1, 2, figsize=(12.0, 4.6), layout="constrained",
-        gridspec_kw={"width_ratios": [0.8, 1.5]},
+    fig, (ax_bar, ax_mat) = plt.subplots(
+        1, 2, figsize=(12.5, 5.0), layout="constrained",
+        gridspec_kw={"width_ratios": [0.7, 1.5]},
     )
 
     layers = list(data["layers"].keys())
 
-    # ---- left: recall (+ honest all-zero FPR handling) ----
-    recalls = [data["layers"][layer]["report"]["recall"] for layer in layers]
-    fprs = [data["layers"][layer]["report"]["false_positive_rate"] for layer in layers]
+    # left: recall per layer
+    recalls = [data["layers"][ly]["report"]["recall"] for ly in layers]
+    fprs = [data["layers"][ly]["report"]["false_positive_rate"] for ly in layers]
     x = np.arange(len(layers))
-    any_fpr = any(f > 0 for f in fprs)
-    width = 0.38 if any_fpr else 0.55
 
-    bars_recall = ax_recall.bar(
-        x - (width / 2 if any_fpr else 0), recalls, width,
-        label="Recall (defects caught)", color=COLORS["claude"], alpha=0.9,
-    )
-    _label_bars(ax_recall, bars_recall, recalls, fontsize=8.5)
-    if any_fpr:
-        ax_recall.bar(
-            x + width / 2, fprs, width,
-            label="False-positive rate\n(good plans killed)",
-            color=COLORS["pre"], alpha=0.9,
-        )
-        ax_recall.legend(loc="lower center", bbox_to_anchor=(0.5, 1.0), ncol=2, frameon=False)
-    else:
-        # all FPR = 0: mark the zeros explicitly so absence reads as a real zero
-        ax_recall.scatter(x, [0] * len(x), marker="_", s=200, color=COLORS["pre"], zorder=3)
-        ax_recall.text(
-            0.02, 0.97, "FPR = 0.00 across all layers\n(no valid plan ever rejected)",
-            transform=ax_recall.transAxes, ha="left", va="top",
-            fontsize=7.5, color=MUTED_INK,
-        )
+    bars = ax_bar.bar(x, recalls, 0.52, color=COLORS["claude"],
+                      edgecolor="white", linewidth=0.6, label="Recall")
+    for bar, val in zip(bars, recalls):
+        _vlabel(ax_bar, bar, f"{val:.2f}", fontsize=9)
 
-    ax_recall.set_xticks(x)
-    ax_recall.set_xticklabels(
-        [LAYER_LABELS.get(layer, layer).replace("\n", " ") for layer in layers],
-        fontsize=7, rotation=20, ha="right",
-    )
-    ax_recall.set_ylabel("Recall")
-    ax_recall.set_ylim(0, 1.12)
-    ax_recall.set_title("Defect catch rate by validation layer")
+    if all(f == 0 for f in fprs):
+        ax_bar.text(0.03, 0.96, "FPR = 0 across all layers",
+                    transform=ax_bar.transAxes, ha="left", va="top",
+                    fontsize=8, color=MUTED, style="italic")
+    ax_bar.set_xticks(x)
+    ax_bar.set_xticklabels([LAYER_LABELS.get(ly, ly) for ly in layers], fontsize=8)
+    ax_bar.set_ylabel("Recall")
+    ax_bar.set_ylim(0, 1.14)
+    ax_bar.set_title("Defect catch rate")
 
-    # ---- right: layer x defect-class correctness matrix ----
+    # right: layer × defect correctness matrix
     from physgate.eval_v2.defects import DEFECT_CLASSES
 
-    present = {d for layer in layers for d in data["layers"][layer]["per_defect_rejection_rate"]}
-    # regime-sort columns: invalid (should reject) first, then valid (should accept)
+    present = {d for ly in layers for d in data["layers"][ly]["per_defect_rejection_rate"]}
     invalid = sorted(d for d in present if DEFECT_CLASSES.get(d, True))
     valid = sorted(d for d in present if not DEFECT_CLASSES.get(d, True))
     defect_ids = [*invalid, *valid]
 
-    matrix = np.array(
-        [
-            [data["layers"][layer]["per_defect_rejection_rate"].get(d, np.nan) for d in defect_ids]
-            for layer in layers
-        ]
-    )
-    # SINGLE encoding: both color AND printed number are "correct behavior rate".
-    correctness = np.empty_like(matrix)
+    raw = np.array([
+        [data["layers"][ly]["per_defect_rejection_rate"].get(d, np.nan) for d in defect_ids]
+        for ly in layers
+    ])
+    correctness = np.empty_like(raw)
     for j, defect in enumerate(defect_ids):
         should_reject = DEFECT_CLASSES.get(defect, True)
-        correctness[:, j] = matrix[:, j] if should_reject else 1.0 - matrix[:, j]
+        correctness[:, j] = raw[:, j] if should_reject else 1.0 - raw[:, j]
 
-    im = ax_matrix.imshow(correctness, cmap="RdYlGn", vmin=0, vmax=1, aspect="auto")
-    ax_matrix.set_xticks(range(len(defect_ids)))
-    ax_matrix.set_xticklabels([DEFECT_LABELS.get(d, d) for d in defect_ids], fontsize=7.5)
-    ax_matrix.set_yticks(range(len(layers)))
-    ax_matrix.set_yticklabels([LAYER_LABELS.get(layer, layer) for layer in layers], fontsize=TICK_FS)
-    ax_matrix.grid(False)
+    im = ax_mat.imshow(correctness, cmap="RdYlGn", vmin=0, vmax=1, aspect="auto")
+    ax_mat.set_xticks(range(len(defect_ids)))
+    ax_mat.set_xticklabels([DEFECT_LABELS.get(d, d) for d in defect_ids], fontsize=8)
+    ax_mat.set_yticks(range(len(layers)))
+    ax_mat.set_yticklabels([LAYER_LABELS.get(ly, ly) for ly in layers], fontsize=9)
+    ax_mat.grid(False)
+
     for i in range(len(layers)):
         for j, defect in enumerate(defect_ids):
-            value = matrix[i, j]
-            if np.isnan(value):
+            val = raw[i, j]
+            if np.isnan(val):
                 continue
             should_reject = DEFECT_CLASSES.get(defect, True)
             action = "reject" if should_reject else "accept"
-            ax_matrix.text(
-                j, i, f"{action}\n{correctness[i, j]:.0%}",
-                ha="center", va="center", fontsize=7.5, fontweight="bold",
-                color="white" if correctness[i, j] < 0.25 else "black",
-            )
-    # divider between the invalid (reject) and valid (accept) regimes
-    if invalid and valid:
-        ax_matrix.axvline(len(invalid) - 0.5, color="black", linewidth=1.4)
-    ax_matrix.set_title("Per-defect behavior by validation layer")
-    colorbar = fig.colorbar(im, ax=ax_matrix, fraction=0.04, pad=0.02)
-    colorbar.set_label("correct behavior (rate)", fontsize=LABEL_FS)
+            c = correctness[i, j]
+            ax_mat.text(j, i, f"{action}\n{c:.0%}", ha="center", va="center",
+                        fontsize=8.5, fontweight="bold",
+                        color="white" if c < 0.3 else INK)
 
-    fig.suptitle(
-        "E2 — The gate as a classifier (defect-injection corpus)\n"
-        "left of divider: invalid plans (correct = reject)   ·   "
-        "right: valid plans (correct = accept)",
-        fontsize=SUPTITLE_FS, fontweight="bold",
-    )
+    if invalid and valid:
+        ax_mat.axvline(len(invalid) - 0.5, color="white", linewidth=2.5)
+    ax_mat.set_title("Per-defect correctness (left: should reject · right: should accept)")
+    cbar = fig.colorbar(im, ax=ax_mat, fraction=0.035, pad=0.02, shrink=0.85)
+    cbar.set_label("correct behavior rate", fontsize=8.5)
+
+    fig.suptitle("E2 — Gate as classifier (defect-injection corpus)",
+                 fontsize=13, fontweight="bold")
+    return _finish(fig, output)
+
+
+# ── GPU scaling ──────────────────────────────────────────────────────────
+
+def gpu_scaling_chart(data: dict, output: str | Path) -> Path:
+    _setup_style()
+    fig, ax = plt.subplots(figsize=(7.0, 4.0), layout="constrained")
+
+    results = data["results"]
+    envs = [r["num_envs"] for r in results]
+    throughput = [r["env_steps_per_s"] for r in results]
+    efficiency = [r["scaling_efficiency"] for r in results]
+
+    ax.loglog(envs, throughput, "o-", color=COLORS["claude"], markersize=5, linewidth=1.8)
+    ax.set_xlabel("Parallel environments")
+    ax.set_ylabel("Throughput (env-steps/s)", color=COLORS["claude"])
+    ax.tick_params(axis="y", labelcolor=COLORS["claude"])
+    ax.set_xticks(envs)
+    ax.set_xticklabels([str(e) for e in envs])
+    ax.minorticks_off()
+
+    ax2 = ax.twinx()
+    ax2.plot(envs, efficiency, "s--", color=COLORS["accent"], markersize=5, linewidth=1.8)
+    ax2.set_ylabel("Scaling efficiency", color=COLORS["accent"])
+    ax2.tick_params(axis="y", labelcolor=COLORS["accent"])
+    ax2.set_ylim(0.50, 1.06)
+    ax2.set_xscale("log")
+    ax2.spines["right"].set_visible(True)
+    ax2.spines["right"].set_color(COLORS["accent"])
+    ax2.spines["right"].set_linewidth(0.7)
+    ax2.grid(False)
+
+    for e, eff in zip(envs, efficiency):
+        ax2.annotate(f"{eff:.2f}", (e, eff), textcoords="offset points",
+                     xytext=(0, 8), ha="center", fontsize=8, color=COLORS["accent"])
+
+    knee = data.get("saturation_knee_envs")
+    if knee:
+        ax.axvline(knee, color="#aaa", linewidth=0.8, linestyle=":")
+    else:
+        ax.text(0.97, 0.04, "saturation knee not reached",
+                transform=ax.transAxes, ha="right", va="bottom",
+                fontsize=8, color=MUTED, style="italic")
+
+    ax.set_title("GPU parallel-validation scaling (RTX PRO 6000 Blackwell)")
     return _finish(fig, output)

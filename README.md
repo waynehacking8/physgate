@@ -61,34 +61,52 @@ see `benchmarks/rebuild/`).
 
 ## Architecture
 
-```
- Natural-language task
-        │
- ┌──────────────────────────────────────────────┐
- │ Orchestrator (LangGraph state machine)         │  deterministic harness
- │   phase routing · retry budget · approval gate  │
- └──────────────────────────────────────────────┘
-        │
- ┌──────────────────────────────────────────────┐
- │ HIGH: Planner (Claude Opus 4.8) → N candidates │  semantic skills only —
- │ Safety Critic (SAFER pattern) → prune unsafe    │  no geometry, no waypoints
- └──────────────────────────────────────────────┘
-        │ surviving candidates
- ┌──────────────────────────────────────────────┐
- │ Sim-Gate  (soft interlock — NOT a safety fn)   │  validates ORCHESTRATION:
- │   L1 kinematic limits (URDF)        <1 ms       │  ordering, preconditions,
- │   L3 scene-graph preconditions      <1 ms       │  physical outcome
- │   L2 parallel physics (Isaac Lab, N envs)       │
- │   → select a verified plan                      │
- └──────────────────────────────────────────────┘
-        │ verified plan artifact (JSON)  ══ no code crosses this line ══
- ┌──────────────────────────────────────────────┐
- │ LOW: deterministic navigation (A* / Nav2-ready)│  obstacle avoidance is
- │   Executor (Isaac sim backend / walking policy) │  guaranteed here
- │   [planned, NOT implemented: ROS 2 → real Go2]  │
- └──────────────────────────────────────────────┘
-        │
- Audit: three-stream records + Merkle checkpoint (in-memory MVP)
+```mermaid
+flowchart TD
+    task["Natural-language task"]
+
+    subgraph orch ["Orchestrator (LangGraph state machine)"]
+        direction LR
+        orch_detail["phase routing · retry budget · approval gate"]
+    end
+
+    subgraph high ["HIGH level — semantic planning"]
+        direction LR
+        planner["Planner (Claude Opus 4.8) → N candidates"]
+        critic["Safety Critic (SAFER) → prune unsafe"]
+        planner --> critic
+    end
+
+    subgraph gate ["Sim-Gate (soft interlock — NOT a safety fn)"]
+        direction TB
+        l1["L1 kinematic limits (URDF)  · &lt;1 ms"]
+        l3["L3 scene-graph preconditions · &lt;1 ms"]
+        l2["L2 parallel physics (Isaac Lab, N envs)"]
+        select["→ select a verified plan"]
+        l1 --> l3 --> l2 --> select
+    end
+
+    subgraph low ["LOW level — deterministic execution"]
+        direction LR
+        nav["A* / Nav2-ready navigation"]
+        exec["Executor (Isaac sim / walking policy)"]
+        ros["(planned: ROS 2 → real Go2)"]
+        nav --> exec
+        exec -.-> ros
+    end
+
+    audit["Audit: three-stream records + Merkle checkpoint"]
+
+    task --> orch
+    orch -->|"N candidate plans"| high
+    high -->|"surviving candidates"| gate
+    gate -->|"verified plan (JSON)"| low
+    low --> audit
+
+    style orch fill:#f0f4ff,stroke:#4e79a7,stroke-width:2px
+    style high fill:#fff8f0,stroke:#f28e2b,stroke-width:2px
+    style gate fill:#fff0f0,stroke:#e15759,stroke-width:2px
+    style low fill:#f0fff0,stroke:#59a14f,stroke-width:2px
 ```
 
 Full design: [`docs/design/architecture.md`](docs/design/architecture.md) and the
