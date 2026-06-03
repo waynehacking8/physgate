@@ -296,6 +296,42 @@ name the hand-placed rescue waypoint. This milestone rebuilt the layering per
 
 ## Headline results
 
+> The primary evidence is the **v2 evaluation** (E1 ablation + E2 classifier,
+> [`docs/design/EVALUATION_METHODOLOGY.md`](docs/design/EVALUATION_METHODOLOGY.md)).
+> The feasibility and orchestration results below remain valid and are retained
+> (the latter as a regression test).
+
+### E1 — pipeline ablation (the value-of-the-gate experiment)
+
+n = 20 feasible + 8 infeasible procedurally generated layouts (A*-certified
+labels); contaminated plan pool (9 valid + 12 defect-injected):
+
+| Pipeline | Success (feasible), 95% CI | Rejection (infeasible) |
+|---|---|---|
+| A0 no validation | 0.43 [0.38, 0.48] | 0.00 |
+| A1 + LLM critic | 0.50 [0.45, 0.55] | 0.00 |
+| A2 + symbolic gate | 1.00 [0.84, 1.00] | 0.00 |
+| A3 + physics gate (nav + goal) | **1.00 [0.84, 1.00]** | **1.00** |
+
+Each validation layer adds measurable success on feasible tasks; **only
+world-level (physics/navigation) validation rejects impossible tasks** — every
+symbolic configuration executes 100% of them. That is the unique, quantified
+value of physics validation. (`benchmarks/eval_v2/results/ablation.json`)
+
+### E2 — the gate as a classifier (defect-injection corpus)
+
+| Layer | Precision | Recall | F1 | FPR |
+|---|---|---|---|---|
+| LLM critic | 1.00 | 0.25 | 0.40 | 0.00 |
+| + L1/L3 deterministic | 1.00 | 0.75 | 0.86 | 0.00 |
+| + symbolic L2 (full gate) | 1.00 | 1.00 | 1.00 | 0.00 |
+| Isaac physics L2 | 1.00 | 1.00 | 1.00 | 0.00 |
+
+Layered defense substantiated: each layer catches strictly more defect classes,
+zero false positives. Honest scoping: for *plan-level* defects symbolic
+validation suffices; physics adds world-level infeasibility + physical-outcome
+verification. (`benchmarks/eval_v2/results/gate_classifier.json`)
+
 ### Feasibility — the artifact is eliminated
 
 | | pre-rebuild (milestone 2) | post-rebuild (milestone 3) |
@@ -353,7 +389,7 @@ per-scenario diff); every other outcome was identical._
 
 ## Test summary (current)
 
-- **Pure-logic suite**: `pytest` → **216 passed** (orchestration eval, viz
+- **Pure-logic suite**: `pytest` → **249 passed** (orchestration eval, eval_v2 ablation/classifier/scenario-gen, viz
   encoder/renderer, README generator)
 - **Isaac integration suite**: `pytest tests/test_isaac_sim_gate.py` → **19 passed**
   (world-reuse determinism separately verified by ×2 consecutive full-suite runs)

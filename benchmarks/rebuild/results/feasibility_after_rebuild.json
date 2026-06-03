@@ -1,6 +1,6 @@
 {
   "benchmark": "rebuild Phase 1 - plan feasibility after deterministic navigation",
-  "timestamp": "2026-06-03 17:31:24",
+  "timestamp": "2026-06-03 20:21:23",
   "gpu": "RTX PRO 6000 Blackwell Max-Q (sm_120, 300W)",
   "context": "Pre-rebuild feasibility was 17% (24-plan pool) / 1-in-7 (real-LLM demo) \u2014 an ARTIFACT of obstacle avoidance living in the wrong layer (straight-line driver + hand-placed waypoint_W). After the rebuild, navigation is deterministic A* and every well-formed decomposition should be feasible.",
   "measurements": [
@@ -10,7 +10,7 @@
       "critic_survivors": 6,
       "physically_feasible": 6,
       "feasibility_of_survivors": 1.0,
-      "gpu_wall_s": 12.4,
+      "gpu_wall_s": 13.2,
       "per_plan": [
         {
           "plan_id": "mock_0_direct",
@@ -62,62 +62,62 @@
       "critic_survivors": 8,
       "physically_feasible": 8,
       "feasibility_of_survivors": 1.0,
-      "gpu_wall_s": 26.6,
+      "gpu_wall_s": 14.1,
       "per_plan": [
         {
-          "plan_id": "plan_01_direct",
+          "plan_id": "plan_direct",
           "success": true,
           "collisions": 0,
           "time_s": 7.98,
           "failure": null
         },
         {
-          "plan_id": "plan_02_scene_check_first",
+          "plan_id": "plan_verify_first",
           "success": true,
           "collisions": 0,
           "time_s": 8.24,
           "failure": null
         },
         {
-          "plan_id": "plan_03_verify_pick",
+          "plan_id": "plan_verify_shelf",
           "success": true,
           "collisions": 0,
-          "time_s": 9.42,
+          "time_s": 8.14,
           "failure": null
         },
         {
-          "plan_id": "plan_04_verify_place",
-          "success": true,
-          "collisions": 0,
-          "time_s": 8.44,
-          "failure": null
-        },
-        {
-          "plan_id": "plan_05_close_standoff",
+          "plan_id": "plan_close_standoff",
           "success": true,
           "collisions": 0,
           "time_s": 9.58,
           "failure": null
         },
         {
-          "plan_id": "plan_06_full_verify",
+          "plan_id": "plan_post_pick_check",
           "success": true,
           "collisions": 0,
-          "time_s": 9.22,
+          "time_s": 10.0,
           "failure": null
         },
         {
-          "plan_id": "plan_07_prestage_shelf",
+          "plan_id": "plan_post_place_verify",
           "success": true,
           "collisions": 0,
-          "time_s": 20.96,
+          "time_s": 8.54,
           "failure": null
         },
         {
-          "plan_id": "plan_08_fast_transit",
+          "plan_id": "plan_full_checks",
           "success": true,
           "collisions": 0,
-          "time_s": 6.96,
+          "time_s": 9.72,
+          "failure": null
+        },
+        {
+          "plan_id": "plan_fast_transport",
+          "success": true,
+          "collisions": 0,
+          "time_s": 7.4,
           "failure": null
         }
       ]

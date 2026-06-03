@@ -28,15 +28,17 @@ import argparse
 import json
 import math
 import sys
+
+import numpy as np
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 MEDIA_DIR = REPO_ROOT / "docs" / "media"
 TASK = "put the fallen box back on shelf A"
 
-# capture cadence: control loop runs at 50 Hz; every 4th step -> 12.5 fps
-CAPTURE_EVERY_N_STEPS = 4
-CAMERA_WIDTH, CAMERA_HEIGHT = 640, 480
+# capture cadence: control loop runs at 50 Hz; every 2nd step -> 25 fps
+CAPTURE_EVERY_N_STEPS = 2
+CAMERA_WIDTH, CAMERA_HEIGHT = 1280, 720
 
 
 def parse_args() -> argparse.Namespace:
@@ -96,17 +98,47 @@ def main() -> int:
             ),
         )
     )
+    # directional key light (USD API — reliable spawn): angled sunlight gives the
+    # scene shadows and depth; the default dome light alone renders flat
+    import omni.usd
+    from pxr import Gf, UsdGeom, UsdLux
+
+    stage = omni.usd.get_context().get_stage()
+    key_light = UsdLux.DistantLight.Define(stage, "/World/key_light")
+    key_light.CreateIntensityAttr(4000.0)
+    key_light.CreateAngleAttr(1.0)
+    key_light.CreateColorAttr(Gf.Vec3f(1.0, 0.97, 0.92))
+    UsdGeom.Xformable(key_light.GetPrim()).AddRotateXYZOp().Set(Gf.Vec3f(-50.0, 25.0, 0.0))
+    # soft fill from the opposite side so shadows aren't pitch black
+    fill_light = UsdLux.DistantLight.Define(stage, "/World/fill_light")
+    fill_light.CreateIntensityAttr(800.0)
+    fill_light.CreateColorAttr(Gf.Vec3f(0.85, 0.9, 1.0))
+    UsdGeom.Xformable(fill_light.GetPrim()).AddRotateXYZOp().Set(Gf.Vec3f(-40.0, -120.0, 0.0))
+
     # re-reset so the freshly created camera sensor initializes
     world.sim.reset()
 
-    # 3/4 view across the whole scene (env 0)
     origin = world.env_origins[0].cpu().numpy()
-    eye = origin + [1.6, -4.8, 3.2]
-    target = origin + [1.6, -0.3, 0.2]
-    camera.set_world_poses_from_view(
-        torch.tensor([eye], dtype=torch.float32, device=world.device),
-        torch.tensor([target], dtype=torch.float32, device=world.device),
+
+    # scene centroid (box / shelf / pillar) keeps the task context in frame
+    scene_center = np.mean(
+        [SCENE_LAYOUT["box_03"][:2], SCENE_LAYOUT["shelf_A"][:2], SCENE_LAYOUT["obstacle_P"][:2]],
+        axis=0,
     )
+
+    def aim_camera_at(robot_xy: tuple[float, float]) -> None:
+        """Tracking camera: 3/4 view following the robot, framed so the task
+        objects stay visible (target = weighted robot/scene-center blend)."""
+        tx = 0.6 * robot_xy[0] + 0.4 * scene_center[0]
+        ty = 0.6 * robot_xy[1] + 0.4 * scene_center[1]
+        eye = origin + [tx - 1.0, ty - 3.6, 2.6]
+        target = origin + [tx + 0.3, ty + 0.3, 0.2]
+        camera.set_world_poses_from_view(
+            torch.tensor([eye], dtype=torch.float32, device=world.device),
+            torch.tensor([target], dtype=torch.float32, device=world.device),
+        )
+
+    aim_camera_at((0.0, 0.0))
 
     # ---- the plan to record (mock planner, critic-passing variant) ----
     from physgate.examples_lib.fetch_and_place import build_demo_scene
@@ -126,26 +158,79 @@ def main() -> int:
     camera_frames: list = []
     samples: list[dict] = []
 
+    # mission phases for the HUD (derived from the plan structure)
+    n_mission_events = len(mission)
+
+    def phase_label(state: dict, carrying: bool) -> str:
+        idx = int(state["mission_index"][0])
+        if bool(state["completed"][0]):
+            return "DONE - box placed on shelf"
+        if carrying:
+            return "CARRY  (kinematic attach, D-018)"
+        if idx >= n_mission_events:
+            return "DONE"
+        kind = mission[idx][0] if idx < n_mission_events else "?"
+        return {
+            "goto": "NAVIGATE  (A* route, walking policy)",
+            "pick": "PICK",
+            "place": "PLACE  (momentum release)",
+            "wait": "SCAN",
+        }.get(kind, kind.upper())
+
+    from PIL import Image, ImageDraw, ImageFont
+
+    _FONT_DIR = "/usr/share/fonts/truetype/dejavu"
+    font_title = ImageFont.truetype(f"{_FONT_DIR}/DejaVuSans-Bold.ttf", 26)
+    font_phase = ImageFont.truetype(f"{_FONT_DIR}/DejaVuSans-Bold.ttf", 30)
+    font_mono = ImageFont.truetype(f"{_FONT_DIR}/DejaVuSansMono.ttf", 22)
+
+    def draw_hud(frame, state: dict, t: float, robot_xy, carrying: bool):
+        """Annotate the frame: phase, sim time, telemetry (paper-video style HUD)."""
+        img = Image.fromarray(frame[:, :, :3])
+        draw = ImageDraw.Draw(img, "RGBA")
+        # top banner
+        draw.rectangle([(0, 0), (img.width, 96)], fill=(8, 10, 16, 215))
+        draw.text(
+            (28, 12),
+            "physgate  |  Sim-Gate validation rollout  (Isaac Lab PhysX, Go2 rsl_rl walking policy)",
+            font=font_title,
+            fill=(225, 228, 235),
+        )
+        draw.text(
+            (28, 50), phase_label(state, carrying), font=font_phase, fill=(110, 225, 140)
+        )
+        # bottom telemetry bar
+        telem = (
+            f"sim t = {t:5.1f} s   robot xy = ({robot_xy[0]:+.2f}, {robot_xy[1]:+.2f}) m   "
+            f"commanded speed envelope [0.4, 0.6] m/s"
+        )
+        draw.rectangle([(0, img.height - 44), (img.width, img.height)], fill=(8, 10, 16, 215))
+        draw.text((28, img.height - 36), telem, font=font_mono, fill=(225, 228, 235))
+        return np.asarray(img)
+
     def on_control_step(control_step: int, w, state: dict) -> None:
         if control_step % CAPTURE_EVERY_N_STEPS != 0:
             return
         # trajectory sample (env 0)
         robot_local = (w.robot.data.root_pos_w[0] - w.env_origins[0]).cpu().numpy()
         box_local = (w.box.data.root_pos_w[0] - w.env_origins[0]).cpu().numpy()
+        carrying = bool(state["carrying"][0])
+        t = round(control_step * w.dt * 4, 3)
         samples.append(
             {
-                "t": round(control_step * w.dt * 4, 3),
+                "t": t,
                 "robot_xy": [round(float(robot_local[0]), 3), round(float(robot_local[1]), 3)],
                 "box_xy": [round(float(box_local[0]), 3), round(float(box_local[1]), 3)],
                 "box_z": round(float(box_local[2]), 3),
-                "carrying": bool(state["carrying"][0]),
+                "carrying": carrying,
                 "mission_index": int(state["mission_index"][0]),
             }
         )
-        # camera frame
+        # tracking camera + frame capture + HUD
+        aim_camera_at((float(robot_local[0]), float(robot_local[1])))
         camera.update(dt=w.dt)
-        rgb = camera.data.output["rgb"][0]
-        camera_frames.append(rgb.cpu().numpy().astype("uint8"))
+        rgb = camera.data.output["rgb"][0].cpu().numpy().astype("uint8")
+        camera_frames.append(draw_hud(rgb, state, t, robot_local, carrying))
 
     # ---- run the REAL validation rollout with recording attached ----
     results = rollout_plans_with_policy(world, [plan], policy, on_control_step=on_control_step)
@@ -212,9 +297,11 @@ def main() -> int:
     # ================= encode the recordings =================
     MEDIA_DIR.mkdir(parents=True, exist_ok=True)
 
-    # Isaac camera capture
-    encode_frames_to_mp4(camera_frames, MEDIA_DIR / "isaac_rollout.mp4", fps=12)
-    encode_frames_to_gif(camera_frames, MEDIA_DIR / "isaac_rollout.gif", fps=12)
+    # Isaac camera capture: full-quality MP4 + README-sized GIF
+    encode_frames_to_mp4(camera_frames, MEDIA_DIR / "isaac_rollout.mp4", fps=25)
+    # README GIF: 512 px wide, 10 fps (GitHub-friendly size)
+    gif_frames = [f[::2, ::2] for f in camera_frames[::3]]
+    encode_frames_to_gif(gif_frames, MEDIA_DIR / "isaac_rollout.gif", fps=8)
 
     # top-down trajectory animation (with collision checking on)
     topdown_frames = render_rollout_animation(
