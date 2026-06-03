@@ -33,6 +33,14 @@ POLICY_PHYSICS_DT = 0.005
 #: Velocity command limits (the policy saw commands in these ranges in training).
 MAX_LIN_VEL = 1.0
 MAX_ANG_VEL = 1.0
+#: Forward speed commanded while turning toward a goal outside the heading
+#: deadband. The trained policy tracks rotation poorly from a standstill —
+#: pure rotation (vx=0, wz=0.9) yields only ~10% of the commanded turn (a
+#: "keep standing" fixed point), while the same wz with vx=0.2 tracks ~95%
+#: (benchmarks/rebuild/diag_turn_in_place.py). Never command pure rotation:
+#: the resulting ~0.22 m turning arc stays inside the path planner's
+#: WAYPOINT_TRACKING_TOLERANCE clearance inflation.
+TURN_CREEP_SPEED = 0.2
 
 #: Default location of the trained policy (latest run's export).
 DEFAULT_POLICY_DIR = Path.home() / "IsaacLab" / "logs" / "rsl_rl" / "unitree_go2_flat"
@@ -119,10 +127,10 @@ class WaypointNavigator:
 
     def velocity_commands(
         self,
-        positions: torch.Tensor,   # (N, 3) current base positions (env-local)
-        yaws: torch.Tensor,        # (N,) current headings
-        goals: torch.Tensor,       # (N, 3) goal positions (env-local)
-        speeds: torch.Tensor,      # (N,) commanded forward speeds
+        positions: torch.Tensor,  # (N, 3) current base positions (env-local)
+        yaws: torch.Tensor,  # (N,) current headings
+        goals: torch.Tensor,  # (N, 3) goal positions (env-local)
+        speeds: torch.Tensor,  # (N,) commanded forward speeds
     ) -> tuple[torch.Tensor, torch.Tensor]:
         """Compute (N, 3) velocity commands [vx, vy, wz] and (N,) arrived flags."""
         delta = goals[:, :2] - positions[:, :2]
@@ -135,12 +143,15 @@ class WaypointNavigator:
         )
 
         wz = torch.clamp(self.heading_gain * heading_error, -MAX_ANG_VEL, MAX_ANG_VEL)
-        # walk forward only when roughly facing the goal; slow down near it
+        # walk at full speed only when roughly facing the goal; slow down near it.
+        # Outside the deadband, keep a creep speed instead of stopping: the policy
+        # cannot turn in place from a standstill (see TURN_CREEP_SPEED) and a
+        # zero-vx turn command deadlocks the robot at sharp path corners.
         facing = heading_error.abs() < self.heading_deadband
         vx = torch.where(
             facing,
             torch.clamp(torch.minimum(speeds, distance * 2.0), 0.0, MAX_LIN_VEL),
-            torch.zeros_like(speeds),
+            torch.full_like(speeds, TURN_CREEP_SPEED),
         )
         commands = torch.stack([vx, torch.zeros_like(vx), wz], dim=-1)
         # arrived envs get zero commands (stand still)

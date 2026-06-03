@@ -175,6 +175,27 @@ def _policy_path():
     return find_exported_policy()
 
 
+def test_navigator_never_commands_pure_rotation():
+    """D-020: outside the heading deadband the navigator must command a creep
+    forward speed, never vx=0 — the trained policy cannot turn in place from a
+    standstill (a "keep standing" fixed point that deadlocks sharp corners)."""
+    import torch
+
+    from physgate.world.locomotion import TURN_CREEP_SPEED, WaypointNavigator
+
+    nav = WaypointNavigator(num_envs=1, device="cpu")
+    pos = torch.zeros(1, 3)
+    yaw = torch.zeros(1)  # facing +x
+    goal = torch.tensor([[0.0, 2.0, 0.0]])  # 90 deg to the left -> outside deadband
+    speed = torch.tensor([0.5])
+
+    commands, arrived = nav.velocity_commands(pos, yaw, goal, speed)
+    assert not bool(arrived[0])
+    # creep forward while turning, never a pure-rotation command
+    assert abs(float(commands[0, 0]) - TURN_CREEP_SPEED) < 1e-6
+    assert float(commands[0, 2]) > 0.5  # strong left turn command
+
+
 def test_policy_robot_walks_to_goal(sim_world):
     """The trained policy makes the Go2 physically walk to a nearby goal."""
     import torch
@@ -250,6 +271,102 @@ def test_policy_rollout_feasibility_near_100_percent(sim_world, demo_scene):
             ]
         )
     )
+
+
+def _fetch_plan(plan_id: str, speed: float):
+    """A well-formed fetch-and-place plan with a uniform commanded speed."""
+    from physgate.planner.schemas import Plan, PlanStep, ToolName
+
+    return Plan(
+        plan_id=plan_id,
+        task=TASK,
+        steps=[
+            PlanStep(
+                step_id=1,
+                tool=ToolName.MOVE_TO_POSE,
+                args={"target": "box_03", "standoff_m": 0.3, "speed": speed},
+                preconditions=["box_03 exists"],
+            ),
+            PlanStep(
+                step_id=2,
+                tool=ToolName.EXECUTE_SKILL,
+                args={"skill": "pick", "target": "box_03"},
+                preconditions=["box_03 exists", "gripper_empty"],
+            ),
+            PlanStep(
+                step_id=3,
+                tool=ToolName.MOVE_TO_POSE,
+                args={"target": "shelf_A", "standoff_m": 0.4, "speed": speed},
+                preconditions=["shelf_A exists"],
+            ),
+            PlanStep(
+                step_id=4,
+                tool=ToolName.EXECUTE_SKILL,
+                args={"skill": "place", "target": "shelf_A"},
+                preconditions=[],
+            ),
+        ],
+    )
+
+
+def test_policy_place_calls_release_with_momentum(sim_world):
+    """REBUILD.md Phase 2: the place handler must call release_boxes with the
+    approach momentum. Pre-rebuild bug: it never called release_boxes at all
+    (write_box_poses zeroes velocity), so the box always dropped dead and
+    'fast, sloppy placements fail' did not hold in policy mode."""
+    from physgate.gate.l2_physics import rollout_plans_with_policy
+
+    policy = _policy_path()
+    if policy is None:
+        pytest.skip("no exported Go2 policy (run rsl_rl play.py first)")
+
+    release_velocities = []
+    original_release = sim_world.release_boxes
+
+    def spy_release(velocities, env_ids):
+        release_velocities.append(velocities.clone())
+        return original_release(velocities, env_ids)
+
+    sim_world.release_boxes = spy_release
+    try:
+        results = rollout_plans_with_policy(sim_world, [_fetch_plan("momentum_test", 0.5)], policy)
+    finally:
+        sim_world.release_boxes = original_release
+
+    assert results[0].success, (
+        f"baseline plan failed: "
+        f"{results[0].failure.violations[0].detail if results[0].failure else '?'}"
+    )
+    # the placement release must exist and carry the commanded approach momentum
+    assert release_velocities, "place never called release_boxes — the Phase 2 bug is back"
+    horizontal_speed = float(release_velocities[-1][0, :2].norm())
+    assert horizontal_speed > 0.5, (
+        f"box released with only {horizontal_speed:.2f} m/s — momentum transfer missing"
+    )
+
+
+def test_policy_rollout_handles_out_of_range_speeds(sim_world):
+    """Plans may command any speed; mission compilation clamps to the envelope
+    the locomotion stack reliably executes (D-018) — out-of-range commands must
+    not produce physically failing missions."""
+    from physgate.gate.l2_physics import rollout_plans_with_policy
+
+    policy = _policy_path()
+    if policy is None:
+        pytest.skip("no exported Go2 policy (run rsl_rl play.py first)")
+
+    plans = [
+        _fetch_plan("speed_min", 0.1),  # below the floor -> clamped up to 0.4
+        _fetch_plan("speed_mid", 0.5),
+        _fetch_plan("speed_max", 2.0),  # above the ceiling -> clamped down to 0.6
+    ]
+    results = rollout_plans_with_policy(sim_world, plans, policy)
+    failures = [
+        (r.plan_id, r.failure.violations[0].detail if r.failure else "")
+        for r in results
+        if not r.success
+    ]
+    assert not failures, f"clamped-speed plans failed: {failures}"
 
 
 # -------------------------------------------------------------- E17 SimBackend

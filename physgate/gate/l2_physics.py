@@ -282,6 +282,9 @@ def rollout_plans_with_policy(
     fell_over = [False] * num_active
     stuck = [False] * num_active
     completion_time = [None] * num_active
+    # the speed the plan commanded for the most recent goto: at placement, the
+    # box inherits this approach speed (momentum transfer, REBUILD.md Phase 2)
+    last_goto_speed = [0.0] * num_active
     energy = torch.zeros(num_envs, device=device)
 
     # plans that failed mission compilation never simulate: mark them done so
@@ -349,6 +352,24 @@ def rollout_plans_with_policy(
                 ):
                     if float(moved[i]) < 0.15:
                         stuck[i] = True
+                        if debug_l2:
+                            goal = missions[i][mission_index[i]][1]
+                            print(
+                                f"[L2 debug] STUCK env {i} ({plans[i].plan_id}) at "
+                                f"t={control_step * control_dt:.1f}s: "
+                                f"pos={np.round(robot_pos_local[i, :2].cpu().numpy(), 2).tolist()} "
+                                f"goal={np.round(np.asarray(goal, dtype=float), 2).tolist()} "
+                                f"mission_index={mission_index[i]} moved={float(moved[i]):.3f} "
+                                f"yaw={float(yaws[i]):.2f} carrying={carrying[i]} "
+                                f"upright_z={float(world.robot.data.projected_gravity_b[i, 2]):.2f}"
+                            )
+            if debug_l2:
+                print(
+                    f"[L2 debug] t={control_step * control_dt:.0f}s "
+                    f"mission_index={mission_index} "
+                    f"moved={[round(float(moved[i]), 2) for i in range(num_active)]} "
+                    f"pos={np.round(robot_pos_local[:num_active, :2].cpu().numpy(), 2).tolist()}"
+                )
             last_progress_pos = robot_pos_local.clone()
 
         # ---- per-env mission state machine -> goals/speeds ----
@@ -366,6 +387,7 @@ def rollout_plans_with_policy(
             if kind == "goto":
                 goals[i, 0], goals[i, 1] = float(payload[0]), float(payload[1])
                 speeds[i] = speed
+                last_goto_speed[i] = speed
                 navigating[i] = True
             elif kind == "wait":
                 wait_counters[i] += 1
@@ -393,6 +415,7 @@ def rollout_plans_with_policy(
                     edge_clearance = (
                         ((robot_pos_local[i, :2] - shelf_xy).abs() - shelf_half).max().item()
                     )
+                    env_id_tensor = torch.tensor([i], dtype=torch.long, device=device)
                     if edge_clearance < PLACE_REACH_M:
                         release_pos = torch.tensor(
                             [
@@ -405,9 +428,26 @@ def rollout_plans_with_policy(
                         )
                         world.write_box_poses(
                             (release_pos + env_origins[i]).unsqueeze(0),
-                            env_ids=torch.tensor([i], dtype=torch.long, device=device),
+                            env_ids=env_id_tensor,
                         )
                     # else: box is dropped where the robot stands -> physics -> fail
+
+                    # momentum transfer (REBUILD.md Phase 2): the box inherits the
+                    # plan's commanded approach speed along the robot's heading,
+                    # matching the kinematic rollout — write_box_poses zeroes the
+                    # velocity, so WITHOUT this release the box always dropped
+                    # dead and "fast, sloppy placements fail" never held.
+                    yaw_i = float(yaws[i])
+                    release_vel = torch.tensor(
+                        [
+                            math.cos(yaw_i) * last_goto_speed[i] * RELEASE_VELOCITY_GAIN,
+                            math.sin(yaw_i) * last_goto_speed[i] * RELEASE_VELOCITY_GAIN,
+                            0.0,
+                        ],
+                        dtype=torch.float32,
+                        device=device,
+                    )
+                    world.release_boxes(release_vel.unsqueeze(0), env_ids=env_id_tensor)
                 mission_index[i] += 1
             # mission finished?
             if mission_index[i] >= len(missions[i]):
@@ -432,11 +472,23 @@ def rollout_plans_with_policy(
         targets = controller.joint_position_targets(world.robot, commands)
         world.apply_joint_targets(targets)
 
-        # carried boxes ride above their robot
+        # carried boxes ride ahead of and above their robot — same formula as
+        # the kinematic rollout and SimBackend. Carrying directly overhead puts
+        # the box where the pitching trunk contacts it; a kinematically-written
+        # box acts as an immovable obstacle and crushes/stalls the robot (D-018).
         carry_ids = [i for i in range(num_active) if carrying[i]]
         if carry_ids:
             ids = torch.tensor(carry_ids, dtype=torch.long, device=device)
-            carry_pos = world.robot.data.root_pos_w[ids].clone()
+            carry_yaws = yaws[ids]
+            forward = torch.stack(
+                [
+                    torch.cos(carry_yaws),
+                    torch.sin(carry_yaws),
+                    torch.zeros_like(carry_yaws),
+                ],
+                dim=-1,
+            )
+            carry_pos = world.robot.data.root_pos_w[ids] + forward * CARRY_OFFSET[0]
             carry_pos[:, 2] += CARRY_OFFSET[2]
             world.write_box_poses(carry_pos, env_ids=ids)
 

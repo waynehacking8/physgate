@@ -30,7 +30,16 @@ BOX_SIZE = (0.2, 0.2, 0.2)
 SHELF_SIZE = (0.8, 0.4, 0.5)        # top surface at z = 0.5
 OBSTACLE_SIZE = (0.3, 0.3, 0.8)
 ROBOT_BASE_HEIGHT = 0.40            # Go2 standing base height
-CARRY_OFFSET = (0.25, 0.0, 0.25)    # carried box rides ahead/above the trunk
+#: Carried box position relative to the robot base. The carry is BOOKKEEPING,
+#: not physics: there is no gripper articulation in the MVP, so the box is
+#: kinematically written each step. It must therefore stay clear of ANY possible
+#: robot posture — a kinematically written box that contacts the dynamic robot
+#: acts as an immovable obstacle and crushes/stalls it (D-018). 0.6 m overhead
+#: clears the trunk/head at full gait pitch and also clears the shelf (0.5 m)
+#: and pillar (0.8 m) tops during transport. What IS physical about carrying:
+#: the box leaves its original location, and is released WITH momentum at
+#: placement (the physics that decides placement success).
+CARRY_OFFSET = (0.0, 0.0, 0.60)
 SHELF_TOP_Z = SCENE_LAYOUT["shelf_A"][2] + SHELF_SIZE[2] / 2
 
 #: Go2 half-width + margin: used for swept-path checks AND navigation clearance.

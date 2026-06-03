@@ -15,6 +15,7 @@ IMPORTANT: import only after SimulationApp launch.
 
 from __future__ import annotations
 
+import torch
 from isaaclab.scene import InteractiveScene
 
 
@@ -35,6 +36,15 @@ def reset_scene_to_identical_state(scene: InteractiveScene, sim, settle_steps: i
         articulation.write_joint_state_to_sim(
             articulation.data.default_joint_pos.clone(),
             articulation.data.default_joint_vel.clone(),
+        )
+        # Actuator TARGETS must reset too: stale position targets from a
+        # previous rollout (e.g. a crouched/stalled robot) would drive the
+        # joints back toward that posture during the settle steps below,
+        # breaking reset identity and cascading failures across rollouts.
+        articulation.set_joint_position_target(articulation.data.default_joint_pos.clone())
+        articulation.set_joint_velocity_target(articulation.data.default_joint_vel.clone())
+        articulation.set_joint_effort_target(
+            torch.zeros_like(articulation.data.default_joint_pos)
         )
 
     # Rigid objects: default root state + env origin.

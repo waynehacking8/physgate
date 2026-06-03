@@ -1,6 +1,6 @@
 {
   "benchmark": "rebuild Phase 1 - plan feasibility after deterministic navigation",
-  "timestamp": "2026-06-03 16:27:23",
+  "timestamp": "2026-06-03 17:31:24",
   "gpu": "RTX PRO 6000 Blackwell Max-Q (sm_120, 300W)",
   "context": "Pre-rebuild feasibility was 17% (24-plan pool) / 1-in-7 (real-LLM demo) \u2014 an ARTIFACT of obstacle avoidance living in the wrong layer (straight-line driver + hand-placed waypoint_W). After the rebuild, navigation is deterministic A* and every well-formed decomposition should be feasible.",
   "measurements": [
@@ -10,48 +10,48 @@
       "critic_survivors": 6,
       "physically_feasible": 6,
       "feasibility_of_survivors": 1.0,
-      "gpu_wall_s": 14.1,
+      "gpu_wall_s": 12.4,
       "per_plan": [
         {
           "plan_id": "mock_0_direct",
           "success": true,
           "collisions": 0,
-          "time_s": 8.22,
+          "time_s": 7.98,
           "failure": null
         },
         {
           "plan_id": "mock_1_scan_first",
           "success": true,
           "collisions": 0,
-          "time_s": 9.68,
+          "time_s": 9.34,
           "failure": null
         },
         {
           "plan_id": "mock_2_cautious",
           "success": true,
           "collisions": 0,
-          "time_s": 8.86,
+          "time_s": 7.74,
           "failure": null
         },
         {
           "plan_id": "mock_4_direct",
           "success": true,
           "collisions": 0,
-          "time_s": 7.74,
+          "time_s": 7.42,
           "failure": null
         },
         {
           "plan_id": "mock_5_scan_first",
           "success": true,
           "collisions": 0,
-          "time_s": 10.04,
+          "time_s": 9.22,
           "failure": null
         },
         {
           "plan_id": "mock_6_cautious",
           "success": true,
           "collisions": 0,
-          "time_s": 8.88,
+          "time_s": 7.76,
           "failure": null
         }
       ]
@@ -62,62 +62,62 @@
       "critic_survivors": 8,
       "physically_feasible": 8,
       "feasibility_of_survivors": 1.0,
-      "gpu_wall_s": 13.8,
+      "gpu_wall_s": 26.6,
       "per_plan": [
         {
-          "plan_id": "plan_1_direct",
+          "plan_id": "plan_01_direct",
           "success": true,
           "collisions": 0,
-          "time_s": 7.76,
+          "time_s": 7.98,
           "failure": null
         },
         {
-          "plan_id": "plan_2_verify_first",
+          "plan_id": "plan_02_scene_check_first",
           "success": true,
           "collisions": 0,
-          "time_s": 8.12,
+          "time_s": 8.24,
           "failure": null
         },
         {
-          "plan_id": "plan_3_verify_shelf",
+          "plan_id": "plan_03_verify_pick",
           "success": true,
           "collisions": 0,
-          "time_s": 8.34,
+          "time_s": 9.42,
           "failure": null
         },
         {
-          "plan_id": "plan_4_close_standoff",
+          "plan_id": "plan_04_verify_place",
           "success": true,
           "collisions": 0,
-          "time_s": 9.92,
+          "time_s": 8.44,
           "failure": null
         },
         {
-          "plan_id": "plan_5_post_pick_check",
+          "plan_id": "plan_05_close_standoff",
           "success": true,
           "collisions": 0,
-          "time_s": 8.38,
+          "time_s": 9.58,
           "failure": null
         },
         {
-          "plan_id": "plan_6_full_verify",
+          "plan_id": "plan_06_full_verify",
           "success": true,
           "collisions": 0,
-          "time_s": 8.78,
+          "time_s": 9.22,
           "failure": null
         },
         {
-          "plan_id": "plan_7_fast_transit",
+          "plan_id": "plan_07_prestage_shelf",
           "success": true,
           "collisions": 0,
-          "time_s": 8.4,
+          "time_s": 20.96,
           "failure": null
         },
         {
-          "plan_id": "plan_8_prequery_shelf",
+          "plan_id": "plan_08_fast_transit",
           "success": true,
           "collisions": 0,
-          "time_s": 8.1,
+          "time_s": 6.96,
           "failure": null
         }
       ]

@@ -104,7 +104,7 @@ HARD CONSTRAINTS (plans violating these are rejected by the validation gate):
   scene. NEVER invent new object ids, waypoints, staging areas, or locations —
   the physics gate has no coordinates for ids that are not in the scene.
 - move_to_pose args: {"target": "<scene object id>"} plus optional
-  "standoff_m" (0.2-0.5) and "speed" (0.4-1.0, m/s).
+  "standoff_m" (0.2-0.5) and "speed" (0.4-0.6, m/s).
 - execute_skill args: {"skill": "pick" | "place", "target": "<scene object id>"}.
 
 NOTE: you do NOT plan routes or avoid obstacles — a deterministic navigation

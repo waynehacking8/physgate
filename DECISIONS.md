@@ -242,3 +242,94 @@ Consequence for results: the pre-rebuild "17% feasible → best-of-N 99%" curve
 right layer, feasibility of well-formed plans is ~100%, and the Sim-Gate's role
 is **agent-orchestrator evaluation** (decomposition, ordering, preconditions,
 recovery, infeasibility recognition), not route rescue.
+
+## D-018: Placement momentum transfer + locomotion tracking envelope (REBUILD.md Phase 2)
+
+**Bug fixed:** `rollout_plans_with_policy`'s `place` handler never called
+`release_boxes` — `write_box_poses` zeroes velocity, so the box always dropped
+dead onto the shelf and "fast, sloppy placements fail" never held in policy
+mode (REBUILD.md §1, HIGH-severity finding).
+
+Fix: at placement, the box is released with velocity = approach speed ×
+RELEASE_VELOCITY_GAIN along the robot's heading (matching the kinematic
+rollout's semantics). Measured effect (deterministic, Isaac):
+
+| commanded approach speed | box slide after release | outcome |
+|---|---|---|
+| 0.4 m/s | 9 cm  | stays on shelf |
+| 0.6 m/s | 17 cm | stays on shelf |
+| 0.8 m/s | 29 cm | stays on shelf (0.8 × 0.4 m shelf) |
+
+Placement quality is now physically tested: the slide scales with the
+commanded speed, and faster approaches genuinely risk pushing the box off.
+
+**Two locomotion robustness findings from the same verification:**
+
+1. **Waypoint corner clusters stall the follower.** String-pulled A* paths can
+   leave corners centimetres apart where the path hugs a clearance boundary;
+   at ≥0.6 m/s the walking robot overshoots them and oscillates without net
+   progress (stuck detection fires). Fix: `_merge_close_waypoints` — corners
+   closer than the tracking tolerance are merged (the tracking-error clearance
+   inflation already absorbs the ≤0.35 m corner cut).
+2. **A kinematically-carried box must never be able to touch the robot.** The
+   carry has no attachment joint (D-013's documented simplification): the box is
+   pose-written every control step, which makes it an immovable obstacle for
+   PhysX. Carried at +0.25 m overhead (the original choice), the pitching trunk
+   /head contacts it during accelerations and turns, and the robot gets crushed
+   into a stall — intermittently, depending on gait phase and PhysX state
+   history. This is why pre-rebuild routes (no sharp turns while carrying)
+   never hit it. Fix: the carry position is now **+0.6 m overhead — explicitly
+   bookkeeping, not physics**. It clears every robot posture, the shelf, and
+   the pillar. What remains physical about manipulation: the box leaves its
+   original location at pick, and is released WITH momentum at placement (the
+   physics that decides placement success). A proper gripper articulation /
+   attachment joint replaces this when manipulation becomes a real subject of
+   validation.
+
+**Reset identity requires resetting actuator TARGETS, not just joint states.**
+`reset_scene_to_identical_state` originally wrote root/joint states but left the
+articulation's joint position targets from the previous rollout in place; a
+rollout that ended with a crouched/stalled robot poisoned every subsequent
+rollout in the same process (the settle steps drove the joints back toward the
+stale crouch). Fixed: the reset now also writes default position/velocity/effort
+targets. This was the source of the "works in a fresh world, fails in a reused
+world" flakiness.
+
+**The locomotion stack's reliable envelope is [0.4, 0.6] m/s commanded.** Above
+~0.6 m/s, the policy + waypoint-follower combination intermittently collapses
+the robot into a crouch-stall (not a fall — projected gravity stays "upright"),
+sensitive to gait phase and PhysX state history. This is a low-level capability
+limit of the *current* policy (300-iteration rsl_rl flat-terrain training) +
+P-controller navigator, not an orchestration property. Mission speeds are
+clamped to that envelope and the planner prompt advertises 0.4–0.6; plans
+commanding out-of-range speeds run at the nearest reliable speed instead of
+failing on a limitation the LLM cannot know about. Revisit after training a
+more robust policy (more iterations, velocity-command curriculum) or replacing
+the P-controller navigator with a proper local planner.
+
+## D-020: Never command pure rotation — the policy cannot turn in place (Phase 2 verification finding)
+
+The definitive Phase 2 verification (full Isaac suite ×2 + feasibility) exposed a
+deterministic stall: robots froze mid-mission at sharp path corners with
+"no progress for 10 s while navigating", dropping mock feasibility to 67%.
+
+Root cause (benchmarks/rebuild/diag_turn_in_place.py): the trained Go2 flat
+policy has a **"keep standing" fixed point** — commanded pure rotation
+(vx=0, wz=0.9) from a standstill it executes only ~10% of the turn, while the
+same wz with vx=0.2 tracks ~95% and with vx=0.4 tracks ~99%. The waypoint
+navigator's heading deadband commanded exactly that: heading error ≥ 0.6 rad →
+vx=0 + wz → robot decelerates to standstill → never turns → deadlock. Whether a
+given rollout deadlocked depended on the exact joint state on corner arrival,
+which is why *identical* plans diverged (one passed, one stalled) and why the
+failure looked plan/env-random.
+
+Decision: `WaypointNavigator` never commands pure rotation. Outside the heading
+deadband it commands `TURN_CREEP_SPEED = 0.2 m/s` forward + the turn rate: the
+robot turns on a ~0.22 m arc, which stays inside the path planner's
+WAYPOINT_TRACKING_TOLERANCE (0.35 m) clearance inflation, so turning arcs cannot
+violate obstacle clearance.
+
+Evaluation-integrity lesson (same family as D-019): a stall that *looks* like
+"some plans are physically infeasible" can be a low-level controller fixed
+point. Before attributing failures to the plan layer, check what command the
+navigator was issuing when the robot stopped.

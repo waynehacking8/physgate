@@ -278,6 +278,34 @@ def _simplify(
     return simplified
 
 
+def _merge_close_waypoints(
+    path: list[tuple[float, float]], min_spacing: float
+) -> list[tuple[float, float]]:
+    """Drop intermediate waypoints closer than ``min_spacing`` to their predecessor.
+
+    String pulling can leave corner clusters only centimetres apart where the
+    path hugs a clearance boundary. A waypoint follower whose arrival tolerance
+    is >= min_spacing cannot distinguish them — it overshoots one, turns back
+    for the next, and oscillates without net progress. Merging them cuts corners
+    by < min_spacing, which the tracking-error clearance inflation already
+    absorbs, so the merged path is still safe.
+
+    The first and last points are always kept exactly.
+    """
+    if len(path) <= 2 or min_spacing <= 0.0:
+        return path
+    merged = [path[0]]
+    for point in path[1:-1]:
+        if math.hypot(point[0] - merged[-1][0], point[1] - merged[-1][1]) >= min_spacing:
+            merged.append(point)
+    # the final goal is exact; drop a second-to-last corner that crowds it
+    last = path[-1]
+    if len(merged) > 1 and math.hypot(last[0] - merged[-1][0], last[1] - merged[-1][1]) < min_spacing:
+        merged.pop()
+    merged.append(last)
+    return merged
+
+
 # ------------------------------------------------------------------ public API
 
 
@@ -325,7 +353,10 @@ def plan_path(
     # snap the endpoints back to the exact requested positions
     cells[0] = start
     cells[-1] = goal
-    return _simplify(cells, clear_fn)
+    simplified = _simplify(cells, clear_fn)
+    # corner clusters closer than the follower's tracking tolerance cause
+    # overshoot oscillation — merge them (the clearance budget absorbs the cut)
+    return _merge_close_waypoints(simplified, min_spacing=tracking_error)
 
 
 def plan_standoff_route(

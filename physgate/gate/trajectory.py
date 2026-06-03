@@ -301,10 +301,12 @@ def compile_mission(
                     f"object '{target_id}' (known: {sorted(lay.keys())})"
                 )
             standoff = float(step.args.get("standoff_m", 0.3))
-            # floor the commanded speed at 0.4 m/s: the locomotion policy tracks
-            # very low velocity commands poorly (it creeps or stalls); plan
-            # "caution" is expressed by speed within [0.4, 1.0], not below it
-            speed = float(np.clip(float(step.args.get("speed", 0.5)), 0.4, 1.0))
+            # clamp commanded speed to the envelope the locomotion stack
+            # reliably executes (measured, DECISIONS D-018): below 0.4 m/s the
+            # policy creeps/stalls; above ~0.6 m/s the policy + waypoint
+            # follower combination intermittently collapses into a crouch-stall.
+            # The plan's "speed preference" is respected within that envelope.
+            speed = float(np.clip(float(step.args.get("speed", 0.5)), 0.4, 0.6))
 
             # the walking policy follows waypoints loosely (arrival tolerance):
             # plan its routes with matching extra clearance so corner-cutting
