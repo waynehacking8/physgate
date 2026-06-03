@@ -24,7 +24,7 @@ import numpy as np
 from physgate.executor.backend import MockWorldBackend
 from physgate.executor.plan_executor import execute_plan
 from physgate.gate.l1_kinematic import check_joint_trajectory
-from physgate.gate.l3_scene import check_preconditions
+from physgate.gate.l3_scene import check_preconditions, check_step_targets
 from physgate.gate.schemas import FailureCode, FailureReport, GateLayer, Scene, Violation
 from physgate.gate.scoring import PhysicsResult, ScoringWeights, SelectionResult, select_best
 from physgate.planner.schemas import Plan
@@ -56,6 +56,11 @@ def _l1_check(plan: Plan) -> FailureReport | None:
 def _l3_check(plan: Plan, scene: Scene) -> FailureReport | None:
     """L3: symbolic rollout — check each step's preconditions against the
     scene state predicted by applying previous steps' effects."""
+    # anti-hallucination: every referenced target must exist in the scene
+    report = check_step_targets(plan, scene)
+    if report is not None:
+        return report
+
     current = scene
     for step in plan.steps:
         report = check_preconditions(step.preconditions, current, step.step_id)
@@ -107,7 +112,9 @@ def symbolic_l2(plans: list[Plan], scene: Scene) -> list[PhysicsResult]:
                     failure_code=FailureCode.GRASP_FAILURE,
                     layer=GateLayer.PHYSICS,
                     violations=[
-                        Violation(type="symbolic_rollout_failure", detail=execution.get("error", ""))
+                        Violation(
+                            type="symbolic_rollout_failure", detail=execution.get("error", "")
+                        )
                     ],
                     remediation_hint="plan failed symbolic execution; fix step ordering or targets",
                 )

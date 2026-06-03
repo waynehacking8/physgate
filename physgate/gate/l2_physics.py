@@ -25,6 +25,7 @@ IMPORTANT: import only after SimulationApp launch.
 from __future__ import annotations
 
 import math
+import os
 from dataclasses import dataclass, field
 
 import numpy as np
@@ -46,13 +47,13 @@ from physgate.world.fetch_scene import (
 )
 
 # tuning constants
-SKILL_HOLD_STEPS = 60          # sim steps the robot pauses for a pick/place
-SCAN_HOLD_STEPS = 30           # sim steps for a query_scene pause
-SETTLE_STEPS = 240             # sim steps after the last plan step (2 s at 120 Hz)
-RELEASE_VELOCITY_GAIN = 2.0    # released box inherits gain * last motion speed
+SKILL_HOLD_STEPS = 60  # sim steps the robot pauses for a pick/place
+SCAN_HOLD_STEPS = 30  # sim steps for a query_scene pause
+SETTLE_STEPS = 240  # sim steps after the last plan step (2 s at 120 Hz)
+RELEASE_VELOCITY_GAIN = 2.0  # released box inherits gain * last motion speed
 ROBOT_COLLISION_RADIUS = 0.30  # Go2 half-width + margin for swept-path checks
-PLACE_DROP_HEIGHT = 0.06       # box released this high above the shelf surface
-ROBOT_MASS_KG = 15.0           # Go2 mass, for the energy proxy
+PLACE_DROP_HEIGHT = 0.06  # box released this high above the shelf surface
+ROBOT_MASS_KG = 15.0  # Go2 mass, for the energy proxy
 
 
 # ------------------------------------------------------------------ synthesis
@@ -63,7 +64,7 @@ class TrajectoryEvent:
     """Carry/release event at a specific step of a base trajectory."""
 
     step_index: int
-    kind: str                     # "attach" | "release"
+    kind: str  # "attach" | "release"
     object_id: str
     release_velocity: tuple[float, float, float] = (0.0, 0.0, 0.0)
     release_position: tuple[float, float, float] | None = None
@@ -74,8 +75,8 @@ class PlanTrajectory:
     """A plan compiled to a kinematic base trajectory."""
 
     plan_id: str
-    positions: np.ndarray         # (T, 3) base positions, env-local frame
-    yaws: np.ndarray              # (T,) base headings
+    positions: np.ndarray  # (T, 3) base positions, env-local frame
+    yaws: np.ndarray  # (T,) base headings
     events: list[TrajectoryEvent] = field(default_factory=list)
     motion_speeds: np.ndarray = field(default_factory=lambda: np.zeros(0))  # (T,) commanded speed
 
@@ -152,7 +153,9 @@ def synthesize_base_trajectory(
             hold(SKILL_HOLD_STEPS)
             if skill == "pick":
                 events.append(
-                    TrajectoryEvent(step_index=len(positions) - 1, kind="attach", object_id=target_id)
+                    TrajectoryEvent(
+                        step_index=len(positions) - 1, kind="attach", object_id=target_id
+                    )
                 )
                 held_object = target_id
             elif skill == "place":
@@ -351,7 +354,9 @@ def rollout_plans(world: FetchSimWorld, plans: list[Plan]) -> list[PhysicsResult
                 f"shelf surface is at z={SHELF_TOP_Z:.2f}"
             )
             failure = FailureReport(
-                failure_code=FailureCode.GRASP_FAILURE if placed else FailureCode.PRECONDITION_VIOLATION,
+                failure_code=FailureCode.GRASP_FAILURE
+                if placed
+                else FailureCode.PRECONDITION_VIOLATION,
                 layer=GateLayer.PHYSICS,
                 violations=[
                     Violation(
@@ -378,6 +383,17 @@ def rollout_plans(world: FetchSimWorld, plans: list[Plan]) -> list[PhysicsResult
 # ------------------------------------------------------ policy-driven rollout
 
 
+class UnknownTargetError(ValueError):
+    """A plan references an object id with no physical location in the scene layout.
+
+    L3 (:func:`physgate.gate.l3_scene.check_step_targets`) should reject such
+    plans before they reach L2; this exception is the defense-in-depth backstop
+    for direct L2 callers. Silently skipping unknown targets is NOT acceptable:
+    it degrades plans into do-nothing missions that fail with misleading
+    "box not on shelf" reports (DECISIONS.md D-016).
+    """
+
+
 def _compile_mission(
     plan: Plan, lay: dict[str, tuple[float, float, float]]
 ) -> list[tuple[str, object, float]]:
@@ -385,6 +401,9 @@ def _compile_mission(
 
     Mission entries: ("goto", goal_xy_position, speed) | ("pick", object_id, 0)
     | ("place", object_id, 0) | ("wait", duration_steps, 0).
+
+    Raises:
+        UnknownTargetError: a move_to_pose step targets an id not in ``lay``.
     """
     mission: list[tuple[str, object, float]] = []
     current = np.array(lay["go2"][:2], dtype=np.float64)
@@ -393,9 +412,12 @@ def _compile_mission(
         if step.tool == ToolName.QUERY_SCENE:
             mission.append(("wait", 25, 0.0))  # ~0.5 s at 50 Hz control
         elif step.tool == ToolName.MOVE_TO_POSE:
-            target_id = step.args["target"]
+            target_id = step.args.get("target")
             if target_id not in lay:
-                continue
+                raise UnknownTargetError(
+                    f"plan '{plan.plan_id}' step {step.step_id} moves to unknown "
+                    f"object '{target_id}' (known: {sorted(lay.keys())})"
+                )
             target = np.array(lay[target_id][:2], dtype=np.float64)
             standoff = float(step.args.get("standoff_m", 0.3))
             # floor the commanded speed at 0.4 m/s: the locomotion policy tracks
@@ -457,7 +479,16 @@ def rollout_plans_with_policy(
     controller = Go2PolicyController(policy_path, num_envs=num_envs, device=device)
     navigator = WaypointNavigator(num_envs=num_envs, device=device)
 
-    missions = [_compile_mission(p, SCENE_LAYOUT) for p in plans]
+    # compile plans -> missions; plans referencing unknown objects get an
+    # explicit failure instead of a silently degraded mission (D-016)
+    missions: list[list[tuple[str, object, float]]] = []
+    compile_errors: dict[int, str] = {}
+    for idx, p in enumerate(plans):
+        try:
+            missions.append(_compile_mission(p, SCENE_LAYOUT))
+        except UnknownTargetError as exc:
+            missions.append([])
+            compile_errors[idx] = str(exc)
     mission_index = [0] * num_active
     carrying = [False] * num_active
     wait_counters = [0] * num_active
@@ -467,12 +498,21 @@ def rollout_plans_with_policy(
     completion_time = [None] * num_active
     energy = torch.zeros(num_envs, device=device)
 
+    # plans that failed mission compilation never simulate: mark them done so
+    # the control loop does not wait 90 s for envs that will never move
+    for idx in compile_errors:
+        completed[idx] = True
+        completion_time[idx] = 0.0
+
     env_origins = world.env_origins
     obstacle_center = torch.tensor(
         SCENE_LAYOUT["obstacle_P"][:2], dtype=torch.float32, device=device
     )
     obstacle_half = torch.tensor(
-        [OBSTACLE_SIZE[0] / 2 + ROBOT_COLLISION_RADIUS, OBSTACLE_SIZE[1] / 2 + ROBOT_COLLISION_RADIUS],
+        [
+            OBSTACLE_SIZE[0] / 2 + ROBOT_COLLISION_RADIUS,
+            OBSTACLE_SIZE[1] / 2 + ROBOT_COLLISION_RADIUS,
+        ],
         dtype=torch.float32,
         device=device,
     )
@@ -486,20 +526,41 @@ def rollout_plans_with_policy(
     stuck_window_steps = int(10.0 / control_dt)
     last_progress_pos = (world.robot.data.root_pos_w - env_origins).clone()
 
+    # diagnostic tracing for the first control steps (PHYSGATE_DEBUG_L2=1)
+    debug_l2 = os.environ.get("PHYSGATE_DEBUG_L2") == "1"
+    if debug_l2:
+        print(
+            f"[L2 debug] {num_active} plans, control_dt={control_dt}, "
+            f"max_control_steps={max_control_steps}"
+        )
+        for i, m in enumerate(missions):
+            print(
+                f"[L2 debug] mission {i} ({plans[i].plan_id}): "
+                f"{[(e[0], e[1] if isinstance(e[1], str) else np.round(e[1], 2).tolist()) for e in m]}"
+            )
+
     for control_step in range(max_control_steps):
         robot_pos_local = world.robot.data.root_pos_w - env_origins
         yaws = base_yaws(world.robot)
 
+        if debug_l2 and control_step < 3:
+            print(
+                f"[L2 debug] step {control_step}: robot_pos_local[:num_active,:2]="
+                f"{np.round(robot_pos_local[:num_active, :2].cpu().numpy(), 2).tolist()} "
+                f"mission_index={mission_index}"
+            )
+
         # ---- stuck detection (every 10 s of sim time) ----
         if control_step > 0 and control_step % stuck_window_steps == 0:
-            moved = torch.norm(
-                robot_pos_local[:, :2] - last_progress_pos[:, :2], dim=-1
-            )
+            moved = torch.norm(robot_pos_local[:, :2] - last_progress_pos[:, :2], dim=-1)
             for i in range(num_active):
                 if completed[i] or fell_over[i] or stuck[i]:
                     continue
                 # only goto steps require movement
-                if mission_index[i] < len(missions[i]) and missions[i][mission_index[i]][0] == "goto":
+                if (
+                    mission_index[i] < len(missions[i])
+                    and missions[i][mission_index[i]][0] == "goto"
+                ):
                     if float(moved[i]) < 0.15:
                         stuck[i] = True
             last_progress_pos = robot_pos_local.clone()
@@ -604,9 +665,7 @@ def rollout_plans_with_policy(
 
         # obstacle proximity on the actual path
         pos_local = world.robot.data.root_pos_w - env_origins
-        inside = (
-            (pos_local[:, :2] - obstacle_center).abs() < obstacle_half
-        ).all(dim=-1)
+        inside = ((pos_local[:, :2] - obstacle_center).abs() < obstacle_half).all(dim=-1)
         proximity_history.append(inside.clone())
 
         if all(completed[i] or fell_over[i] or stuck[i] for i in range(num_active)):
@@ -618,6 +677,29 @@ def rollout_plans_with_policy(
 
     results: list[PhysicsResult] = []
     for i, plan in enumerate(plans):
+        # plans rejected at mission compilation: explicit unknown-object failure
+        if i in compile_errors:
+            results.append(
+                PhysicsResult(
+                    plan_id=plan.plan_id,
+                    success=False,
+                    collision_count=0,
+                    completion_time_s=0.0,
+                    energy_j=0.0,
+                    failure=FailureReport(
+                        failure_code=FailureCode.PRECONDITION_VIOLATION,
+                        layer=GateLayer.PHYSICS,
+                        violations=[Violation(type="unknown_object", detail=compile_errors[i])],
+                        remediation_hint=(
+                            "only reference object ids that exist in the scene; "
+                            "do not invent waypoints or locations"
+                        ),
+                        retryable=True,
+                    ),
+                )
+            )
+            continue
+
         on_shelf = _box_on_shelf(final_box_positions[i])
         success = completed[i] and on_shelf and not fell_over[i]
 
@@ -640,7 +722,9 @@ def rollout_plans_with_policy(
                 detail, vtype = "mission timed out (likely blocked by obstacle)", "timeout"
             else:
                 box = final_box_positions[i]
-                detail = f"box ended at ({box[0]:.2f}, {box[1]:.2f}, {box[2]:.2f}), not on the shelf"
+                detail = (
+                    f"box ended at ({box[0]:.2f}, {box[1]:.2f}, {box[2]:.2f}), not on the shelf"
+                )
                 vtype = "placement_failed"
             failure = FailureReport(
                 failure_code=FailureCode.TIMEOUT if not completed[i] else FailureCode.GRASP_FAILURE,

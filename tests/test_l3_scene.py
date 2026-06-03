@@ -68,3 +68,106 @@ def test_unparseable_precondition_fails_closed():
     report = check_preconditions(["this is not a valid precondition form"], scene)
     assert report is not None
     assert report.violations[0].type == "unparseable_precondition"
+
+
+# ------------------------------------------- step-target validation (anti-hallucination)
+
+
+def test_step_targets_all_known_returns_none():
+    """Plans whose step targets all exist in the scene pass the target check."""
+    from physgate.gate.l3_scene import check_step_targets
+    from physgate.planner.schemas import Plan, PlanStep, ToolName
+
+    plan = Plan(
+        plan_id="ok",
+        task="t",
+        rationale="r",
+        steps=[
+            PlanStep(
+                step_id=1,
+                tool=ToolName.MOVE_TO_POSE,
+                args={"target": "box_03"},
+                preconditions=["box_03 exists"],
+            ),
+            PlanStep(
+                step_id=2,
+                tool=ToolName.EXECUTE_SKILL,
+                args={"skill": "pick", "target": "box_03"},
+                preconditions=["gripper_empty"],
+            ),
+        ],
+    )
+    assert check_step_targets(plan, _fetch_scene()) is None
+
+
+def test_step_target_referencing_unknown_object_is_denied():
+    """An LLM planner can hallucinate object ids (e.g. invented waypoints).
+
+    Those plans must be rejected at L3 with a clear violation — NOT silently
+    degraded into do-nothing missions at L2 (the failure mode behind the
+    2026-06-03 real-LLM demo escalation)."""
+    from physgate.gate.l3_scene import check_step_targets
+    from physgate.planner.schemas import Plan, PlanStep, ToolName
+
+    plan = Plan(
+        plan_id="hallucinated",
+        task="t",
+        rationale="r",
+        steps=[
+            PlanStep(
+                step_id=1,
+                tool=ToolName.MOVE_TO_POSE,
+                args={"target": "waypoint_2"},  # does not exist
+                preconditions=[],
+            ),
+        ],
+    )
+    report = check_step_targets(plan, _fetch_scene())
+    assert report is not None
+    assert report.failure_code == FailureCode.PRECONDITION_VIOLATION
+    assert report.layer == GateLayer.SEMANTIC_PRECONDITION
+    assert any("waypoint_2" in v.detail for v in report.violations)
+    assert any(v.type == "unknown_object" for v in report.violations)
+
+
+def test_step_target_check_reports_every_unknown_id():
+    """All hallucinated ids are reported, not just the first."""
+    from physgate.gate.l3_scene import check_step_targets
+    from physgate.planner.schemas import Plan, PlanStep, ToolName
+
+    plan = Plan(
+        plan_id="double_hallucination",
+        task="t",
+        rationale="r",
+        steps=[
+            PlanStep(
+                step_id=1,
+                tool=ToolName.MOVE_TO_POSE,
+                args={"target": "staging_area"},
+                preconditions=[],
+            ),
+            PlanStep(
+                step_id=2,
+                tool=ToolName.MOVE_TO_POSE,
+                args={"target": "waypoint_9"},
+                preconditions=[],
+            ),
+        ],
+    )
+    report = check_step_targets(plan, _fetch_scene())
+    assert report is not None
+    assert len(report.violations) == 2
+
+
+def test_step_without_target_arg_is_fine():
+    """query_scene steps have no target; that is not a violation."""
+    from physgate.gate.l3_scene import check_step_targets
+    from physgate.planner.schemas import Plan, PlanStep, ToolName
+
+    plan = Plan(
+        plan_id="scan",
+        task="t",
+        rationale="r",
+        steps=[PlanStep(step_id=1, tool=ToolName.QUERY_SCENE, args={}, preconditions=[])],
+    )
+    assert check_step_targets(plan, _fetch_scene()) is None

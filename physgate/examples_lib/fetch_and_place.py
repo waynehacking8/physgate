@@ -9,7 +9,7 @@
         -> report
 
 The pipeline pieces are swappable:
-  * planner/critic: Claude API when ANTHROPIC_API_KEY is set, mock otherwise
+  * planner/critic: real Claude when LLM credentials are set (API key or subscription OAuth), mock otherwise
   * L2 physics:     Isaac Lab when available, symbolic rollout otherwise
   * executor:       Isaac Sim backend when available, symbolic backend otherwise
 
@@ -18,6 +18,7 @@ examples/fetch_and_place.py is the runnable terminal entry point.
 
 from __future__ import annotations
 
+import json
 from typing import Any, Callable
 
 from physgate.executor.backend import MockWorldBackend, WorldBackend
@@ -98,6 +99,20 @@ def _format_report(
                 f"[{status}] {result.completion_time_s:>6.1f}s "
                 f"{result.collision_count} collisions{marker}"
             )
+            # failed plans must say WHY — silent failures are undiagnosable
+            if result.failure is not None:
+                for violation in result.failure.violations:
+                    lines.append(f"      └─ {violation.type}: {violation.detail}")
+
+    # full candidate step dump: makes any planner/critic/gate failure diagnosable
+    if candidates:
+        lines.append("-" * 72)
+        lines.append("candidate plan steps:")
+        for plan in candidates:
+            lines.append(f"  {plan.plan_id}:")
+            for step in plan.steps:
+                args = json.dumps(step.args, ensure_ascii=False)
+                lines.append(f"    {step.step_id}. {step.tool.value} {args}")
 
     lines.append("-" * 72)
     if execution:
@@ -165,6 +180,7 @@ def run_fetch_and_place(
     audit_trail = AuditTrail()
 
     if auto_approve:
+
         def approval_fn(selection: SelectionResult) -> bool:
             return True
 

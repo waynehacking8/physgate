@@ -64,9 +64,7 @@ def make_anthropic_client():
             auth_token=auth_token,
             default_headers={"anthropic-beta": "oauth-2025-04-20"},
         )
-    raise ValueError(
-        "no LLM credentials: set ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN"
-    )
+    raise ValueError("no LLM credentials: set ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN")
 
 
 def llm_credentials_available() -> bool:
@@ -76,6 +74,7 @@ def llm_credentials_available() -> bool:
         or os.environ.get("CLAUDE_CODE_OAUTH_TOKEN")
         or os.environ.get("ANTHROPIC_AUTH_TOKEN")
     )
+
 
 _SYSTEM_PROMPT = """\
 You are a robot task planner for a Unitree Go2 quadruped with a top-mounted gripper.
@@ -100,8 +99,17 @@ Output ONLY a JSON array of plan objects, no prose. Each plan object:
   ]
 }
 
+HARD CONSTRAINTS (plans violating these are rejected by the validation gate):
+- Every "target" value MUST be an object id copied EXACTLY from the provided
+  scene. NEVER invent new object ids, waypoints, staging areas, or locations —
+  the physics gate has no coordinates for ids that are not in the scene.
+- move_to_pose args: {"target": "<scene object id>"} plus optional
+  "standoff_m" (0.2-0.5) and "speed" (0.4-1.0, m/s).
+- execute_skill args: {"skill": "pick" | "place", "target": "<scene object id>"}.
+
 Generate plans that are meaningfully DIFFERENT (different routes, orderings,
-intermediate checks) so physics validation can select the best one.
+intermediate checks) so physics validation can select the best one. Route
+variety must come from different orderings of EXISTING scene objects.
 Every manipulation step must declare its preconditions.
 """
 
@@ -147,9 +155,7 @@ class ClaudePlanner:
         self._model = model
         self._max_tokens = max_tokens
 
-    def __call__(
-        self, task: str, scene: Scene, n: int, feedback: str | None = None
-    ) -> list[Plan]:
+    def __call__(self, task: str, scene: Scene, n: int, feedback: str | None = None) -> list[Plan]:
         user_prompt = (
             f"Task: {task}\n\n"
             f"Current scene (query_scene output):\n"
@@ -191,15 +197,11 @@ class MockPlanner:
 
     _last_scene: Scene | None = None
 
-    def __call__(
-        self, task: str, scene: Scene, n: int, feedback: str | None = None
-    ) -> list[Plan]:
+    def __call__(self, task: str, scene: Scene, n: int, feedback: str | None = None) -> list[Plan]:
         self._last_scene = scene  # used by route variants that need scene lookups
         fetch_target = self._fetch_target(scene)
         place_target = self._place_target(scene)
-        rationale_suffix = (
-            " (replan after gate feedback)" if feedback else ""
-        )
+        rationale_suffix = " (replan after gate feedback)" if feedback else ""
 
         variants = [
             self._direct_plan,
@@ -272,9 +274,7 @@ class MockPlanner:
             tool=ToolName.MOVE_TO_POSE,
             args={"target": target, "standoff_m": standoff, "speed": speed},
             preconditions=[f"{target} exists"],
-            effects=[
-                RelationChange(op="add", subject="robot", predicate="near", object=target)
-            ],
+            effects=[RelationChange(op="add", subject="robot", predicate="near", object=target)],
         )
 
     def _direct_plan(self, i, task, fetch, place, suffix) -> Plan:
@@ -308,9 +308,7 @@ class MockPlanner:
         """Slow detour route: goes via a waypoint (if the scene has one) instead
         of cutting straight across — trades time for clearance."""
         waypoint = self._waypoint(self._last_scene) if self._last_scene else None
-        detour_steps = (
-            [self._move_step(3, waypoint, standoff=0.0, speed=0.25)] if waypoint else []
-        )
+        detour_steps = [self._move_step(3, waypoint, standoff=0.0, speed=0.25)] if waypoint else []
         steps = [
             self._move_step(1, fetch, standoff=0.5, speed=0.25),
             self._pick_step(2, fetch),

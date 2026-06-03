@@ -6,15 +6,16 @@
 
 Usage:
     python examples/fetch_and_place.py                 # offline (mock planner + symbolic physics)
-    ANTHROPIC_API_KEY=... python examples/fetch_and_place.py   # real Claude planner/critic
     python examples/fetch_and_place.py --isaac          # Isaac Sim L2 physics + execution
                                                          # (requires the env_isaaclab venv)
+
+Real Claude planner/critic activates automatically when LLM credentials are set:
+ANTHROPIC_API_KEY (API key) or CLAUDE_CODE_OAUTH_TOKEN (subscription, via claude -p).
 """
 
 from __future__ import annotations
 
 import argparse
-import os
 import sys
 
 
@@ -74,11 +75,13 @@ def main() -> int:
 
     from physgate.examples_lib.fetch_and_place import run_fetch_and_place
 
-    if os.environ.get("ANTHROPIC_API_KEY"):
-        print("[planner] ANTHROPIC_API_KEY found -> using Claude API planner/critic")
+    from physgate.planner.planner import llm_credentials_available
+
+    if llm_credentials_available():
+        print("[planner] LLM credentials found -> using real Claude planner/critic")
     else:
-        print("[planner] no ANTHROPIC_API_KEY -> using deterministic mock planner/critic")
-        print("[planner] (export ANTHROPIC_API_KEY=... to plan with the real LLM)")
+        print("[planner] no LLM credentials -> using deterministic mock planner/critic")
+        print("[planner] (set ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN for the real LLM)")
 
     if args.interactive:
         kwargs["auto_approve"] = False

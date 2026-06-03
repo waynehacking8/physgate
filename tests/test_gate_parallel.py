@@ -21,7 +21,9 @@ TASK = "put the fallen box back on shelf A"
 def _scene() -> Scene:
     return Scene(
         objects=[
-            SceneObject(id="box_03", label="cardboard_box", affordances=["graspable"], is_anomaly=True),
+            SceneObject(
+                id="box_03", label="cardboard_box", affordances=["graspable"], is_anomaly=True
+            ),
             SceneObject(id="shelf_A", label="shelf", affordances=["placeable"]),
             SceneObject(id="floor_01", label="floor"),
             SceneObject(id="go2", label="robot"),
@@ -48,7 +50,9 @@ def _feasible_plan(plan_id: str = "feasible") -> Plan:
                 args={"skill": "pick", "target": "box_03"},
                 preconditions=["box_03 exists", "gripper_empty"],
                 effects=[
-                    RelationChange(op="add", subject="gripper", predicate="holding", object="box_03")
+                    RelationChange(
+                        op="add", subject="gripper", predicate="holding", object="box_03"
+                    )
                 ],
             ),
             PlanStep(
@@ -211,3 +215,38 @@ def test_symbolic_l2_detects_symbolic_failure():
     results = symbolic_l2([grab_shelf], _scene())
     assert results[0].success is False
     assert results[0].failure is not None
+
+
+def test_plan_with_hallucinated_target_rejected_at_l3():
+    """The full gate pipeline must reject plans that move to invented objects
+    BEFORE physics — they get a failed result with an unknown_object violation."""
+    scene = _scene()
+    plan = Plan(
+        plan_id="hallucinated_waypoint",
+        task=TASK,
+        rationale="route via a waypoint that does not exist",
+        steps=[
+            PlanStep(
+                step_id=1,
+                tool=ToolName.MOVE_TO_POSE,
+                args={"target": "waypoint_imaginary"},
+                preconditions=[],
+            ),
+            PlanStep(
+                step_id=2,
+                tool=ToolName.EXECUTE_SKILL,
+                args={"skill": "pick", "target": "box_03"},
+                preconditions=["box_03 exists", "gripper_empty"],
+            ),
+        ],
+    )
+    selection = run_gate([plan], scene, l2_fn=symbolic_l2)
+    assert selection.any_feasible is False
+    result = selection.ranked[0]
+    assert not result.success
+    assert result.failure is not None
+    assert any(v.type == "unknown_object" for v in result.failure.violations)
+    # it must never have reached L2 physics
+    from physgate.gate.schemas import GateLayer
+
+    assert result.failure.layer == GateLayer.SEMANTIC_PRECONDITION

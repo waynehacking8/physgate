@@ -122,9 +122,8 @@ def test_l2_at_least_one_plan_physically_succeeds(sim_world, demo_scene):
     plans = MockPlanner()(TASK, demo_scene, 8, None)
     results = rollout_plans(sim_world, plans)
     successes = [r for r in results if r.success]
-    assert successes, (
-        "no plan physically placed the box on the shelf; outcomes: "
-        + str([(r.plan_id, r.failure.violations[0].detail if r.failure else "") for r in results])
+    assert successes, "no plan physically placed the box on the shelf; outcomes: " + str(
+        [(r.plan_id, r.failure.violations[0].detail if r.failure else "") for r in results]
     )
 
 
@@ -241,9 +240,8 @@ def test_policy_rollout_physically_discriminates_plans(sim_world, demo_scene):
     assert cautious and direct
 
     # at least one detour plan must physically complete the task
-    assert any(r.success for r in cautious), (
-        "no cautious plan succeeded: "
-        + str([(r.plan_id, r.failure.violations[0].detail if r.failure else "") for r in cautious])
+    assert any(r.success for r in cautious), "no cautious plan succeeded: " + str(
+        [(r.plan_id, r.failure.violations[0].detail if r.failure else "") for r in cautious]
     )
     # straight-line plans must be physically penalized: blocked (fail) or collide
     assert all((not r.success) or r.collision_count > 0 for r in direct), (
@@ -275,3 +273,41 @@ def test_sim_backend_executes_winning_plan(sim_world, demo_scene):
     assert _box_on_shelf(final_box), f"box ended at {final_box}, not on the shelf"
     # the symbolic scene agrees with the physics
     assert backend.get_scene().has_relation("box_03", "on", "shelf_A")
+
+
+def test_rollout_rejects_hallucinated_target_plan(sim_world):
+    """A plan that moves to an invented object id gets an explicit unknown_object
+    failure — not a misleading 'box not on shelf' 0.0s result (D-016)."""
+    from physgate.gate.l2_physics import rollout_plans_with_policy
+    from physgate.planner.schemas import Plan, PlanStep, ToolName
+
+    policy = _policy_path()
+    if policy is None:
+        pytest.skip("no exported Go2 policy (run rsl_rl play.py first)")
+
+    plan = Plan(
+        plan_id="hallucinated",
+        task=TASK,
+        rationale="moves via an invented waypoint",
+        steps=[
+            PlanStep(
+                step_id=1,
+                tool=ToolName.MOVE_TO_POSE,
+                args={"target": "waypoint_imaginary"},
+                preconditions=[],
+            ),
+            PlanStep(
+                step_id=2,
+                tool=ToolName.EXECUTE_SKILL,
+                args={"skill": "pick", "target": "box_03"},
+                preconditions=["box_03 exists"],
+            ),
+        ],
+    )
+    results = rollout_plans_with_policy(sim_world, [plan], policy)
+
+    assert results[0].success is False
+    assert results[0].failure is not None
+    violations = results[0].failure.violations
+    assert any(v.type == "unknown_object" for v in violations)
+    assert "waypoint_imaginary" in violations[0].detail
