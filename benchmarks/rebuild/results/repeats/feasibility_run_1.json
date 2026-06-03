@@ -1,0 +1,131 @@
+{
+  "benchmark": "rebuild Phase 1 - plan feasibility after deterministic navigation",
+  "timestamp": "2026-06-03 20:17:36",
+  "gpu": "RTX PRO 6000 Blackwell Max-Q (sm_120, 300W)",
+  "context": "Pre-rebuild feasibility was 17% (24-plan pool) / 1-in-7 (real-LLM demo) \u2014 an ARTIFACT of obstacle avoidance living in the wrong layer (straight-line driver + hand-placed waypoint_W). After the rebuild, navigation is deterministic A* and every well-formed decomposition should be feasible.",
+  "measurements": [
+    {
+      "planner": "mock",
+      "candidates_generated": 8,
+      "critic_survivors": 6,
+      "physically_feasible": 6,
+      "feasibility_of_survivors": 1.0,
+      "gpu_wall_s": 13.3,
+      "per_plan": [
+        {
+          "plan_id": "mock_0_direct",
+          "success": true,
+          "collisions": 0,
+          "time_s": 7.98,
+          "failure": null
+        },
+        {
+          "plan_id": "mock_1_scan_first",
+          "success": true,
+          "collisions": 0,
+          "time_s": 9.34,
+          "failure": null
+        },
+        {
+          "plan_id": "mock_2_cautious",
+          "success": true,
+          "collisions": 0,
+          "time_s": 7.74,
+          "failure": null
+        },
+        {
+          "plan_id": "mock_4_direct",
+          "success": true,
+          "collisions": 0,
+          "time_s": 7.42,
+          "failure": null
+        },
+        {
+          "plan_id": "mock_5_scan_first",
+          "success": true,
+          "collisions": 0,
+          "time_s": 9.22,
+          "failure": null
+        },
+        {
+          "plan_id": "mock_6_cautious",
+          "success": true,
+          "collisions": 0,
+          "time_s": 7.76,
+          "failure": null
+        }
+      ]
+    },
+    {
+      "planner": "claude",
+      "candidates_generated": 8,
+      "critic_survivors": 8,
+      "physically_feasible": 8,
+      "feasibility_of_survivors": 1.0,
+      "gpu_wall_s": 13.5,
+      "per_plan": [
+        {
+          "plan_id": "plan_direct",
+          "success": true,
+          "collisions": 0,
+          "time_s": 7.98,
+          "failure": null
+        },
+        {
+          "plan_id": "plan_scene_first",
+          "success": true,
+          "collisions": 0,
+          "time_s": 8.24,
+          "failure": null
+        },
+        {
+          "plan_id": "plan_verify_shelf",
+          "success": true,
+          "collisions": 0,
+          "time_s": 8.14,
+          "failure": null
+        },
+        {
+          "plan_id": "plan_post_pick_check",
+          "success": true,
+          "collisions": 0,
+          "time_s": 9.34,
+          "failure": null
+        },
+        {
+          "plan_id": "plan_full_checks",
+          "success": true,
+          "collisions": 0,
+          "time_s": 8.74,
+          "failure": null
+        },
+        {
+          "plan_id": "plan_close_standoff",
+          "success": true,
+          "collisions": 0,
+          "time_s": 9.58,
+          "failure": null
+        },
+        {
+          "plan_id": "plan_far_standoff",
+          "success": true,
+          "collisions": 0,
+          "time_s": 7.42,
+          "failure": null
+        },
+        {
+          "plan_id": "plan_recheck_each_target",
+          "success": true,
+          "collisions": 0,
+          "time_s": 9.56,
+          "failure": null
+        }
+      ]
+    }
+  ],
+  "acceptance": {
+    "criterion": "feasibility of critic-surviving plans >= 80% (~100% expected)",
+    "artifact_eliminated": true
+  },
+  "interpretation": "Feasibility is no longer a route lottery: mock: 6/6 (100%); claude: 8/8 (100%). The 17%-feasible result was an artifact of the layering defect, as REBUILD.md \u00a71 concluded."
+}

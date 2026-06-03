@@ -1,0 +1,1872 @@
+{
+ "experiment": "E1 pipeline ablation",
+ "methodology": "docs/design/EVALUATION_METHODOLOGY.md section 4 E1",
+ "timestamp": "2026-06-03 20:37:19",
+ "config": {
+  "n_feasible_instances": 20,
+  "n_infeasible_instances": 8,
+  "seed": 2026,
+  "plan_pool_size": 21,
+  "plan_pool_valid": 9,
+  "execution_model": "symbolic execution (MockWorldBackend) + navigation compilation against the instance layout; success = task goal relation holds post-execution"
+ },
+ "conditions": {
+  "A0_no_validation": {
+   "success_rate": 0.4286,
+   "success_ci_95": [
+    0.3821,
+    0.4763
+   ],
+   "false_execution_rate": 1.0,
+   "rejection_rate": 0.0,
+   "n_instances": 28,
+   "details": [
+    {
+     "instance": "gen_feasible_000",
+     "selected": [
+      "mock_0_direct",
+      "mock_0_direct__D1",
+      "mock_0_direct__D2",
+      "mock_0_direct__D3",
+      "mock_0_direct__D4",
+      "mock_0_direct__D6",
+      "mock_0_direct__D7",
+      "mock_1_scan_first",
+      "mock_1_scan_first__D1",
+      "mock_1_scan_first__D2",
+      "mock_1_scan_first__D3",
+      "mock_1_scan_first__D4",
+      "mock_1_scan_first__D6",
+      "mock_1_scan_first__D7",
+      "mock_2_cautious",
+      "mock_2_cautious__D1",
+      "mock_2_cautious__D2",
+      "mock_2_cautious__D3",
+      "mock_2_cautious__D4",
+      "mock_2_cautious__D6",
+      "mock_2_cautious__D7"
+     ],
+     "success": 0.4286
+    },
+    {
+     "instance": "gen_feasible_001",
+     "selected": [
+      "mock_0_direct",
+      "mock_0_direct__D1",
+      "mock_0_direct__D2",
+      "mock_0_direct__D3",
+      "mock_0_direct__D4",
+      "mock_0_direct__D6",
+      "mock_0_direct__D7",
+      "mock_1_scan_first",
+      "mock_1_scan_first__D1",
+      "mock_1_scan_first__D2",
+      "mock_1_scan_first__D3",
+      "mock_1_scan_first__D4",
+      "mock_1_scan_first__D6",
+      "mock_1_scan_first__D7",
+      "mock_2_cautious",
+      "mock_2_cautious__D1",
+      "mock_2_cautious__D2",
+      "mock_2_cautious__D3",
+      "mock_2_cautious__D4",
+      "mock_2_cautious__D6",
+      "mock_2_cautious__D7"
+     ],
+     "success": 0.4286
+    },
+    {
+     "instance": "gen_feasible_002",
+     "selected": [
+      "mock_0_direct",
+      "mock_0_direct__D1",
+      "mock_0_direct__D2",
+      "mock_0_direct__D3",
+      "mock_0_direct__D4",
+      "mock_0_direct__D6",
+      "mock_0_direct__D7",
+      "mock_1_scan_first",
+      "mock_1_scan_first__D1",
+      "mock_1_scan_first__D2",
+      "mock_1_scan_first__D3",
+      "mock_1_scan_first__D4",
+      "mock_1_scan_first__D6",
+      "mock_1_scan_first__D7",
+      "mock_2_cautious",
+      "mock_2_cautious__D1",
+      "mock_2_cautious__D2",
+      "mock_2_cautious__D3",
+      "mock_2_cautious__D4",
+      "mock_2_cautious__D6",
+      "mock_2_cautious__D7"
+     ],
+     "success": 0.4286
+    },
+    {
+     "instance": "gen_feasible_003",
+     "selected": [
+      "mock_0_direct",
+      "mock_0_direct__D1",
+      "mock_0_direct__D2",
+      "mock_0_direct__D3",
+      "mock_0_direct__D4",
+      "mock_0_direct__D6",
+      "mock_0_direct__D7",
+      "mock_1_scan_first",
+      "mock_1_scan_first__D1",
+      "mock_1_scan_first__D2",
+      "mock_1_scan_first__D3",
+      "mock_1_scan_first__D4",
+      "mock_1_scan_first__D6",
+      "mock_1_scan_first__D7",
+      "mock_2_cautious",
+      "mock_2_cautious__D1",
+      "mock_2_cautious__D2",
+      "mock_2_cautious__D3",
+      "mock_2_cautious__D4",
+      "mock_2_cautious__D6",
+      "mock_2_cautious__D7"
+     ],
+     "success": 0.4286
+    },
+    {
+     "instance": "gen_feasible_004",
+     "selected": [
+      "mock_0_direct",
+      "mock_0_direct__D1",
+      "mock_0_direct__D2",
+      "mock_0_direct__D3",
+      "mock_0_direct__D4",
+      "mock_0_direct__D6",
+      "mock_0_direct__D7",
+      "mock_1_scan_first",
+      "mock_1_scan_first__D1",
+      "mock_1_scan_first__D2",
+      "mock_1_scan_first__D3",
+      "mock_1_scan_first__D4",
+      "mock_1_scan_first__D6",
+      "mock_1_scan_first__D7",
+      "mock_2_cautious",
+      "mock_2_cautious__D1",
+      "mock_2_cautious__D2",
+      "mock_2_cautious__D3",
+      "mock_2_cautious__D4",
+      "mock_2_cautious__D6",
+      "mock_2_cautious__D7"
+     ],
+     "success": 0.4286
+    },
+    {
+     "instance": "gen_feasible_005",
+     "selected": [
+      "mock_0_direct",
+      "mock_0_direct__D1",
+      "mock_0_direct__D2",
+      "mock_0_direct__D3",
+      "mock_0_direct__D4",
+      "mock_0_direct__D6",
+      "mock_0_direct__D7",
+      "mock_1_scan_first",
+      "mock_1_scan_first__D1",
+      "mock_1_scan_first__D2",
+      "mock_1_scan_first__D3",
+      "mock_1_scan_first__D4",
+      "mock_1_scan_first__D6",
+      "mock_1_scan_first__D7",
+      "mock_2_cautious",
+      "mock_2_cautious__D1",
+      "mock_2_cautious__D2",
+      "mock_2_cautious__D3",
+      "mock_2_cautious__D4",
+      "mock_2_cautious__D6",
+      "mock_2_cautious__D7"
+     ],
+     "success": 0.4286
+    },
+    {
+     "instance": "gen_feasible_006",
+     "selected": [
+      "mock_0_direct",
+      "mock_0_direct__D1",
+      "mock_0_direct__D2",
+      "mock_0_direct__D3",
+      "mock_0_direct__D4",
+      "mock_0_direct__D6",
+      "mock_0_direct__D7",
+      "mock_1_scan_first",
+      "mock_1_scan_first__D1",
+      "mock_1_scan_first__D2",
+      "mock_1_scan_first__D3",
+      "mock_1_scan_first__D4",
+      "mock_1_scan_first__D6",
+      "mock_1_scan_first__D7",
+      "mock_2_cautious",
+      "mock_2_cautious__D1",
+      "mock_2_cautious__D2",
+      "mock_2_cautious__D3",
+      "mock_2_cautious__D4",
+      "mock_2_cautious__D6",
+      "mock_2_cautious__D7"
+     ],
+     "success": 0.4286
+    },
+    {
+     "instance": "gen_feasible_007",
+     "selected": [
+      "mock_0_direct",
+      "mock_0_direct__D1",
+      "mock_0_direct__D2",
+      "mock_0_direct__D3",
+      "mock_0_direct__D4",
+      "mock_0_direct__D6",
+      "mock_0_direct__D7",
+      "mock_1_scan_first",
+      "mock_1_scan_first__D1",
+      "mock_1_scan_first__D2",
+      "mock_1_scan_first__D3",
+      "mock_1_scan_first__D4",
+      "mock_1_scan_first__D6",
+      "mock_1_scan_first__D7",
+      "mock_2_cautious",
+      "mock_2_cautious__D1",
+      "mock_2_cautious__D2",
+      "mock_2_cautious__D3",
+      "mock_2_cautious__D4",
+      "mock_2_cautious__D6",
+      "mock_2_cautious__D7"
+     ],
+     "success": 0.4286
+    },
+    {
+     "instance": "gen_feasible_008",
+     "selected": [
+      "mock_0_direct",
+      "mock_0_direct__D1",
+      "mock_0_direct__D2",
+      "mock_0_direct__D3",
+      "mock_0_direct__D4",
+      "mock_0_direct__D6",
+      "mock_0_direct__D7",
+      "mock_1_scan_first",
+      "mock_1_scan_first__D1",
+      "mock_1_scan_first__D2",
+      "mock_1_scan_first__D3",
+      "mock_1_scan_first__D4",
+      "mock_1_scan_first__D6",
+      "mock_1_scan_first__D7",
+      "mock_2_cautious",
+      "mock_2_cautious__D1",
+      "mock_2_cautious__D2",
+      "mock_2_cautious__D3",
+      "mock_2_cautious__D4",
+      "mock_2_cautious__D6",
+      "mock_2_cautious__D7"
+     ],
+     "success": 0.4286
+    },
+    {
+     "instance": "gen_feasible_009",
+     "selected": [
+      "mock_0_direct",
+      "mock_0_direct__D1",
+      "mock_0_direct__D2",
+      "mock_0_direct__D3",
+      "mock_0_direct__D4",
+      "mock_0_direct__D6",
+      "mock_0_direct__D7",
+      "mock_1_scan_first",
+      "mock_1_scan_first__D1",
+      "mock_1_scan_first__D2",
+      "mock_1_scan_first__D3",
+      "mock_1_scan_first__D4",
+      "mock_1_scan_first__D6",
+      "mock_1_scan_first__D7",
+      "mock_2_cautious",
+      "mock_2_cautious__D1",
+      "mock_2_cautious__D2",
+      "mock_2_cautious__D3",
+      "mock_2_cautious__D4",
+      "mock_2_cautious__D6",
+      "mock_2_cautious__D7"
+     ],
+     "success": 0.4286
+    },
+    {
+     "instance": "gen_feasible_010",
+     "selected": [
+      "mock_0_direct",
+      "mock_0_direct__D1",
+      "mock_0_direct__D2",
+      "mock_0_direct__D3",
+      "mock_0_direct__D4",
+      "mock_0_direct__D6",
+      "mock_0_direct__D7",
+      "mock_1_scan_first",
+      "mock_1_scan_first__D1",
+      "mock_1_scan_first__D2",
+      "mock_1_scan_first__D3",
+      "mock_1_scan_first__D4",
+      "mock_1_scan_first__D6",
+      "mock_1_scan_first__D7",
+      "mock_2_cautious",
+      "mock_2_cautious__D1",
+      "mock_2_cautious__D2",
+      "mock_2_cautious__D3",
+      "mock_2_cautious__D4",
+      "mock_2_cautious__D6",
+      "mock_2_cautious__D7"
+     ],
+     "success": 0.4286
+    },
+    {
+     "instance": "gen_feasible_011",
+     "selected": [
+      "mock_0_direct",
+      "mock_0_direct__D1",
+      "mock_0_direct__D2",
+      "mock_0_direct__D3",
+      "mock_0_direct__D4",
+      "mock_0_direct__D6",
+      "mock_0_direct__D7",
+      "mock_1_scan_first",
+      "mock_1_scan_first__D1",
+      "mock_1_scan_first__D2",
+      "mock_1_scan_first__D3",
+      "mock_1_scan_first__D4",
+      "mock_1_scan_first__D6",
+      "mock_1_scan_first__D7",
+      "mock_2_cautious",
+      "mock_2_cautious__D1",
+      "mock_2_cautious__D2",
+      "mock_2_cautious__D3",
+      "mock_2_cautious__D4",
+      "mock_2_cautious__D6",
+      "mock_2_cautious__D7"
+     ],
+     "success": 0.4286
+    },
+    {
+     "instance": "gen_feasible_012",
+     "selected": [
+      "mock_0_direct",
+      "mock_0_direct__D1",
+      "mock_0_direct__D2",
+      "mock_0_direct__D3",
+      "mock_0_direct__D4",
+      "mock_0_direct__D6",
+      "mock_0_direct__D7",
+      "mock_1_scan_first",
+      "mock_1_scan_first__D1",
+      "mock_1_scan_first__D2",
+      "mock_1_scan_first__D3",
+      "mock_1_scan_first__D4",
+      "mock_1_scan_first__D6",
+      "mock_1_scan_first__D7",
+      "mock_2_cautious",
+      "mock_2_cautious__D1",
+      "mock_2_cautious__D2",
+      "mock_2_cautious__D3",
+      "mock_2_cautious__D4",
+      "mock_2_cautious__D6",
+      "mock_2_cautious__D7"
+     ],
+     "success": 0.4286
+    },
+    {
+     "instance": "gen_feasible_013",
+     "selected": [
+      "mock_0_direct",
+      "mock_0_direct__D1",
+      "mock_0_direct__D2",
+      "mock_0_direct__D3",
+      "mock_0_direct__D4",
+      "mock_0_direct__D6",
+      "mock_0_direct__D7",
+      "mock_1_scan_first",
+      "mock_1_scan_first__D1",
+      "mock_1_scan_first__D2",
+      "mock_1_scan_first__D3",
+      "mock_1_scan_first__D4",
+      "mock_1_scan_first__D6",
+      "mock_1_scan_first__D7",
+      "mock_2_cautious",
+      "mock_2_cautious__D1",
+      "mock_2_cautious__D2",
+      "mock_2_cautious__D3",
+      "mock_2_cautious__D4",
+      "mock_2_cautious__D6",
+      "mock_2_cautious__D7"
+     ],
+     "success": 0.4286
+    },
+    {
+     "instance": "gen_feasible_014",
+     "selected": [
+      "mock_0_direct",
+      "mock_0_direct__D1",
+      "mock_0_direct__D2",
+      "mock_0_direct__D3",
+      "mock_0_direct__D4",
+      "mock_0_direct__D6",
+      "mock_0_direct__D7",
+      "mock_1_scan_first",
+      "mock_1_scan_first__D1",
+      "mock_1_scan_first__D2",
+      "mock_1_scan_first__D3",
+      "mock_1_scan_first__D4",
+      "mock_1_scan_first__D6",
+      "mock_1_scan_first__D7",
+      "mock_2_cautious",
+      "mock_2_cautious__D1",
+      "mock_2_cautious__D2",
+      "mock_2_cautious__D3",
+      "mock_2_cautious__D4",
+      "mock_2_cautious__D6",
+      "mock_2_cautious__D7"
+     ],
+     "success": 0.4286
+    },
+    {
+     "instance": "gen_feasible_015",
+     "selected": [
+      "mock_0_direct",
+      "mock_0_direct__D1",
+      "mock_0_direct__D2",
+      "mock_0_direct__D3",
+      "mock_0_direct__D4",
+      "mock_0_direct__D6",
+      "mock_0_direct__D7",
+      "mock_1_scan_first",
+      "mock_1_scan_first__D1",
+      "mock_1_scan_first__D2",
+      "mock_1_scan_first__D3",
+      "mock_1_scan_first__D4",
+      "mock_1_scan_first__D6",
+      "mock_1_scan_first__D7",
+      "mock_2_cautious",
+      "mock_2_cautious__D1",
+      "mock_2_cautious__D2",
+      "mock_2_cautious__D3",
+      "mock_2_cautious__D4",
+      "mock_2_cautious__D6",
+      "mock_2_cautious__D7"
+     ],
+     "success": 0.4286
+    },
+    {
+     "instance": "gen_feasible_016",
+     "selected": [
+      "mock_0_direct",
+      "mock_0_direct__D1",
+      "mock_0_direct__D2",
+      "mock_0_direct__D3",
+      "mock_0_direct__D4",
+      "mock_0_direct__D6",
+      "mock_0_direct__D7",
+      "mock_1_scan_first",
+      "mock_1_scan_first__D1",
+      "mock_1_scan_first__D2",
+      "mock_1_scan_first__D3",
+      "mock_1_scan_first__D4",
+      "mock_1_scan_first__D6",
+      "mock_1_scan_first__D7",
+      "mock_2_cautious",
+      "mock_2_cautious__D1",
+      "mock_2_cautious__D2",
+      "mock_2_cautious__D3",
+      "mock_2_cautious__D4",
+      "mock_2_cautious__D6",
+      "mock_2_cautious__D7"
+     ],
+     "success": 0.4286
+    },
+    {
+     "instance": "gen_feasible_017",
+     "selected": [
+      "mock_0_direct",
+      "mock_0_direct__D1",
+      "mock_0_direct__D2",
+      "mock_0_direct__D3",
+      "mock_0_direct__D4",
+      "mock_0_direct__D6",
+      "mock_0_direct__D7",
+      "mock_1_scan_first",
+      "mock_1_scan_first__D1",
+      "mock_1_scan_first__D2",
+      "mock_1_scan_first__D3",
+      "mock_1_scan_first__D4",
+      "mock_1_scan_first__D6",
+      "mock_1_scan_first__D7",
+      "mock_2_cautious",
+      "mock_2_cautious__D1",
+      "mock_2_cautious__D2",
+      "mock_2_cautious__D3",
+      "mock_2_cautious__D4",
+      "mock_2_cautious__D6",
+      "mock_2_cautious__D7"
+     ],
+     "success": 0.4286
+    },
+    {
+     "instance": "gen_feasible_018",
+     "selected": [
+      "mock_0_direct",
+      "mock_0_direct__D1",
+      "mock_0_direct__D2",
+      "mock_0_direct__D3",
+      "mock_0_direct__D4",
+      "mock_0_direct__D6",
+      "mock_0_direct__D7",
+      "mock_1_scan_first",
+      "mock_1_scan_first__D1",
+      "mock_1_scan_first__D2",
+      "mock_1_scan_first__D3",
+      "mock_1_scan_first__D4",
+      "mock_1_scan_first__D6",
+      "mock_1_scan_first__D7",
+      "mock_2_cautious",
+      "mock_2_cautious__D1",
+      "mock_2_cautious__D2",
+      "mock_2_cautious__D3",
+      "mock_2_cautious__D4",
+      "mock_2_cautious__D6",
+      "mock_2_cautious__D7"
+     ],
+     "success": 0.4286
+    },
+    {
+     "instance": "gen_feasible_019",
+     "selected": [
+      "mock_0_direct",
+      "mock_0_direct__D1",
+      "mock_0_direct__D2",
+      "mock_0_direct__D3",
+      "mock_0_direct__D4",
+      "mock_0_direct__D6",
+      "mock_0_direct__D7",
+      "mock_1_scan_first",
+      "mock_1_scan_first__D1",
+      "mock_1_scan_first__D2",
+      "mock_1_scan_first__D3",
+      "mock_1_scan_first__D4",
+      "mock_1_scan_first__D6",
+      "mock_1_scan_first__D7",
+      "mock_2_cautious",
+      "mock_2_cautious__D1",
+      "mock_2_cautious__D2",
+      "mock_2_cautious__D3",
+      "mock_2_cautious__D4",
+      "mock_2_cautious__D6",
+      "mock_2_cautious__D7"
+     ],
+     "success": 0.4286
+    },
+    {
+     "instance": "gen_infeasible_000",
+     "selected": [
+      "mock_0_direct",
+      "mock_0_direct__D1",
+      "mock_0_direct__D2",
+      "mock_0_direct__D3",
+      "mock_0_direct__D4",
+      "mock_0_direct__D6",
+      "mock_0_direct__D7",
+      "mock_1_scan_first",
+      "mock_1_scan_first__D1",
+      "mock_1_scan_first__D2",
+      "mock_1_scan_first__D3",
+      "mock_1_scan_first__D4",
+      "mock_1_scan_first__D6",
+      "mock_1_scan_first__D7",
+      "mock_2_cautious",
+      "mock_2_cautious__D1",
+      "mock_2_cautious__D2",
+      "mock_2_cautious__D3",
+      "mock_2_cautious__D4",
+      "mock_2_cautious__D6",
+      "mock_2_cautious__D7"
+     ],
+     "false_execution": true
+    },
+    {
+     "instance": "gen_infeasible_001",
+     "selected": [
+      "mock_0_direct",
+      "mock_0_direct__D1",
+      "mock_0_direct__D2",
+      "mock_0_direct__D3",
+      "mock_0_direct__D4",
+      "mock_0_direct__D6",
+      "mock_0_direct__D7",
+      "mock_1_scan_first",
+      "mock_1_scan_first__D1",
+      "mock_1_scan_first__D2",
+      "mock_1_scan_first__D3",
+      "mock_1_scan_first__D4",
+      "mock_1_scan_first__D6",
+      "mock_1_scan_first__D7",
+      "mock_2_cautious",
+      "mock_2_cautious__D1",
+      "mock_2_cautious__D2",
+      "mock_2_cautious__D3",
+      "mock_2_cautious__D4",
+      "mock_2_cautious__D6",
+      "mock_2_cautious__D7"
+     ],
+     "false_execution": true
+    },
+    {
+     "instance": "gen_infeasible_002",
+     "selected": [
+      "mock_0_direct",
+      "mock_0_direct__D1",
+      "mock_0_direct__D2",
+      "mock_0_direct__D3",
+      "mock_0_direct__D4",
+      "mock_0_direct__D6",
+      "mock_0_direct__D7",
+      "mock_1_scan_first",
+      "mock_1_scan_first__D1",
+      "mock_1_scan_first__D2",
+      "mock_1_scan_first__D3",
+      "mock_1_scan_first__D4",
+      "mock_1_scan_first__D6",
+      "mock_1_scan_first__D7",
+      "mock_2_cautious",
+      "mock_2_cautious__D1",
+      "mock_2_cautious__D2",
+      "mock_2_cautious__D3",
+      "mock_2_cautious__D4",
+      "mock_2_cautious__D6",
+      "mock_2_cautious__D7"
+     ],
+     "false_execution": true
+    },
+    {
+     "instance": "gen_infeasible_003",
+     "selected": [
+      "mock_0_direct",
+      "mock_0_direct__D1",
+      "mock_0_direct__D2",
+      "mock_0_direct__D3",
+      "mock_0_direct__D4",
+      "mock_0_direct__D6",
+      "mock_0_direct__D7",
+      "mock_1_scan_first",
+      "mock_1_scan_first__D1",
+      "mock_1_scan_first__D2",
+      "mock_1_scan_first__D3",
+      "mock_1_scan_first__D4",
+      "mock_1_scan_first__D6",
+      "mock_1_scan_first__D7",
+      "mock_2_cautious",
+      "mock_2_cautious__D1",
+      "mock_2_cautious__D2",
+      "mock_2_cautious__D3",
+      "mock_2_cautious__D4",
+      "mock_2_cautious__D6",
+      "mock_2_cautious__D7"
+     ],
+     "false_execution": true
+    },
+    {
+     "instance": "gen_infeasible_004",
+     "selected": [
+      "mock_0_direct",
+      "mock_0_direct__D1",
+      "mock_0_direct__D2",
+      "mock_0_direct__D3",
+      "mock_0_direct__D4",
+      "mock_0_direct__D6",
+      "mock_0_direct__D7",
+      "mock_1_scan_first",
+      "mock_1_scan_first__D1",
+      "mock_1_scan_first__D2",
+      "mock_1_scan_first__D3",
+      "mock_1_scan_first__D4",
+      "mock_1_scan_first__D6",
+      "mock_1_scan_first__D7",
+      "mock_2_cautious",
+      "mock_2_cautious__D1",
+      "mock_2_cautious__D2",
+      "mock_2_cautious__D3",
+      "mock_2_cautious__D4",
+      "mock_2_cautious__D6",
+      "mock_2_cautious__D7"
+     ],
+     "false_execution": true
+    },
+    {
+     "instance": "gen_infeasible_005",
+     "selected": [
+      "mock_0_direct",
+      "mock_0_direct__D1",
+      "mock_0_direct__D2",
+      "mock_0_direct__D3",
+      "mock_0_direct__D4",
+      "mock_0_direct__D6",
+      "mock_0_direct__D7",
+      "mock_1_scan_first",
+      "mock_1_scan_first__D1",
+      "mock_1_scan_first__D2",
+      "mock_1_scan_first__D3",
+      "mock_1_scan_first__D4",
+      "mock_1_scan_first__D6",
+      "mock_1_scan_first__D7",
+      "mock_2_cautious",
+      "mock_2_cautious__D1",
+      "mock_2_cautious__D2",
+      "mock_2_cautious__D3",
+      "mock_2_cautious__D4",
+      "mock_2_cautious__D6",
+      "mock_2_cautious__D7"
+     ],
+     "false_execution": true
+    },
+    {
+     "instance": "gen_infeasible_006",
+     "selected": [
+      "mock_0_direct",
+      "mock_0_direct__D1",
+      "mock_0_direct__D2",
+      "mock_0_direct__D3",
+      "mock_0_direct__D4",
+      "mock_0_direct__D6",
+      "mock_0_direct__D7",
+      "mock_1_scan_first",
+      "mock_1_scan_first__D1",
+      "mock_1_scan_first__D2",
+      "mock_1_scan_first__D3",
+      "mock_1_scan_first__D4",
+      "mock_1_scan_first__D6",
+      "mock_1_scan_first__D7",
+      "mock_2_cautious",
+      "mock_2_cautious__D1",
+      "mock_2_cautious__D2",
+      "mock_2_cautious__D3",
+      "mock_2_cautious__D4",
+      "mock_2_cautious__D6",
+      "mock_2_cautious__D7"
+     ],
+     "false_execution": true
+    },
+    {
+     "instance": "gen_infeasible_007",
+     "selected": [
+      "mock_0_direct",
+      "mock_0_direct__D1",
+      "mock_0_direct__D2",
+      "mock_0_direct__D3",
+      "mock_0_direct__D4",
+      "mock_0_direct__D6",
+      "mock_0_direct__D7",
+      "mock_1_scan_first",
+      "mock_1_scan_first__D1",
+      "mock_1_scan_first__D2",
+      "mock_1_scan_first__D3",
+      "mock_1_scan_first__D4",
+      "mock_1_scan_first__D6",
+      "mock_1_scan_first__D7",
+      "mock_2_cautious",
+      "mock_2_cautious__D1",
+      "mock_2_cautious__D2",
+      "mock_2_cautious__D3",
+      "mock_2_cautious__D4",
+      "mock_2_cautious__D6",
+      "mock_2_cautious__D7"
+     ],
+     "false_execution": true
+    }
+   ]
+  },
+  "A1_critic_only": {
+   "success_rate": 0.5,
+   "success_ci_95": [
+    0.4486,
+    0.5514
+   ],
+   "false_execution_rate": 1.0,
+   "rejection_rate": 0.0,
+   "n_instances": 28,
+   "details": [
+    {
+     "instance": "gen_feasible_000",
+     "selected": [
+      "mock_0_direct",
+      "mock_0_direct__D1",
+      "mock_0_direct__D2",
+      "mock_0_direct__D4",
+      "mock_0_direct__D6",
+      "mock_0_direct__D7",
+      "mock_1_scan_first",
+      "mock_1_scan_first__D1",
+      "mock_1_scan_first__D2",
+      "mock_1_scan_first__D4",
+      "mock_1_scan_first__D6",
+      "mock_1_scan_first__D7",
+      "mock_2_cautious",
+      "mock_2_cautious__D1",
+      "mock_2_cautious__D2",
+      "mock_2_cautious__D4",
+      "mock_2_cautious__D6",
+      "mock_2_cautious__D7"
+     ],
+     "success": 0.5
+    },
+    {
+     "instance": "gen_feasible_001",
+     "selected": [
+      "mock_0_direct",
+      "mock_0_direct__D1",
+      "mock_0_direct__D2",
+      "mock_0_direct__D4",
+      "mock_0_direct__D6",
+      "mock_0_direct__D7",
+      "mock_1_scan_first",
+      "mock_1_scan_first__D1",
+      "mock_1_scan_first__D2",
+      "mock_1_scan_first__D4",
+      "mock_1_scan_first__D6",
+      "mock_1_scan_first__D7",
+      "mock_2_cautious",
+      "mock_2_cautious__D1",
+      "mock_2_cautious__D2",
+      "mock_2_cautious__D4",
+      "mock_2_cautious__D6",
+      "mock_2_cautious__D7"
+     ],
+     "success": 0.5
+    },
+    {
+     "instance": "gen_feasible_002",
+     "selected": [
+      "mock_0_direct",
+      "mock_0_direct__D1",
+      "mock_0_direct__D2",
+      "mock_0_direct__D4",
+      "mock_0_direct__D6",
+      "mock_0_direct__D7",
+      "mock_1_scan_first",
+      "mock_1_scan_first__D1",
+      "mock_1_scan_first__D2",
+      "mock_1_scan_first__D4",
+      "mock_1_scan_first__D6",
+      "mock_1_scan_first__D7",
+      "mock_2_cautious",
+      "mock_2_cautious__D1",
+      "mock_2_cautious__D2",
+      "mock_2_cautious__D4",
+      "mock_2_cautious__D6",
+      "mock_2_cautious__D7"
+     ],
+     "success": 0.5
+    },
+    {
+     "instance": "gen_feasible_003",
+     "selected": [
+      "mock_0_direct",
+      "mock_0_direct__D1",
+      "mock_0_direct__D2",
+      "mock_0_direct__D4",
+      "mock_0_direct__D6",
+      "mock_0_direct__D7",
+      "mock_1_scan_first",
+      "mock_1_scan_first__D1",
+      "mock_1_scan_first__D2",
+      "mock_1_scan_first__D4",
+      "mock_1_scan_first__D6",
+      "mock_1_scan_first__D7",
+      "mock_2_cautious",
+      "mock_2_cautious__D1",
+      "mock_2_cautious__D2",
+      "mock_2_cautious__D4",
+      "mock_2_cautious__D6",
+      "mock_2_cautious__D7"
+     ],
+     "success": 0.5
+    },
+    {
+     "instance": "gen_feasible_004",
+     "selected": [
+      "mock_0_direct",
+      "mock_0_direct__D1",
+      "mock_0_direct__D2",
+      "mock_0_direct__D4",
+      "mock_0_direct__D6",
+      "mock_0_direct__D7",
+      "mock_1_scan_first",
+      "mock_1_scan_first__D1",
+      "mock_1_scan_first__D2",
+      "mock_1_scan_first__D4",
+      "mock_1_scan_first__D6",
+      "mock_1_scan_first__D7",
+      "mock_2_cautious",
+      "mock_2_cautious__D1",
+      "mock_2_cautious__D2",
+      "mock_2_cautious__D4",
+      "mock_2_cautious__D6",
+      "mock_2_cautious__D7"
+     ],
+     "success": 0.5
+    },
+    {
+     "instance": "gen_feasible_005",
+     "selected": [
+      "mock_0_direct",
+      "mock_0_direct__D1",
+      "mock_0_direct__D2",
+      "mock_0_direct__D4",
+      "mock_0_direct__D6",
+      "mock_0_direct__D7",
+      "mock_1_scan_first",
+      "mock_1_scan_first__D1",
+      "mock_1_scan_first__D2",
+      "mock_1_scan_first__D4",
+      "mock_1_scan_first__D6",
+      "mock_1_scan_first__D7",
+      "mock_2_cautious",
+      "mock_2_cautious__D1",
+      "mock_2_cautious__D2",
+      "mock_2_cautious__D4",
+      "mock_2_cautious__D6",
+      "mock_2_cautious__D7"
+     ],
+     "success": 0.5
+    },
+    {
+     "instance": "gen_feasible_006",
+     "selected": [
+      "mock_0_direct",
+      "mock_0_direct__D1",
+      "mock_0_direct__D2",
+      "mock_0_direct__D4",
+      "mock_0_direct__D6",
+      "mock_0_direct__D7",
+      "mock_1_scan_first",
+      "mock_1_scan_first__D1",
+      "mock_1_scan_first__D2",
+      "mock_1_scan_first__D4",
+      "mock_1_scan_first__D6",
+      "mock_1_scan_first__D7",
+      "mock_2_cautious",
+      "mock_2_cautious__D1",
+      "mock_2_cautious__D2",
+      "mock_2_cautious__D4",
+      "mock_2_cautious__D6",
+      "mock_2_cautious__D7"
+     ],
+     "success": 0.5
+    },
+    {
+     "instance": "gen_feasible_007",
+     "selected": [
+      "mock_0_direct",
+      "mock_0_direct__D1",
+      "mock_0_direct__D2",
+      "mock_0_direct__D4",
+      "mock_0_direct__D6",
+      "mock_0_direct__D7",
+      "mock_1_scan_first",
+      "mock_1_scan_first__D1",
+      "mock_1_scan_first__D2",
+      "mock_1_scan_first__D4",
+      "mock_1_scan_first__D6",
+      "mock_1_scan_first__D7",
+      "mock_2_cautious",
+      "mock_2_cautious__D1",
+      "mock_2_cautious__D2",
+      "mock_2_cautious__D4",
+      "mock_2_cautious__D6",
+      "mock_2_cautious__D7"
+     ],
+     "success": 0.5
+    },
+    {
+     "instance": "gen_feasible_008",
+     "selected": [
+      "mock_0_direct",
+      "mock_0_direct__D1",
+      "mock_0_direct__D2",
+      "mock_0_direct__D4",
+      "mock_0_direct__D6",
+      "mock_0_direct__D7",
+      "mock_1_scan_first",
+      "mock_1_scan_first__D1",
+      "mock_1_scan_first__D2",
+      "mock_1_scan_first__D4",
+      "mock_1_scan_first__D6",
+      "mock_1_scan_first__D7",
+      "mock_2_cautious",
+      "mock_2_cautious__D1",
+      "mock_2_cautious__D2",
+      "mock_2_cautious__D4",
+      "mock_2_cautious__D6",
+      "mock_2_cautious__D7"
+     ],
+     "success": 0.5
+    },
+    {
+     "instance": "gen_feasible_009",
+     "selected": [
+      "mock_0_direct",
+      "mock_0_direct__D1",
+      "mock_0_direct__D2",
+      "mock_0_direct__D4",
+      "mock_0_direct__D6",
+      "mock_0_direct__D7",
+      "mock_1_scan_first",
+      "mock_1_scan_first__D1",
+      "mock_1_scan_first__D2",
+      "mock_1_scan_first__D4",
+      "mock_1_scan_first__D6",
+      "mock_1_scan_first__D7",
+      "mock_2_cautious",
+      "mock_2_cautious__D1",
+      "mock_2_cautious__D2",
+      "mock_2_cautious__D4",
+      "mock_2_cautious__D6",
+      "mock_2_cautious__D7"
+     ],
+     "success": 0.5
+    },
+    {
+     "instance": "gen_feasible_010",
+     "selected": [
+      "mock_0_direct",
+      "mock_0_direct__D1",
+      "mock_0_direct__D2",
+      "mock_0_direct__D4",
+      "mock_0_direct__D6",
+      "mock_0_direct__D7",
+      "mock_1_scan_first",
+      "mock_1_scan_first__D1",
+      "mock_1_scan_first__D2",
+      "mock_1_scan_first__D4",
+      "mock_1_scan_first__D6",
+      "mock_1_scan_first__D7",
+      "mock_2_cautious",
+      "mock_2_cautious__D1",
+      "mock_2_cautious__D2",
+      "mock_2_cautious__D4",
+      "mock_2_cautious__D6",
+      "mock_2_cautious__D7"
+     ],
+     "success": 0.5
+    },
+    {
+     "instance": "gen_feasible_011",
+     "selected": [
+      "mock_0_direct",
+      "mock_0_direct__D1",
+      "mock_0_direct__D2",
+      "mock_0_direct__D4",
+      "mock_0_direct__D6",
+      "mock_0_direct__D7",
+      "mock_1_scan_first",
+      "mock_1_scan_first__D1",
+      "mock_1_scan_first__D2",
+      "mock_1_scan_first__D4",
+      "mock_1_scan_first__D6",
+      "mock_1_scan_first__D7",
+      "mock_2_cautious",
+      "mock_2_cautious__D1",
+      "mock_2_cautious__D2",
+      "mock_2_cautious__D4",
+      "mock_2_cautious__D6",
+      "mock_2_cautious__D7"
+     ],
+     "success": 0.5
+    },
+    {
+     "instance": "gen_feasible_012",
+     "selected": [
+      "mock_0_direct",
+      "mock_0_direct__D1",
+      "mock_0_direct__D2",
+      "mock_0_direct__D4",
+      "mock_0_direct__D6",
+      "mock_0_direct__D7",
+      "mock_1_scan_first",
+      "mock_1_scan_first__D1",
+      "mock_1_scan_first__D2",
+      "mock_1_scan_first__D4",
+      "mock_1_scan_first__D6",
+      "mock_1_scan_first__D7",
+      "mock_2_cautious",
+      "mock_2_cautious__D1",
+      "mock_2_cautious__D2",
+      "mock_2_cautious__D4",
+      "mock_2_cautious__D6",
+      "mock_2_cautious__D7"
+     ],
+     "success": 0.5
+    },
+    {
+     "instance": "gen_feasible_013",
+     "selected": [
+      "mock_0_direct",
+      "mock_0_direct__D1",
+      "mock_0_direct__D2",
+      "mock_0_direct__D4",
+      "mock_0_direct__D6",
+      "mock_0_direct__D7",
+      "mock_1_scan_first",
+      "mock_1_scan_first__D1",
+      "mock_1_scan_first__D2",
+      "mock_1_scan_first__D4",
+      "mock_1_scan_first__D6",
+      "mock_1_scan_first__D7",
+      "mock_2_cautious",
+      "mock_2_cautious__D1",
+      "mock_2_cautious__D2",
+      "mock_2_cautious__D4",
+      "mock_2_cautious__D6",
+      "mock_2_cautious__D7"
+     ],
+     "success": 0.5
+    },
+    {
+     "instance": "gen_feasible_014",
+     "selected": [
+      "mock_0_direct",
+      "mock_0_direct__D1",
+      "mock_0_direct__D2",
+      "mock_0_direct__D4",
+      "mock_0_direct__D6",
+      "mock_0_direct__D7",
+      "mock_1_scan_first",
+      "mock_1_scan_first__D1",
+      "mock_1_scan_first__D2",
+      "mock_1_scan_first__D4",
+      "mock_1_scan_first__D6",
+      "mock_1_scan_first__D7",
+      "mock_2_cautious",
+      "mock_2_cautious__D1",
+      "mock_2_cautious__D2",
+      "mock_2_cautious__D4",
+      "mock_2_cautious__D6",
+      "mock_2_cautious__D7"
+     ],
+     "success": 0.5
+    },
+    {
+     "instance": "gen_feasible_015",
+     "selected": [
+      "mock_0_direct",
+      "mock_0_direct__D1",
+      "mock_0_direct__D2",
+      "mock_0_direct__D4",
+      "mock_0_direct__D6",
+      "mock_0_direct__D7",
+      "mock_1_scan_first",
+      "mock_1_scan_first__D1",
+      "mock_1_scan_first__D2",
+      "mock_1_scan_first__D4",
+      "mock_1_scan_first__D6",
+      "mock_1_scan_first__D7",
+      "mock_2_cautious",
+      "mock_2_cautious__D1",
+      "mock_2_cautious__D2",
+      "mock_2_cautious__D4",
+      "mock_2_cautious__D6",
+      "mock_2_cautious__D7"
+     ],
+     "success": 0.5
+    },
+    {
+     "instance": "gen_feasible_016",
+     "selected": [
+      "mock_0_direct",
+      "mock_0_direct__D1",
+      "mock_0_direct__D2",
+      "mock_0_direct__D4",
+      "mock_0_direct__D6",
+      "mock_0_direct__D7",
+      "mock_1_scan_first",
+      "mock_1_scan_first__D1",
+      "mock_1_scan_first__D2",
+      "mock_1_scan_first__D4",
+      "mock_1_scan_first__D6",
+      "mock_1_scan_first__D7",
+      "mock_2_cautious",
+      "mock_2_cautious__D1",
+      "mock_2_cautious__D2",
+      "mock_2_cautious__D4",
+      "mock_2_cautious__D6",
+      "mock_2_cautious__D7"
+     ],
+     "success": 0.5
+    },
+    {
+     "instance": "gen_feasible_017",
+     "selected": [
+      "mock_0_direct",
+      "mock_0_direct__D1",
+      "mock_0_direct__D2",
+      "mock_0_direct__D4",
+      "mock_0_direct__D6",
+      "mock_0_direct__D7",
+      "mock_1_scan_first",
+      "mock_1_scan_first__D1",
+      "mock_1_scan_first__D2",
+      "mock_1_scan_first__D4",
+      "mock_1_scan_first__D6",
+      "mock_1_scan_first__D7",
+      "mock_2_cautious",
+      "mock_2_cautious__D1",
+      "mock_2_cautious__D2",
+      "mock_2_cautious__D4",
+      "mock_2_cautious__D6",
+      "mock_2_cautious__D7"
+     ],
+     "success": 0.5
+    },
+    {
+     "instance": "gen_feasible_018",
+     "selected": [
+      "mock_0_direct",
+      "mock_0_direct__D1",
+      "mock_0_direct__D2",
+      "mock_0_direct__D4",
+      "mock_0_direct__D6",
+      "mock_0_direct__D7",
+      "mock_1_scan_first",
+      "mock_1_scan_first__D1",
+      "mock_1_scan_first__D2",
+      "mock_1_scan_first__D4",
+      "mock_1_scan_first__D6",
+      "mock_1_scan_first__D7",
+      "mock_2_cautious",
+      "mock_2_cautious__D1",
+      "mock_2_cautious__D2",
+      "mock_2_cautious__D4",
+      "mock_2_cautious__D6",
+      "mock_2_cautious__D7"
+     ],
+     "success": 0.5
+    },
+    {
+     "instance": "gen_feasible_019",
+     "selected": [
+      "mock_0_direct",
+      "mock_0_direct__D1",
+      "mock_0_direct__D2",
+      "mock_0_direct__D4",
+      "mock_0_direct__D6",
+      "mock_0_direct__D7",
+      "mock_1_scan_first",
+      "mock_1_scan_first__D1",
+      "mock_1_scan_first__D2",
+      "mock_1_scan_first__D4",
+      "mock_1_scan_first__D6",
+      "mock_1_scan_first__D7",
+      "mock_2_cautious",
+      "mock_2_cautious__D1",
+      "mock_2_cautious__D2",
+      "mock_2_cautious__D4",
+      "mock_2_cautious__D6",
+      "mock_2_cautious__D7"
+     ],
+     "success": 0.5
+    },
+    {
+     "instance": "gen_infeasible_000",
+     "selected": [
+      "mock_0_direct",
+      "mock_0_direct__D1",
+      "mock_0_direct__D2",
+      "mock_0_direct__D4",
+      "mock_0_direct__D6",
+      "mock_0_direct__D7",
+      "mock_1_scan_first",
+      "mock_1_scan_first__D1",
+      "mock_1_scan_first__D2",
+      "mock_1_scan_first__D4",
+      "mock_1_scan_first__D6",
+      "mock_1_scan_first__D7",
+      "mock_2_cautious",
+      "mock_2_cautious__D1",
+      "mock_2_cautious__D2",
+      "mock_2_cautious__D4",
+      "mock_2_cautious__D6",
+      "mock_2_cautious__D7"
+     ],
+     "false_execution": true
+    },
+    {
+     "instance": "gen_infeasible_001",
+     "selected": [
+      "mock_0_direct",
+      "mock_0_direct__D1",
+      "mock_0_direct__D2",
+      "mock_0_direct__D4",
+      "mock_0_direct__D6",
+      "mock_0_direct__D7",
+      "mock_1_scan_first",
+      "mock_1_scan_first__D1",
+      "mock_1_scan_first__D2",
+      "mock_1_scan_first__D4",
+      "mock_1_scan_first__D6",
+      "mock_1_scan_first__D7",
+      "mock_2_cautious",
+      "mock_2_cautious__D1",
+      "mock_2_cautious__D2",
+      "mock_2_cautious__D4",
+      "mock_2_cautious__D6",
+      "mock_2_cautious__D7"
+     ],
+     "false_execution": true
+    },
+    {
+     "instance": "gen_infeasible_002",
+     "selected": [
+      "mock_0_direct",
+      "mock_0_direct__D1",
+      "mock_0_direct__D2",
+      "mock_0_direct__D4",
+      "mock_0_direct__D6",
+      "mock_0_direct__D7",
+      "mock_1_scan_first",
+      "mock_1_scan_first__D1",
+      "mock_1_scan_first__D2",
+      "mock_1_scan_first__D4",
+      "mock_1_scan_first__D6",
+      "mock_1_scan_first__D7",
+      "mock_2_cautious",
+      "mock_2_cautious__D1",
+      "mock_2_cautious__D2",
+      "mock_2_cautious__D4",
+      "mock_2_cautious__D6",
+      "mock_2_cautious__D7"
+     ],
+     "false_execution": true
+    },
+    {
+     "instance": "gen_infeasible_003",
+     "selected": [
+      "mock_0_direct",
+      "mock_0_direct__D1",
+      "mock_0_direct__D2",
+      "mock_0_direct__D4",
+      "mock_0_direct__D6",
+      "mock_0_direct__D7",
+      "mock_1_scan_first",
+      "mock_1_scan_first__D1",
+      "mock_1_scan_first__D2",
+      "mock_1_scan_first__D4",
+      "mock_1_scan_first__D6",
+      "mock_1_scan_first__D7",
+      "mock_2_cautious",
+      "mock_2_cautious__D1",
+      "mock_2_cautious__D2",
+      "mock_2_cautious__D4",
+      "mock_2_cautious__D6",
+      "mock_2_cautious__D7"
+     ],
+     "false_execution": true
+    },
+    {
+     "instance": "gen_infeasible_004",
+     "selected": [
+      "mock_0_direct",
+      "mock_0_direct__D1",
+      "mock_0_direct__D2",
+      "mock_0_direct__D4",
+      "mock_0_direct__D6",
+      "mock_0_direct__D7",
+      "mock_1_scan_first",
+      "mock_1_scan_first__D1",
+      "mock_1_scan_first__D2",
+      "mock_1_scan_first__D4",
+      "mock_1_scan_first__D6",
+      "mock_1_scan_first__D7",
+      "mock_2_cautious",
+      "mock_2_cautious__D1",
+      "mock_2_cautious__D2",
+      "mock_2_cautious__D4",
+      "mock_2_cautious__D6",
+      "mock_2_cautious__D7"
+     ],
+     "false_execution": true
+    },
+    {
+     "instance": "gen_infeasible_005",
+     "selected": [
+      "mock_0_direct",
+      "mock_0_direct__D1",
+      "mock_0_direct__D2",
+      "mock_0_direct__D4",
+      "mock_0_direct__D6",
+      "mock_0_direct__D7",
+      "mock_1_scan_first",
+      "mock_1_scan_first__D1",
+      "mock_1_scan_first__D2",
+      "mock_1_scan_first__D4",
+      "mock_1_scan_first__D6",
+      "mock_1_scan_first__D7",
+      "mock_2_cautious",
+      "mock_2_cautious__D1",
+      "mock_2_cautious__D2",
+      "mock_2_cautious__D4",
+      "mock_2_cautious__D6",
+      "mock_2_cautious__D7"
+     ],
+     "false_execution": true
+    },
+    {
+     "instance": "gen_infeasible_006",
+     "selected": [
+      "mock_0_direct",
+      "mock_0_direct__D1",
+      "mock_0_direct__D2",
+      "mock_0_direct__D4",
+      "mock_0_direct__D6",
+      "mock_0_direct__D7",
+      "mock_1_scan_first",
+      "mock_1_scan_first__D1",
+      "mock_1_scan_first__D2",
+      "mock_1_scan_first__D4",
+      "mock_1_scan_first__D6",
+      "mock_1_scan_first__D7",
+      "mock_2_cautious",
+      "mock_2_cautious__D1",
+      "mock_2_cautious__D2",
+      "mock_2_cautious__D4",
+      "mock_2_cautious__D6",
+      "mock_2_cautious__D7"
+     ],
+     "false_execution": true
+    },
+    {
+     "instance": "gen_infeasible_007",
+     "selected": [
+      "mock_0_direct",
+      "mock_0_direct__D1",
+      "mock_0_direct__D2",
+      "mock_0_direct__D4",
+      "mock_0_direct__D6",
+      "mock_0_direct__D7",
+      "mock_1_scan_first",
+      "mock_1_scan_first__D1",
+      "mock_1_scan_first__D2",
+      "mock_1_scan_first__D4",
+      "mock_1_scan_first__D6",
+      "mock_1_scan_first__D7",
+      "mock_2_cautious",
+      "mock_2_cautious__D1",
+      "mock_2_cautious__D2",
+      "mock_2_cautious__D4",
+      "mock_2_cautious__D6",
+      "mock_2_cautious__D7"
+     ],
+     "false_execution": true
+    }
+   ]
+  },
+  "A2_symbolic_gate": {
+   "success_rate": 1.0,
+   "success_ci_95": [
+    0.8389,
+    1.0
+   ],
+   "false_execution_rate": 1.0,
+   "rejection_rate": 0.0,
+   "n_instances": 28,
+   "details": [
+    {
+     "instance": "gen_feasible_000",
+     "selected": [
+      "mock_0_direct"
+     ],
+     "success": 1.0
+    },
+    {
+     "instance": "gen_feasible_001",
+     "selected": [
+      "mock_0_direct"
+     ],
+     "success": 1.0
+    },
+    {
+     "instance": "gen_feasible_002",
+     "selected": [
+      "mock_0_direct"
+     ],
+     "success": 1.0
+    },
+    {
+     "instance": "gen_feasible_003",
+     "selected": [
+      "mock_0_direct"
+     ],
+     "success": 1.0
+    },
+    {
+     "instance": "gen_feasible_004",
+     "selected": [
+      "mock_0_direct"
+     ],
+     "success": 1.0
+    },
+    {
+     "instance": "gen_feasible_005",
+     "selected": [
+      "mock_0_direct"
+     ],
+     "success": 1.0
+    },
+    {
+     "instance": "gen_feasible_006",
+     "selected": [
+      "mock_0_direct"
+     ],
+     "success": 1.0
+    },
+    {
+     "instance": "gen_feasible_007",
+     "selected": [
+      "mock_0_direct"
+     ],
+     "success": 1.0
+    },
+    {
+     "instance": "gen_feasible_008",
+     "selected": [
+      "mock_0_direct"
+     ],
+     "success": 1.0
+    },
+    {
+     "instance": "gen_feasible_009",
+     "selected": [
+      "mock_0_direct"
+     ],
+     "success": 1.0
+    },
+    {
+     "instance": "gen_feasible_010",
+     "selected": [
+      "mock_0_direct"
+     ],
+     "success": 1.0
+    },
+    {
+     "instance": "gen_feasible_011",
+     "selected": [
+      "mock_0_direct"
+     ],
+     "success": 1.0
+    },
+    {
+     "instance": "gen_feasible_012",
+     "selected": [
+      "mock_0_direct"
+     ],
+     "success": 1.0
+    },
+    {
+     "instance": "gen_feasible_013",
+     "selected": [
+      "mock_0_direct"
+     ],
+     "success": 1.0
+    },
+    {
+     "instance": "gen_feasible_014",
+     "selected": [
+      "mock_0_direct"
+     ],
+     "success": 1.0
+    },
+    {
+     "instance": "gen_feasible_015",
+     "selected": [
+      "mock_0_direct"
+     ],
+     "success": 1.0
+    },
+    {
+     "instance": "gen_feasible_016",
+     "selected": [
+      "mock_0_direct"
+     ],
+     "success": 1.0
+    },
+    {
+     "instance": "gen_feasible_017",
+     "selected": [
+      "mock_0_direct"
+     ],
+     "success": 1.0
+    },
+    {
+     "instance": "gen_feasible_018",
+     "selected": [
+      "mock_0_direct"
+     ],
+     "success": 1.0
+    },
+    {
+     "instance": "gen_feasible_019",
+     "selected": [
+      "mock_0_direct"
+     ],
+     "success": 1.0
+    },
+    {
+     "instance": "gen_infeasible_000",
+     "selected": [
+      "mock_0_direct"
+     ],
+     "false_execution": true
+    },
+    {
+     "instance": "gen_infeasible_001",
+     "selected": [
+      "mock_0_direct"
+     ],
+     "false_execution": true
+    },
+    {
+     "instance": "gen_infeasible_002",
+     "selected": [
+      "mock_0_direct"
+     ],
+     "false_execution": true
+    },
+    {
+     "instance": "gen_infeasible_003",
+     "selected": [
+      "mock_0_direct"
+     ],
+     "false_execution": true
+    },
+    {
+     "instance": "gen_infeasible_004",
+     "selected": [
+      "mock_0_direct"
+     ],
+     "false_execution": true
+    },
+    {
+     "instance": "gen_infeasible_005",
+     "selected": [
+      "mock_0_direct"
+     ],
+     "false_execution": true
+    },
+    {
+     "instance": "gen_infeasible_006",
+     "selected": [
+      "mock_0_direct"
+     ],
+     "false_execution": true
+    },
+    {
+     "instance": "gen_infeasible_007",
+     "selected": [
+      "mock_0_direct"
+     ],
+     "false_execution": true
+    }
+   ]
+  },
+  "A3_nav_aware_gate": {
+   "success_rate": 1.0,
+   "success_ci_95": [
+    0.8389,
+    1.0
+   ],
+   "false_execution_rate": 0.0,
+   "rejection_rate": 1.0,
+   "n_instances": 28,
+   "details": [
+    {
+     "instance": "gen_feasible_000",
+     "selected": [
+      "mock_0_direct"
+     ],
+     "success": 1.0
+    },
+    {
+     "instance": "gen_feasible_001",
+     "selected": [
+      "mock_0_direct"
+     ],
+     "success": 1.0
+    },
+    {
+     "instance": "gen_feasible_002",
+     "selected": [
+      "mock_0_direct"
+     ],
+     "success": 1.0
+    },
+    {
+     "instance": "gen_feasible_003",
+     "selected": [
+      "mock_0_direct"
+     ],
+     "success": 1.0
+    },
+    {
+     "instance": "gen_feasible_004",
+     "selected": [
+      "mock_0_direct"
+     ],
+     "success": 1.0
+    },
+    {
+     "instance": "gen_feasible_005",
+     "selected": [
+      "mock_0_direct"
+     ],
+     "success": 1.0
+    },
+    {
+     "instance": "gen_feasible_006",
+     "selected": [
+      "mock_0_direct"
+     ],
+     "success": 1.0
+    },
+    {
+     "instance": "gen_feasible_007",
+     "selected": [
+      "mock_0_direct"
+     ],
+     "success": 1.0
+    },
+    {
+     "instance": "gen_feasible_008",
+     "selected": [
+      "mock_0_direct"
+     ],
+     "success": 1.0
+    },
+    {
+     "instance": "gen_feasible_009",
+     "selected": [
+      "mock_0_direct"
+     ],
+     "success": 1.0
+    },
+    {
+     "instance": "gen_feasible_010",
+     "selected": [
+      "mock_0_direct"
+     ],
+     "success": 1.0
+    },
+    {
+     "instance": "gen_feasible_011",
+     "selected": [
+      "mock_0_direct"
+     ],
+     "success": 1.0
+    },
+    {
+     "instance": "gen_feasible_012",
+     "selected": [
+      "mock_0_direct"
+     ],
+     "success": 1.0
+    },
+    {
+     "instance": "gen_feasible_013",
+     "selected": [
+      "mock_0_direct"
+     ],
+     "success": 1.0
+    },
+    {
+     "instance": "gen_feasible_014",
+     "selected": [
+      "mock_0_direct"
+     ],
+     "success": 1.0
+    },
+    {
+     "instance": "gen_feasible_015",
+     "selected": [
+      "mock_0_direct"
+     ],
+     "success": 1.0
+    },
+    {
+     "instance": "gen_feasible_016",
+     "selected": [
+      "mock_0_direct"
+     ],
+     "success": 1.0
+    },
+    {
+     "instance": "gen_feasible_017",
+     "selected": [
+      "mock_0_direct"
+     ],
+     "success": 1.0
+    },
+    {
+     "instance": "gen_feasible_018",
+     "selected": [
+      "mock_0_direct"
+     ],
+     "success": 1.0
+    },
+    {
+     "instance": "gen_feasible_019",
+     "selected": [
+      "mock_0_direct"
+     ],
+     "success": 1.0
+    },
+    {
+     "instance": "gen_infeasible_000",
+     "selected": null,
+     "false_execution": false
+    },
+    {
+     "instance": "gen_infeasible_001",
+     "selected": null,
+     "false_execution": false
+    },
+    {
+     "instance": "gen_infeasible_002",
+     "selected": null,
+     "false_execution": false
+    },
+    {
+     "instance": "gen_infeasible_003",
+     "selected": null,
+     "false_execution": false
+    },
+    {
+     "instance": "gen_infeasible_004",
+     "selected": null,
+     "false_execution": false
+    },
+    {
+     "instance": "gen_infeasible_005",
+     "selected": null,
+     "false_execution": false
+    },
+    {
+     "instance": "gen_infeasible_006",
+     "selected": null,
+     "false_execution": false
+    },
+    {
+     "instance": "gen_infeasible_007",
+     "selected": null,
+     "false_execution": false
+    }
+   ]
+  }
+ },
+ "wall_s": 63.4,
+ "interpretation": {
+  "feasible_instances": "success climbs with each validation layer: no-validation executes defective plans; the critic removes hallucinations; the symbolic gate removes ordering/missing-step defects; the nav-aware gate (physics-gate surrogate) additionally verifies the task goal",
+  "infeasible_instances": "ONLY the navigation-aware condition can reject impossible tasks before execution \u2014 symbolic validation has no geometry and attempts every one of them (false_execution_rate=1.0). This is the unique, quantified value of world-level (physics/navigation) validation."
+ }
+}

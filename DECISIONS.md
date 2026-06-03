@@ -406,3 +406,32 @@ Where each Phase 3 example is tested (and why):
 | multi-step decomposition | orchestration suite (symbolic) |
 | infeasible: ungraspable object | orchestration suite (symbolic) |
 | infeasible: unreachable goal | **gate level** (Isaac tests) — the symbolic suite has no geometry, so reachability can only be tested where navigation actually runs |
+
+## D-023: Evaluation methodology v2 — research-grounded redesign (eval_v2)
+
+The v1 evaluation (7 hand-written orchestration scenarios, single runs,
+`orchestrator_score` aggregate) re-presented the same experimental frame more
+prettily; it did not answer the project's scientific question and would not
+survive review. After reviewing current methodology (SafeAgentBench, PlanBench,
+ResponsibleRobotBench, plan-verification literature — full synthesis in
+docs/design/EVALUATION_METHODOLOGY.md), the evaluation was redesigned around
+three principles: **ablation against no-verification baselines**, **verifiers
+scored as classifiers**, and **scale via procedurally generated, label-certified
+instances**.
+
+New primary evidence (`physgate/eval_v2/` + `benchmarks/eval_v2/`):
+
+* **E1 pipeline ablation** — A0 no-validation (43% success) → A1 critic (50%)
+  → A2 symbolic gate (100%) → A3 physics gate (100% + rejects 100% of
+  impossible tasks that every symbolic configuration falsely executes).
+* **E2 gate-as-classifier** — defect-injection corpus; critic R=0.25,
+  L1/L3 R=0.75, full gate R=1.00, all at FPR=0.
+* **E3 procedural generation** — layouts certified solvable/unreachable by the
+  same A* the gate uses; no manual annotation.
+* **E4 statistical repeats** — all LLM-dependent numbers as mean ± dispersion
+  over ≥3 independent runs.
+
+Honest scoping that replaces the old framing: for plan-level defects, symbolic
+validation is sufficient (physics adds nothing there); the physics/navigation
+gate's unique, quantified value is **world-level infeasibility detection and
+physical outcome verification**. The v1 suite is retained as a regression test.
