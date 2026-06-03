@@ -1,6 +1,6 @@
 {
   "benchmark": "orchestration evaluation - agent orchestrator quality",
-  "timestamp": "2026-06-03 17:15:38",
+  "timestamp": "2026-06-03 19:21:56",
   "what_this_measures": "Whether the agent orchestrator (planner + critic + gate + recovery loop) decomposes tasks correctly, respects preconditions, recovers from failures, and recognizes infeasible requests. Navigation/obstacle avoidance is NOT measured \u2014 the deterministic nav layer guarantees it for every plan (REBUILD.md Phase 1), so it cannot differentiate orchestrators.",
   "metrics_legend": {
     "end_to_end_success_rate": "feasible tasks completed (final relations verified)",
@@ -13,7 +13,7 @@
   "reports": [
     {
       "planner_name": "mock",
-      "timestamp": "2026-06-03 17:01:13",
+      "timestamp": "2026-06-03 19:10:52",
       "results": [
         {
           "scenario_id": "fetch_and_place_basic",
@@ -139,7 +139,7 @@
     },
     {
       "planner_name": "llm",
-      "timestamp": "2026-06-03 17:15:38",
+      "timestamp": "2026-06-03 19:21:56",
       "results": [
         {
           "scenario_id": "fetch_and_place_basic",
@@ -154,7 +154,7 @@
           "retries_used": 0,
           "candidates_generated": 8,
           "survivors_after_critic": 8,
-          "wall_s": 77.85,
+          "wall_s": 71.73,
           "detail": "('box_03', 'on', 'shelf_A'): ok"
         },
         {
@@ -170,7 +170,7 @@
           "retries_used": 0,
           "candidates_generated": 2,
           "survivors_after_critic": 1,
-          "wall_s": 13.82,
+          "wall_s": 14.93,
           "detail": "('box_03', 'on', 'shelf_A'): ok"
         },
         {
@@ -180,13 +180,13 @@
           "actual_outcome": "done",
           "outcome_correct": true,
           "task_completed": true,
-          "decomposition_valid": false,
+          "decomposition_valid": true,
           "invalid_probe_caught": null,
           "replans_used": 0,
           "retries_used": 0,
           "candidates_generated": 8,
-          "survivors_after_critic": 8,
-          "wall_s": 152.95,
+          "survivors_after_critic": 7,
+          "wall_s": 92.23,
           "detail": "('box_03', 'on', 'shelf_A'): ok"
         },
         {
@@ -202,7 +202,7 @@
           "retries_used": 1,
           "candidates_generated": 8,
           "survivors_after_critic": 8,
-          "wall_s": 82.06,
+          "wall_s": 63.49,
           "detail": "('box_03', 'on', 'shelf_A'): ok"
         },
         {
@@ -218,7 +218,7 @@
           "retries_used": 3,
           "candidates_generated": 8,
           "survivors_after_critic": 4,
-          "wall_s": 232.53,
+          "wall_s": 214.63,
           "detail": ""
         },
         {
@@ -233,8 +233,8 @@
           "replans_used": 0,
           "retries_used": 0,
           "candidates_generated": 8,
-          "survivors_after_critic": 6,
-          "wall_s": 138.08,
+          "survivors_after_critic": 3,
+          "wall_s": 105.93,
           "detail": "('box_03', 'on', 'shelf_A'): ok; ('box_04', 'on', 'shelf_A'): ok"
         },
         {
@@ -250,7 +250,7 @@
           "retries_used": 0,
           "candidates_generated": 0,
           "survivors_after_critic": 0,
-          "wall_s": 168.04,
+          "wall_s": 100.49,
           "detail": ""
         }
       ],
@@ -258,9 +258,9 @@
         "end_to_end_success_rate": 1.0,
         "infeasible_recognition_rate": 1.0,
         "recovery_rate": 1.0,
-        "decomposition_validity_rate": 0.8,
+        "decomposition_validity_rate": 1.0,
         "invalid_plan_catch_rate": 1.0,
-        "orchestrator_score": 0.96
+        "orchestrator_score": 1.0
       }
     }
   ]

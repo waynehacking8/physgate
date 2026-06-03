@@ -82,6 +82,81 @@ def test_decomposition_invalid_pick_without_approach():
     assert check_decomposition(plan) is False
 
 
+def test_decomposition_valid_when_gripper_initially_occupied():
+    """Occupied-gripper scenario: a plan that first sets down the held object,
+    then fetches the target, is a CORRECT decomposition. The checker must take
+    the initial held state into account (the gripper does not start empty) —
+    otherwise a correct plan is scored invalid (eval-interface bug, D-019)."""
+    plan = Plan(
+        plan_id="stash_first",
+        task="t",
+        steps=[
+            _step(1, ToolName.MOVE_TO_POSE, target="floor_01"),
+            _step(2, ToolName.EXECUTE_SKILL, skill="place", target="floor_01"),
+            _step(3, ToolName.MOVE_TO_POSE, target="box_03"),
+            _step(4, ToolName.EXECUTE_SKILL, skill="pick", target="box_03"),
+            _step(5, ToolName.MOVE_TO_POSE, target="shelf_A"),
+            _step(6, ToolName.EXECUTE_SKILL, skill="place", target="shelf_A"),
+        ],
+    )
+    # invalid under the empty-gripper assumption...
+    assert check_decomposition(plan) is False
+    # ...but valid given the scenario's actual initial state
+    assert check_decomposition(plan, initially_held="box_99") is True
+
+
+def test_decomposition_double_pick_invalid_even_when_initially_occupied():
+    """Holding something does not license picking on top of it."""
+    plan = Plan(
+        plan_id="double_pick",
+        task="t",
+        steps=[
+            _step(1, ToolName.MOVE_TO_POSE, target="box_03"),
+            _step(2, ToolName.EXECUTE_SKILL, skill="pick", target="box_03"),
+        ],
+    )
+    assert check_decomposition(plan, initially_held="box_99") is False
+
+
+def test_runner_scores_stash_first_plan_as_valid_decomposition():
+    """run_scenario must derive the initial held state from the scenario scene:
+    on the occupied-gripper scenario, a planner that correctly sets the held box
+    down first must get decomposition_valid=True (not be penalized by the
+    checker's empty-gripper assumption)."""
+    suite = {s.scenario_id: s for s in build_scenario_suite()}
+    scenario = suite["precondition_occupied_gripper"]
+
+    def _sc_step(step_id, tool, **args):
+        # preconditions must hold in the scenario scene (L3 checks them literally)
+        target = args.get("target")
+        return PlanStep(
+            step_id=step_id, tool=tool, args=args, preconditions=[f"{target} exists"]
+        )
+
+    stash_first = Plan(
+        plan_id="stash_first",
+        task=scenario.task,
+        steps=[
+            _sc_step(1, ToolName.MOVE_TO_POSE, target="floor_01"),
+            _sc_step(2, ToolName.EXECUTE_SKILL, skill="place", target="floor_01"),
+            _sc_step(3, ToolName.MOVE_TO_POSE, target="box_03"),
+            _sc_step(4, ToolName.EXECUTE_SKILL, skill="pick", target="box_03"),
+            _sc_step(5, ToolName.MOVE_TO_POSE, target="shelf_A"),
+            _sc_step(6, ToolName.EXECUTE_SKILL, skill="place", target="shelf_A"),
+        ],
+    )
+
+    def stub_planner(task, scene, n, feedback):
+        return [stash_first]
+
+    result = run_scenario(scenario, stub_planner, critic_fn=lambda plans, scene: plans)
+    assert result.task_completed is True
+    assert result.decomposition_valid is True, (
+        "a correct stash-first plan must not be scored invalid just because the "
+        "checker assumes an empty gripper (D-019)"
+    )
+
+
 # ------------------------------------------------------------ single scenarios
 
 

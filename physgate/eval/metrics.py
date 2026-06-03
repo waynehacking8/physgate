@@ -53,16 +53,23 @@ class OrchestratorReport(BaseModel):
 # -------------------------------------------------------- decomposition check
 
 
-def check_decomposition(plan: Plan) -> bool:
+def check_decomposition(plan: Plan, initially_held: str | None = None) -> bool:
     """Is the plan well-ordered? (symbolic check, no physics)
 
     Rules:
         * pick(X) requires the robot to have moved to X first,
         * pick(X) requires an empty gripper (no double-pick),
         * place(Y) requires holding something and having moved to Y.
+
+    Args:
+        plan: the plan to check.
+        initially_held: object id the gripper holds BEFORE the plan starts
+            (occupied-gripper scenarios). Without this, a correct
+            "set it down first" plan is scored invalid — an eval-interface
+            bug masquerading as a planner deficiency (D-019).
     """
     near: str | None = None
-    held: str | None = None
+    held: str | None = initially_held
     for step in plan.steps:
         if step.tool == ToolName.MOVE_TO_POSE:
             near = step.args.get("target")

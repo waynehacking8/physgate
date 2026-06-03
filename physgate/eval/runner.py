@@ -91,7 +91,14 @@ def run_scenario(
     else:  # escalated expected: never claim success on an impossible/unrecoverable task
         outcome_correct = actual_outcome == scenario.expected_outcome
 
-    # decomposition check on the selected (executed) plan
+    # decomposition check on the selected (executed) plan. The check must start
+    # from the scenario's ACTUAL initial gripper state: assuming an empty gripper
+    # scores correct "set the held object down first" plans as invalid — an
+    # eval-interface bug masquerading as a planner deficiency (D-019).
+    initially_held = next(
+        (rel[2] for rel in scenario.scene.relations if rel[0] == "gripper" and rel[1] == "holding"),
+        None,
+    )
     selection: SelectionResult | None = final_state.get("selection")
     decomposition_valid: bool | None = None
     if selection is not None and selection.best_plan_id is not None:
@@ -100,13 +107,15 @@ def run_scenario(
             None,
         )
         if selected_plan is not None:
-            decomposition_valid = check_decomposition(selected_plan)
+            decomposition_valid = check_decomposition(selected_plan, initially_held=initially_held)
 
     # probe scenarios: was the known-invalid plan caught (not selected, marked infeasible)?
     invalid_probe_caught: bool | None = None
     if scenario.probe_plans and selection is not None:
         invalid_ids = {
-            p.plan_id for p in scenario.probe_plans if not check_decomposition(p)
+            p.plan_id
+            for p in scenario.probe_plans
+            if not check_decomposition(p, initially_held=initially_held)
         }
         selected_ok = selection.best_plan_id not in invalid_ids
         invalid_marked_infeasible = all(

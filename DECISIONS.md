@@ -353,3 +353,31 @@ Evaluation-integrity lesson (same family as D-019): a stall that *looks* like
 "some plans are physically infeasible" can be a low-level controller fixed
 point. Before attributing failures to the plan layer, check what command the
 navigator was issuing when the robot stopped.
+
+## D-021: Decomposition checks must start from the scenario's initial state (data-review finding)
+
+The post-rebuild data plausibility review caught a contradiction in the
+orchestration results: Claude's plan for the occupied-gripper scenario
+**completed the task** (box on shelf, relations verified) yet was scored
+`decomposition_valid=False`, dragging decomposition validity to 0.8 and the
+orchestrator score to 0.96.
+
+Root cause: `check_decomposition` assumed the gripper starts EMPTY. The
+occupied-gripper scenario starts with the gripper holding another box, so
+Claude's correct first step — set the held box down, then fetch the target —
+tripped the checker's "place requires holding something" rule on a state the
+checker did not model. Same family as D-019: an eval-interface bug masquerading
+as an LLM deficiency.
+
+Fix: `check_decomposition(plan, initially_held=...)`; the runner derives the
+initial held object from the scenario scene's `("gripper", "holding", X)`
+relation. After the fix and a full re-run, the per-scenario diff against the
+previous run shows exactly ONE changed field (that flag); every other outcome
+is identical across both runs — the score change (0.96 → 1.00) is fully
+attributable to the checker fix, not to LLM nondeterminism.
+
+Evaluation-integrity lesson: **a completed task with an "invalid" decomposition
+is a contradiction that must be investigated, not reported.** Plausibility
+review of every metric against its raw per-item data is now part of the
+benchmark workflow (and the README results section is generated from the JSONs
+by `benchmarks/render_readme.py`, so reported numbers cannot drift from data).
