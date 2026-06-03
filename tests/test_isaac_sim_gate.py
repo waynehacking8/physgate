@@ -369,6 +369,66 @@ def test_policy_rollout_handles_out_of_range_speeds(sim_world):
     assert not failures, f"clamped-speed plans failed: {failures}"
 
 
+def test_policy_rollout_marks_unreachable_goal_infeasible(sim_world, monkeypatch):
+    """REBUILD.md Phase 3 'goal navigation cannot reach': the gate must return a
+    clean infeasible verdict (so the orchestrator can escalate), not crash with
+    an uncaught PathPlannerError."""
+    import physgate.gate.l2_physics as l2
+    from physgate.nav.path_planner import PathPlannerError
+
+    policy = _policy_path()
+    if policy is None:
+        pytest.skip("no exported Go2 policy (run rsl_rl play.py first)")
+
+    def unreachable_compile(plan, layout):
+        raise PathPlannerError("no path from (0.0, 0.0) to goal (goal unreachable)")
+
+    monkeypatch.setattr(l2, "compile_mission", unreachable_compile)
+    results = l2.rollout_plans_with_policy(sim_world, [_fetch_plan("unreachable", 0.5)], policy)
+
+    assert len(results) == 1
+    assert results[0].success is False
+    violation = results[0].failure.violations[0]
+    assert violation.type == "infeasible_navigation"
+    assert "unreachable" in violation.detail
+
+
+def test_kinematic_rollout_marks_unreachable_goal_infeasible(sim_world, demo_scene, monkeypatch):
+    """Same contract for the kinematic rollout: navigation infeasibility is a
+    verdict, not a crash."""
+    import physgate.gate.l2_physics as l2
+    from physgate.nav.path_planner import PathPlannerError
+    from physgate.planner.planner import MockPlanner
+
+    def unreachable_synth(plan, dt):
+        raise PathPlannerError("no path (goal unreachable)")
+
+    monkeypatch.setattr(l2, "synthesize_base_trajectory", unreachable_synth)
+    plans = MockPlanner()(TASK, demo_scene, 2, None)
+    results = l2.rollout_plans(sim_world, plans)
+
+    assert len(results) == 2
+    assert all(r.success is False for r in results)
+    assert all(r.failure.violations[0].type == "infeasible_navigation" for r in results)
+
+
+def test_sim_backend_reports_unreachable_target(sim_world, demo_scene, monkeypatch):
+    """The executor must surface navigation infeasibility as a failed action
+    (so the orchestrator replans/escalates), not crash mid-execution."""
+    import physgate.executor.sim_backend as sb
+    from physgate.nav.path_planner import PathPlannerError
+
+    def unreachable_route(*args, **kwargs):
+        raise PathPlannerError("no path (goal unreachable)")
+
+    monkeypatch.setattr(sb, "plan_standoff_route", unreachable_route)
+    backend = sb.SimBackend(demo_scene, world=sim_world)
+    result = backend.move_to_pose("box_03", standoff_m=0.3)
+
+    assert result["success"] is False
+    assert "unreachable" in result["error"]
+
+
 def test_policy_rollout_invokes_control_step_callback(sim_world):
     """The rollout exposes an on_control_step hook (used by the recording
     pipeline to capture camera frames and trajectory samples without

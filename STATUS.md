@@ -347,13 +347,16 @@ per-scenario diff); every other outcome was identical._
 - **D-021**: decomposition checking must start from the scenario's actual
   initial state — the empty-gripper assumption scored a correct plan as
   invalid (found by the data plausibility review).
+- **D-022**: navigation infeasibility (unreachable goal) surfaces as a clean
+  `infeasible_navigation` gate verdict and a failed executor action — never a
+  crash. Completes the REBUILD Phase 3 failure-mode coverage.
 
 ## Test summary (current)
 
 - **Pure-logic suite**: `pytest` → **216 passed** (orchestration eval, viz
   encoder/renderer, README generator)
-- **Isaac integration suite**: `pytest tests/test_isaac_sim_gate.py` → **16 passed**
-  (verified ×2 consecutive runs in one session — world-reuse is deterministic)
+- **Isaac integration suite**: `pytest tests/test_isaac_sim_gate.py` → **19 passed**
+  (world-reuse determinism separately verified by ×2 consecutive full-suite runs)
 - **Reproducibility**: fresh venv + `pip install -e ".[dev]"` + `pytest` → green
   (mcp + anthropic now in `[dev]`; anthropic imported lazily)
 - **Dynamic recordings**: `benchmarks/rebuild/record_rollout.py` captures the

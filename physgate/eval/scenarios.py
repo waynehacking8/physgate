@@ -10,6 +10,18 @@ Each scenario isolates one agent-orchestrator capability (REBUILD.md Phase 3):
 
 Navigation geometry is deliberately ABSENT from every scenario — the
 deterministic nav layer guarantees it, so it cannot differentiate orchestrators.
+
+Two REBUILD.md Phase 3 examples are intentionally NOT scenarios here:
+
+* "goal navigation cannot reach" — this suite runs the symbolic gate (no
+  geometry), so it cannot test navigation reachability meaningfully. That case
+  is covered at the GATE level instead: PathPlannerError surfaces as a clean
+  ``infeasible_navigation`` verdict in both Isaac rollouts and the executor
+  (tests/test_isaac_sim_gate.py::test_*_unreachable_*).
+* "place on an occupied shelf" — the shelf in this world is multi-capacity
+  (0.8 m holds several 0.2 m boxes); declaring single-occupancy would
+  contradict the multi_step_two_boxes scenario, which places two boxes on the
+  same shelf. There is no occupancy precondition to violate.
 """
 
 from __future__ import annotations

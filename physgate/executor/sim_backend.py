@@ -36,7 +36,7 @@ from physgate.gate.trajectory import (
     count_path_collisions,
     yaw_to_quat,
 )
-from physgate.nav.path_planner import plan_standoff_route
+from physgate.nav.path_planner import PathPlannerError, plan_standoff_route
 from physgate.world.fetch_scene import FetchSimWorld, get_shared_world
 from physgate.world.layout import (
     BOX_SIZE,
@@ -86,14 +86,19 @@ class SimBackend:
 
         # deterministic navigation: route around obstacles to a standoff pose
         # near the target (REBUILD.md Phase 1 — no straight-line driving)
-        route = plan_standoff_route(
-            (float(self._robot_pos[0]), float(self._robot_pos[1])),
-            (float(target_pos[0]), float(target_pos[1])),
-            standoff=standoff_m,
-            obstacles=navigation_obstacles(),
-            robot_radius=ROBOT_COLLISION_RADIUS,
-            target_half_extents=target_half_extents(target),
-        )
+        try:
+            route = plan_standoff_route(
+                (float(self._robot_pos[0]), float(self._robot_pos[1])),
+                (float(target_pos[0]), float(target_pos[1])),
+                standoff=standoff_m,
+                obstacles=navigation_obstacles(),
+                robot_radius=ROBOT_COLLISION_RADIUS,
+                target_half_extents=target_half_extents(target),
+            )
+        except PathPlannerError as exc:
+            # navigation infeasibility is a failed action the orchestrator can
+            # react to (replan / escalate), never a crash mid-execution
+            return {"success": False, "error": f"no collision-free route to '{target}': {exc}"}
 
         # drive the base along every route segment, carrying the box if held
         path_points: list[np.ndarray] = []

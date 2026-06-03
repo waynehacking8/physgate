@@ -381,3 +381,28 @@ is a contradiction that must be investigated, not reported.** Plausibility
 review of every metric against its raw per-item data is now part of the
 benchmark workflow (and the README results section is generated from the JSONs
 by `benchmarks/render_readme.py`, so reported numbers cannot drift from data).
+
+## D-022: Navigation infeasibility is a gate verdict, not a crash (REBUILD Phase 3 completion)
+
+The audit against REBUILD.md Phase 3's failure-mode list found the "goal
+navigation cannot reach" case unhandled: `compile_mission` correctly raised
+`PathPlannerError` for unreachable goals (defense-in-depth backstop), but
+neither Isaac rollout nor the executor caught it — an unreachable target
+crashed the gate instead of producing an infeasible verdict.
+
+Fix (TDD, 3 new Isaac tests): both rollouts return an
+`infeasible_navigation` violation (retryable=False — replanning cannot fix
+geometry) and `SimBackend.move_to_pose` returns a failed action, so the
+orchestrator escalates cleanly.
+
+Where each Phase 3 example is tested (and why):
+
+| REBUILD.md example | Where it is tested |
+|---|---|
+| wrong ordering / inverted plans | orchestration suite (symbolic) |
+| pick with a full gripper | orchestration suite (symbolic) |
+| place on an occupied shelf | **not applicable** — the shelf is multi-capacity; single-occupancy would contradict multi_step_two_boxes |
+| recovery (transient/persistent) | orchestration suite (symbolic, fault injection) |
+| multi-step decomposition | orchestration suite (symbolic) |
+| infeasible: ungraspable object | orchestration suite (symbolic) |
+| infeasible: unreachable goal | **gate level** (Isaac tests) — the symbolic suite has no geometry, so reachability can only be tested where navigation actually runs |

@@ -51,6 +51,7 @@ from physgate.gate.trajectory import (  # noqa: F401  (re-exports for existing c
     synthesize_base_trajectory,
     yaw_to_quat,
 )
+from physgate.nav.path_planner import PathPlannerError
 from physgate.planner.schemas import Plan
 from physgate.world.fetch_scene import FetchSimWorld
 from physgate.world.layout import (
@@ -87,9 +88,21 @@ def rollout_plans(world: FetchSimWorld, plans: list[Plan]) -> list[PhysicsResult
     # 1. identical initial state across every env (bug #2133 workaround)
     reset_scene_to_identical_state(world.scene, world.sim)
 
-    # 2. compile plans to navigation-routed trajectories
-    trajectories = [synthesize_base_trajectory(p, world.dt) for p in plans]
-    max_steps = max(t.duration_steps for t in trajectories)
+    # 2. compile plans to navigation-routed trajectories; plans whose navigation
+    # is impossible (unknown target / unreachable goal) fail explicitly instead of
+    # crashing the gate (REBUILD.md Phase 3 "goal navigation cannot reach")
+    trajectories: list[PlanTrajectory | None] = []
+    compile_errors: dict[int, tuple[str, str]] = {}
+    for idx, p in enumerate(plans):
+        try:
+            trajectories.append(synthesize_base_trajectory(p, world.dt))
+        except UnknownTargetError as exc:
+            trajectories.append(None)
+            compile_errors[idx] = ("unknown_object", str(exc))
+        except PathPlannerError as exc:
+            trajectories.append(None)
+            compile_errors[idx] = ("infeasible_navigation", str(exc))
+    max_steps = max((t.duration_steps for t in trajectories if t is not None), default=0)
 
     # pad: robots that finish early hold their final pose
     def pose_at(traj: PlanTrajectory, idx: int) -> tuple[np.ndarray, float]:
@@ -100,7 +113,7 @@ def rollout_plans(world: FetchSimWorld, plans: list[Plan]) -> list[PhysicsResult
     event_map: list[dict[int, list[TrajectoryEvent]]] = []
     for traj in trajectories:
         m: dict[int, list[TrajectoryEvent]] = {}
-        for ev in traj.events:
+        for ev in traj.events if traj is not None else []:
             m.setdefault(ev.step_index, []).append(ev)
         event_map.append(m)
 
@@ -114,7 +127,7 @@ def rollout_plans(world: FetchSimWorld, plans: list[Plan]) -> list[PhysicsResult
         robot_quat[:, 0] = 1.0
 
         for env_idx in range(world.num_envs):
-            if env_idx < num_active:
+            if env_idx < num_active and trajectories[env_idx] is not None:
                 pos, yaw = pose_at(trajectories[env_idx], step_idx)
                 robot_pos[env_idx] = pos + env_origins[env_idx]
                 robot_quat[env_idx] = yaw_to_quat(yaw)
@@ -174,6 +187,29 @@ def rollout_plans(world: FetchSimWorld, plans: list[Plan]) -> list[PhysicsResult
 
     results: list[PhysicsResult] = []
     for env_idx, (plan, traj) in enumerate(zip(plans, trajectories)):
+        if traj is None:
+            vtype, detail = compile_errors[env_idx]
+            results.append(
+                PhysicsResult(
+                    plan_id=plan.plan_id,
+                    success=False,
+                    collision_count=0,
+                    completion_time_s=0.0,
+                    energy_j=0.0,
+                    failure=FailureReport(
+                        failure_code=FailureCode.PRECONDITION_VIOLATION,
+                        layer=GateLayer.PHYSICS,
+                        violations=[Violation(type=vtype, detail=detail)],
+                        remediation_hint=(
+                            "only reference object ids that exist in the scene"
+                            if vtype == "unknown_object"
+                            else "no collision-free route exists to this target — escalate"
+                        ),
+                        retryable=vtype == "unknown_object",
+                    ),
+                )
+            )
+            continue
         placed = any(ev.kind == "release" for ev in traj.events)
         success = placed and box_on_shelf(final_box_positions[env_idx])
         collisions = count_path_collisions(traj.positions)
@@ -276,13 +312,20 @@ def rollout_plans_with_policy(
     # compile plans -> missions; plans referencing unknown objects get an
     # explicit failure instead of a silently degraded mission (D-016)
     missions: list[list[tuple[str, object, float]]] = []
-    compile_errors: dict[int, str] = {}
+    #: env index -> (violation type, detail) for plans that cannot be compiled:
+    #: unknown objects (hallucinated ids) or navigation-unreachable goals
+    compile_errors: dict[int, tuple[str, str]] = {}
     for idx, p in enumerate(plans):
         try:
             missions.append(compile_mission(p, SCENE_LAYOUT))
         except UnknownTargetError as exc:
             missions.append([])
-            compile_errors[idx] = str(exc)
+            compile_errors[idx] = ("unknown_object", str(exc))
+        except PathPlannerError as exc:
+            # REBUILD.md Phase 3 "goal navigation cannot reach": a clean
+            # infeasible verdict, not a crash — the orchestrator escalates
+            missions.append([])
+            compile_errors[idx] = ("infeasible_navigation", str(exc))
     mission_index = [0] * num_active
     carrying = [False] * num_active
     wait_counters = [0] * num_active
@@ -542,8 +585,17 @@ def rollout_plans_with_policy(
 
     results: list[PhysicsResult] = []
     for i, plan in enumerate(plans):
-        # plans rejected at mission compilation: explicit unknown-object failure
+        # plans rejected at mission compilation: explicit failure (unknown
+        # object or navigation-unreachable goal), never a crash
         if i in compile_errors:
+            vtype, detail = compile_errors[i]
+            hint = (
+                "only reference object ids that exist in the scene; "
+                "do not invent waypoints or locations"
+                if vtype == "unknown_object"
+                else "no collision-free route exists to this target; "
+                "the task is infeasible as posed — escalate"
+            )
             results.append(
                 PhysicsResult(
                     plan_id=plan.plan_id,
@@ -554,12 +606,9 @@ def rollout_plans_with_policy(
                     failure=FailureReport(
                         failure_code=FailureCode.PRECONDITION_VIOLATION,
                         layer=GateLayer.PHYSICS,
-                        violations=[Violation(type="unknown_object", detail=compile_errors[i])],
-                        remediation_hint=(
-                            "only reference object ids that exist in the scene; "
-                            "do not invent waypoints or locations"
-                        ),
-                        retryable=True,
+                        violations=[Violation(type=vtype, detail=detail)],
+                        remediation_hint=hint,
+                        retryable=vtype == "unknown_object",
                     ),
                 )
             )
