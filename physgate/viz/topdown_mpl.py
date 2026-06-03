@@ -146,7 +146,15 @@ def render_topdown_frame(
         ax.add_patch(plt.Circle(robot_xy, 0.23, facecolor="none", edgecolor=C_BOX,
                                 linewidth=2.0, linestyle=(0, (2, 1)), zorder=8))
 
-    phase = "carrying box → shelf" if carrying else "navigating to box"
+    # phase detection: box near shelf + not carrying = placed
+    sx, sy = layout["shelf_A"][:2]
+    box_near_shelf = (box_xy[0] - sx) ** 2 + (box_xy[1] - sy) ** 2 < 0.5 ** 2
+    if carrying:
+        phase = "carrying box → shelf"
+    elif box_near_shelf:
+        phase = "box placed on shelf ✓"
+    else:
+        phase = "navigating to box"
     ax.set_title(
         "physgate — Sim-Gate rollout, top-down trajectory (Isaac Lab PhysX)",
         fontsize=12, fontweight="bold", pad=10,
