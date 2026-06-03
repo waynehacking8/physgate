@@ -202,7 +202,7 @@ def main() -> int:
         return 1
 
     # quick credential sanity check
-    client = make_anthropic_client()
+    make_anthropic_client()
     print(f"model: {DEFAULT_PLANNER_MODEL}; credentials OK; running {args.trials} trials per strategy\n")
 
     scene = build_demo_scene()
