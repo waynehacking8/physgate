@@ -507,6 +507,11 @@ def rollout_plans_with_policy(
         # ---- per-env mission state machine -> goals/speeds ----
         goals = robot_pos_local.clone()
         speeds = torch.zeros(num_envs, device=device)
+        # which envs actually set a navigation goal THIS control step — only
+        # these may advance their mission via the arrival check below (an env
+        # whose pick/place just advanced to a goto would otherwise "arrive"
+        # instantly at its own position and skip the goto entirely)
+        navigating = [False] * num_active
         for i in range(num_active):
             if completed[i] or fell_over[i] or stuck[i] or mission_index[i] >= len(missions[i]):
                 continue
@@ -514,6 +519,7 @@ def rollout_plans_with_policy(
             if kind == "goto":
                 goals[i, 0], goals[i, 1] = float(payload[0]), float(payload[1])
                 speeds[i] = speed
+                navigating[i] = True
             elif kind == "wait":
                 wait_counters[i] += 1
                 if wait_counters[i] >= int(payload):
@@ -556,13 +562,18 @@ def rollout_plans_with_policy(
 
         # ---- navigation + policy ----
         commands, arrived = navigator.velocity_commands(robot_pos_local, yaws, goals, speeds)
-        # envs in goto state that arrived advance their mission
+        # only envs that were actually navigating this step may advance on arrival
         for i in range(num_active):
+            if not navigating[i]:
+                continue
             if completed[i] or fell_over[i] or stuck[i] or mission_index[i] >= len(missions[i]):
                 continue
-            kind, _, _ = missions[i][mission_index[i]]
-            if kind == "goto" and bool(arrived[i]):
+            if bool(arrived[i]):
                 mission_index[i] += 1
+                # mission finished on a final goto?
+                if mission_index[i] >= len(missions[i]):
+                    completed[i] = True
+                    completion_time[i] = control_step * control_dt
 
         targets = controller.joint_position_targets(world.robot, commands)
         world.apply_joint_targets(targets)
