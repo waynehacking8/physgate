@@ -26,6 +26,30 @@ from physgate.world.scene_graph import objects_with_affordance, to_query_scene_p
 #: Planner LLM (architecture doc §1: Claude Opus 4.8 via cloud API).
 DEFAULT_PLANNER_MODEL = "claude-opus-4-8"
 
+
+def make_anthropic_client():
+    """Create an Anthropic client from whichever credential is available.
+
+    Supports both credential types:
+    * ``ANTHROPIC_API_KEY``    — standard API key (x-api-key header)
+    * ``ANTHROPIC_AUTH_TOKEN`` — Claude subscription OAuth token
+      (Authorization: Bearer + oauth beta header)
+    """
+    import anthropic
+
+    auth_token = os.environ.get("ANTHROPIC_AUTH_TOKEN")
+    if auth_token:
+        return anthropic.Anthropic(
+            auth_token=auth_token,
+            default_headers={"anthropic-beta": "oauth-2025-04-20"},
+        )
+    return anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+
+
+def llm_credentials_available() -> bool:
+    """True when either an API key or an OAuth token is configured."""
+    return bool(os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN"))
+
 _SYSTEM_PROMPT = """\
 You are a robot task planner for a Unitree Go2 quadruped with a top-mounted gripper.
 Decompose the user's task into candidate plans. Each plan is a flat list of steps;
@@ -86,9 +110,12 @@ class ClaudePlanner:
         max_tokens: int = 16384,
     ):
         if client is None:
-            import anthropic
+            if api_key is not None:
+                import anthropic
 
-            client = anthropic.Anthropic(api_key=api_key or os.environ["ANTHROPIC_API_KEY"])
+                client = anthropic.Anthropic(api_key=api_key)
+            else:
+                client = make_anthropic_client()
         self._client = client
         self._model = model
         self._max_tokens = max_tokens
@@ -297,7 +324,7 @@ class MockPlanner:
 def make_planner(
     model: str = DEFAULT_PLANNER_MODEL, client: Any = None
 ) -> ClaudePlanner | MockPlanner:
-    """Return ClaudePlanner if an API key is available, else MockPlanner."""
-    if client is not None or os.environ.get("ANTHROPIC_API_KEY"):
+    """Return ClaudePlanner if LLM credentials are available, else MockPlanner."""
+    if client is not None or llm_credentials_available():
         return ClaudePlanner(model=model, client=client)
     return MockPlanner()

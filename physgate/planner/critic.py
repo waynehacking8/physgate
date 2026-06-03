@@ -90,9 +90,14 @@ class ClaudeCritic:
         max_tokens: int = 4096,
     ):
         if client is None:
-            import anthropic
+            if api_key is not None:
+                import anthropic
 
-            client = anthropic.Anthropic(api_key=api_key or os.environ["ANTHROPIC_API_KEY"])
+                client = anthropic.Anthropic(api_key=api_key)
+            else:
+                from physgate.planner.planner import make_anthropic_client
+
+                client = make_anthropic_client()
         self._client = client
         self._model = model
         self._max_tokens = max_tokens
@@ -142,7 +147,9 @@ class ClaudeCritic:
 def make_critic(
     model: str = DEFAULT_PLANNER_MODEL, client: Any = None
 ) -> ClaudeCritic | MockCritic:
-    """Return ClaudeCritic if an API key is available, else MockCritic."""
-    if client is not None or os.environ.get("ANTHROPIC_API_KEY"):
+    """Return ClaudeCritic if LLM credentials are available, else MockCritic."""
+    from physgate.planner.planner import llm_credentials_available
+
+    if client is not None or llm_credentials_available():
         return ClaudeCritic(model=model, client=client)
     return MockCritic()
