@@ -1,35 +1,39 @@
 {
-  "benchmark": "phase0 #4 (L2 wall-clock) + #5 (warm-start)",
-  "timestamp": "2026-06-03 13:54:38",
-  "gpu": "RTX PRO 6000 Blackwell Max-Q (sm_120, 300W)",
-  "warm_start": {
-    "app_launch_s": 3.84,
-    "scene_creation_8env_s": 1.88,
-    "first_identical_reset_s": 0.09,
-    "total_to_ready_s": 6.61,
-    "reset_identical_ok": true,
-    "reset_max_deviation_m": 0.000388,
-    "gate_criterion": "assumption was 10-30 s to warm-start"
-  },
-  "l2_kinematic": {
-    "single_plan_wall_s": 7.28,
-    "batch_8_plans_wall_s": 20.15,
-    "marginal_cost_of_7_extra_plans_s": 12.87,
-    "per_plan_effective_s": 2.52,
-    "feasible_count": 8
-  },
-  "l2_policy": {
-    "policy": "/home/wayne/IsaacLab/logs/rsl_rl/unitree_go2_flat/2026-06-03_13-21-37/exported/policy.pt",
-    "single_plan_wall_s": 17.08,
-    "batch_8_plans_wall_s": 17.4,
-    "marginal_cost_of_7_extra_plans_s": 0.32,
-    "per_plan_effective_s": 2.17,
-    "feasible_count": 2
-  },
-  "conclusion": {
-    "marginal_sim_cost_kinematic_s": 12.87,
-    "marginal_sim_cost_policy_s": 0.32,
-    "end_to_end_validation_free": false,
-    "note": "Marginal sim cost of +7 candidates is small in policy mode (+0.32 s) but L2 validation is not free end to end \u2014 the ~17 s base rollout dominates. The gate's value is feasibility discrimination, not speed: real-LLM demo found 1/7 critic-approved plans physically feasible (mock: 2/8) \u2014 physics identifies the workable plan among candidates that all look plausible to the LLM (architecture doc \u00a76: a quality contribution, not a speed one)."
-  }
+ "benchmark": "phase0 #4 (L2 wall-clock) + #5 (warm-start)",
+ "timestamp": "2026-06-03 13:54:38",
+ "gpu": "RTX PRO 6000 Blackwell Max-Q (sm_120, 300W)",
+ "warm_start": {
+  "app_launch_s": 3.84,
+  "scene_creation_8env_s": 1.88,
+  "first_identical_reset_s": 0.09,
+  "total_to_ready_s": 6.61,
+  "reset_identical_ok": true,
+  "reset_max_deviation_m": 0.000388,
+  "gate_criterion": "assumption was 10-30 s to warm-start",
+  "component_sum_s": 5.81,
+  "untimed_overhead_s": 0.8,
+  "note": "components sum to 5.81 s; total_to_ready_s (6.61 s) additionally includes untimed inter-stage overhead (module imports, USD stage setup between the timed sections)"
+ },
+ "l2_kinematic": {
+  "single_plan_wall_s": 7.28,
+  "batch_8_plans_wall_s": 20.15,
+  "marginal_cost_of_7_extra_plans_s": 12.87,
+  "per_plan_effective_s": 2.52,
+  "feasible_count": 8
+ },
+ "l2_policy": {
+  "policy": "/home/wayne/IsaacLab/logs/rsl_rl/unitree_go2_flat/2026-06-03_13-21-37/exported/policy.pt",
+  "single_plan_wall_s": 17.08,
+  "batch_8_plans_wall_s": 17.4,
+  "marginal_cost_of_7_extra_plans_s": 0.32,
+  "per_plan_effective_s": 2.17,
+  "feasible_count": 2
+ },
+ "conclusion": {
+  "marginal_sim_cost_kinematic_s": 12.87,
+  "marginal_sim_cost_policy_s": 0.32,
+  "end_to_end_validation_free": false,
+  "note": "Marginal sim cost of +7 candidates is small in policy mode (+0.32 s) but L2 validation is not free end to end \u2014 the ~17 s base rollout dominates. The gate's value is feasibility discrimination, not speed: real-LLM demo found 1/7 critic-approved plans physically feasible (mock: 2/8) \u2014 physics identifies the workable plan among candidates that all look plausible to the LLM (architecture doc \u00a76: a quality contribution, not a speed one).",
+  "DEPRECATION_NOTE": "The '1/7 feasible (mock 2/8) discrimination' framing below is the pre-rebuild ARTIFACT (obstacle avoidance in the wrong layer, see REBUILD.md / milestone 3). After the rebuild, feasibility of well-formed plans is ~100% and the gate's value is ORCHESTRATION validation (benchmarks/orchestration/). The wall-clock measurements in this file remain valid."
+ }
 }

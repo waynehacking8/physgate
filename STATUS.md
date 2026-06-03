@@ -202,8 +202,9 @@ REBUILD.md); the wall-clock measurements above remain valid._
 
 ### #5 — Warm-start latency
 
-App launch 3.8 s + 8-env scene 1.9 s + identical reset 0.1 s = **6.6 s total**
-(the design assumed 10–30 s — better than expected).
+App launch 3.8 s + 8-env scene 1.9 s + identical reset 0.1 s (+ ~0.8 s untimed
+inter-stage overhead) → **6.6 s total** (the design assumed 10–30 s — better
+than expected).
 
 ### #8 — Cost/quality curve — **DEPRECATED (artifact, see REBUILD.md)**
 
@@ -318,13 +319,20 @@ real LangGraph orchestrator, fault injection
 | End-to-end success (feasible tasks) | 0.60 | **1.00** |
 | Infeasible recognition | 1.00 | 1.00 |
 | Recovery from transient failures | 1.00 | 1.00 |
-| Decomposition validity | 1.00 | 0.80 |
+| Decomposition validity | 1.00 | 1.00 |
 | Invalid-plan catch rate | 1.00 | 1.00 |
-| **Orchestrator score** | **0.92** | **0.96** |
+| **Orchestrator score** | **0.92** | **1.00** |
 
 The eval differentiates orchestrators on the dimension that matters: the mock
 fails exactly its known weaknesses (occupied-gripper precondition, multi-step
 tasks); Claude handles both.
+
+_Data-integrity note: an earlier run scored Claude 0.96 because the
+decomposition checker assumed an empty initial gripper (D-021) — the data
+plausibility review caught that Claude's "set the held box down first" plan
+completed the task yet was scored invalid. With the checker fixed and the suite
+re-run, the ONLY field that changed between runs was that one flag (verified by
+per-scenario diff); every other outcome was identical._
 
 ## Key findings logged this milestone
 
@@ -336,14 +344,21 @@ tasks); Claude handles both.
   interface.
 - **D-020**: the trained policy cannot turn in place (a "keep standing" fixed
   point); the navigator never commands pure rotation (TURN_CREEP_SPEED).
+- **D-021**: decomposition checking must start from the scenario's actual
+  initial state — the empty-gripper assumption scored a correct plan as
+  invalid (found by the data plausibility review).
 
 ## Test summary (current)
 
-- **Pure-logic suite**: `pytest` → **197 passed** (includes 14 orchestration-eval tests)
-- **Isaac integration suite**: `pytest tests/test_isaac_sim_gate.py` → **15 passed**
+- **Pure-logic suite**: `pytest` → **216 passed** (orchestration eval, viz
+  encoder/renderer, README generator)
+- **Isaac integration suite**: `pytest tests/test_isaac_sim_gate.py` → **16 passed**
   (verified ×2 consecutive runs in one session — world-reuse is deterministic)
 - **Reproducibility**: fresh venv + `pip install -e ".[dev]"` + `pytest` → green
   (mcp + anthropic now in `[dev]`; anthropic imported lazily)
+- **Dynamic recordings**: `benchmarks/rebuild/record_rollout.py` captures the
+  Isaac camera + trajectory log from a real validation rollout, runs automated
+  plausibility checks, and regenerates `docs/media/` (embedded in the README)
 
 ## What the project is now about
 
