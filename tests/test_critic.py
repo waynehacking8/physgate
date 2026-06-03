@@ -9,7 +9,7 @@ import json
 
 from physgate.gate.schemas import Scene, SceneObject
 from physgate.planner.critic import SAFETY_CONTRACTS, ClaudeCritic, MockCritic, make_critic
-from physgate.planner.planner import ClaudePlanner, MockPlanner
+from physgate.planner.planner import MockPlanner
 from physgate.planner.schemas import Plan, PlanStep, RelationChange, ToolName
 
 TASK = "put the fallen box back on shelf A"

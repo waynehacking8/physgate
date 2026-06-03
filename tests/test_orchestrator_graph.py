@@ -6,7 +6,7 @@ retry budget 3). All components are injected callables, mocked here — no GPU,
 no LLM, no simulator.
 """
 
-from physgate.gate.scoring import PhysicsResult, SelectionResult, select_best
+from physgate.gate.scoring import PhysicsResult, select_best
 from physgate.gate.schemas import Scene, SceneObject
 from physgate.orchestrator.graph import OrchestratorConfig, build_orchestrator, run_task
 from physgate.planner.schemas import Plan, PlanStep, ToolName

@@ -15,7 +15,6 @@ IMPORTANT: import only after SimulationApp launch.
 
 from __future__ import annotations
 
-import torch
 from isaaclab.scene import InteractiveScene
 
 

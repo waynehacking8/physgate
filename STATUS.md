@@ -51,12 +51,21 @@ _(test counts approximate; run `pytest` for the authoritative numbers)_
 
 ### Offline (mock planner, symbolic physics) — `python examples/fetch_and_place.py`
 
-8 candidates → 6 survive critic → best-of-N selection → 4/4 steps executed → DONE.
-(see `benchmarks/demo_runs/demo_output_offline.txt`)
+8 candidates → 6 survive critic → best-of-N selection → 4/4 steps executed →
+**DONE**. (transcript: `benchmarks/demo_runs/demo_output_offline.txt`)
 
-### Isaac Sim (real physics) — `python examples/fetch_and_place.py --isaac`
+### Isaac Sim (real GPU physics) — `python examples/fetch_and_place.py --isaac`
 
-_(see `benchmarks/demo_runs/demo_output_isaac.txt`)_
+**End-to-end PASS** (transcript: `benchmarks/demo_runs/demo_output_isaac.txt`):
+
+- scene perceived from USD stage semantics (C13 in the loop),
+- 8 candidates → 6 survivors → **Isaac Lab L2 parallel physics validation**
+  in 8 identical envs (C10 + C11),
+- the gate selected `mock_2_cautious` (detour route, **0 collisions**) over
+  the faster direct routes (**1 collision** each, −1000 score penalty) —
+  physics validation correctly traded speed for safety,
+- the winning plan executed physically in Isaac Sim (SimBackend, E17):
+  **5/5 steps, box ended resting on the shelf** → OUTCOME: DONE.
 
 ## Known issues
 

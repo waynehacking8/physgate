@@ -1,0 +1,30 @@
+[planner] (export ANTHROPIC_API_KEY=... to plan with the real LLM)
+========================================================================
+physgate — fetch-and-place demo
+========================================================================
+task:            put the fallen box back on shelf A
+planner:         MockPlanner
+critic:          MockCritic
+L2 physics:      isaac_l2
+executor:        SimBackend
+------------------------------------------------------------------------
+candidates:      8 plans generated
+survivors:       6 plans passed the safety critic
+gate verdict:    PASS
+selected plan:   mock_2_cautious
+selection logic: selected 'mock_2_cautious' out of 6 candidates: score 999980.5, 0 collisions, 19.4s, 9J (6/6 candidates were feasible)
+------------------------------------------------------------------------
+per-plan physics scores:
+  mock_2_cautious          score=    999980.5  [ok]   19.4s 0 collisions <== selected
+  mock_6_cautious          score=    999980.5  [ok]   19.4s 0 collisions
+  mock_4_direct            score=    998993.0  [ok]    6.9s 1 collisions
+  mock_0_direct            score=    998992.6  [ok]    7.3s 1 collisions
+  mock_1_scan_first        score=    998991.5  [ok]    8.4s 1 collisions
+  mock_5_scan_first        score=    998991.5  [ok]    8.4s 1 collisions
+------------------------------------------------------------------------
+execution:       5/5 steps completed, success=True
+trace:           planning -> reviewing -> validating -> awaiting_approval -> executing -> done
+OUTCOME:         DONE
+========================================================================
+[Info] [carb] Logging to file: /home/wayne/env_isaaclab/lib/python3.11/site-packages/isaacsim/kit/logs/Kit/Isaac-Sim/5.1/kit_20260603_122916.log
+EXIT_CODE=0
