@@ -32,16 +32,31 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    from physgate.examples_lib.fetch_and_place import run_fetch_and_place
-
     kwargs = {}
     if args.isaac:
-        # Late import: only valid inside the Isaac Sim python environment.
-        from physgate.executor.sim_backend import SimBackend
-        from physgate.gate.l2_physics import isaac_l2
+        # Isaac Sim must be launched BEFORE any isaaclab/physgate-sim import.
+        print("[isaac] launching headless Isaac Sim (this takes ~30-60 s)...")
+        from isaaclab.app import AppLauncher
 
-        kwargs["l2_fn"] = isaac_l2
-        kwargs["backend_factory"] = SimBackend
+        _simulation_app = AppLauncher(headless=True).app  # noqa: F841 — keeps the app alive
+
+        from physgate.executor.sim_backend import SimBackend
+        from physgate.gate.l2_physics import IsaacL2Gate
+        from physgate.gate.reset_workaround import reset_scene_to_identical_state
+        from physgate.world.fetch_scene import get_shared_world
+        from physgate.world.usd_semantics import scene_from_stage
+
+        print("[isaac] building 8-env fetch-and-place scene...")
+        world = get_shared_world(num_envs=8)
+        reset_scene_to_identical_state(world.scene, world.sim)
+
+        # perceive the symbolic scene FROM the simulation (USD semantics, C13)
+        print("[isaac] perceiving scene from USD stage semantics...")
+        kwargs["scene"] = scene_from_stage(env_index=0)
+        kwargs["l2_fn"] = IsaacL2Gate(world)
+        kwargs["backend_factory"] = lambda scene: SimBackend(scene, world=world)
+
+    from physgate.examples_lib.fetch_and_place import run_fetch_and_place
 
     if os.environ.get("ANTHROPIC_API_KEY"):
         print("[planner] ANTHROPIC_API_KEY found -> using Claude API planner/critic")

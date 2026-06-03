@@ -135,9 +135,12 @@ class MockPlanner:
     real selection work to do. Used when no ANTHROPIC_API_KEY is available.
     """
 
+    _last_scene: Scene | None = None
+
     def __call__(
         self, task: str, scene: Scene, n: int, feedback: str | None = None
     ) -> list[Plan]:
+        self._last_scene = scene  # used by route variants that need scene lookups
         fetch_target = self._fetch_target(scene)
         place_target = self._place_target(scene)
         rationale_suffix = (
@@ -174,6 +177,12 @@ class MockPlanner:
             return placeable[0].id
         non_anomalies = [o for o in scene.objects if not o.is_anomaly]
         return non_anomalies[0].id if non_anomalies else scene.objects[-1].id
+
+    @staticmethod
+    def _waypoint(scene: Scene) -> str | None:
+        """Find a navigation waypoint marker in the scene, if any."""
+        waypoints = [o for o in scene.objects if o.label == "waypoint"]
+        return waypoints[0].id if waypoints else None
 
     # ----- plan variants -----
 
@@ -242,17 +251,24 @@ class MockPlanner:
         )
 
     def _cautious_plan(self, i, task, fetch, place, suffix) -> Plan:
+        """Slow detour route: goes via a waypoint (if the scene has one) instead
+        of cutting straight across — trades time for clearance."""
+        waypoint = self._waypoint(self._last_scene) if self._last_scene else None
+        detour_steps = (
+            [self._move_step(3, waypoint, standoff=0.0, speed=0.25)] if waypoint else []
+        )
+        steps = [
+            self._move_step(1, fetch, standoff=0.5, speed=0.25),
+            self._pick_step(2, fetch),
+            *detour_steps,
+            self._move_step(4, place, standoff=0.5, speed=0.25),
+            self._place_step(5, fetch, place),
+        ]
         return Plan(
             plan_id=f"mock_{i}_cautious",
             task=task,
-            rationale=f"slow approach with re-scan between pick and place{suffix}",
-            steps=[
-                self._move_step(1, fetch, standoff=0.5, speed=0.25),
-                self._pick_step(2, fetch),
-                PlanStep(step_id=3, tool=ToolName.QUERY_SCENE, args={}),
-                self._move_step(4, place, standoff=0.5, speed=0.25),
-                self._place_step(5, fetch, place),
-            ],
+            rationale=f"slow detour route via waypoint for clearance{suffix}",
+            steps=steps,
         )
 
     def _no_precondition_plan(self, i, task, fetch, place, suffix) -> Plan:

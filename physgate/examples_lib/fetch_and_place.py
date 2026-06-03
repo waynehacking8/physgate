@@ -46,6 +46,9 @@ def build_demo_scene() -> Scene:
             SceneObject(id="shelf_A", label="shelf", affordances=["placeable"]),
             SceneObject(id="floor_01", label="floor"),
             SceneObject(id="go2", label="robot"),
+            # navigation waypoint marker: detour routes go via this point to
+            # clear the obstacle pillar between the box and the shelf
+            SceneObject(id="waypoint_W", label="waypoint"),
         ],
         relations=[("box_03", "on", "floor_01"), ("shelf_A", "unoccupied", "shelf_A")],
         gripper_empty=True,
