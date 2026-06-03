@@ -107,6 +107,15 @@ HARD CONSTRAINTS (plans violating these are rejected by the validation gate):
   "standoff_m" (0.2-0.5) and "speed" (0.4-0.6, m/s).
 - execute_skill args: {"skill": "pick" | "place", "target": "<scene object id>"}.
 
+RELATION VOCABULARY — preconditions and effect subjects/predicates MUST use
+exactly these forms (the gate and executor check them literally):
+- "<object id> exists"             object is present in the scene
+- "gripper_empty"                  the gripper currently holds nothing
+- "robot near <object id>"         robot is at the object (the effect of move_to_pose)
+- "gripper holding <object id>"    gripper holds the object (added by pick, removed by place)
+- "<object id> on <object id>"     support relation, e.g. "box_03 on shelf_A"
+Use the literal subjects "robot" and "gripper" — NOT the robot's scene object id.
+
 NOTE: you do NOT plan routes or avoid obstacles — a deterministic navigation
 layer handles "how to get there". Your job is task DECOMPOSITION: correct step
 ordering, satisfied preconditions, and handling of failures. Generate plans that

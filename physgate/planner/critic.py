@@ -102,6 +102,8 @@ class ClaudeCritic:
         self._max_tokens = max_tokens
 
     def __call__(self, plans: list[Plan], scene: Scene) -> list[Plan]:
+        if not plans:
+            return []  # nothing to review — skip the LLM round-trip
         contracts = "\n".join(f"{i + 1}. {c}" for i, c in enumerate(SAFETY_CONTRACTS))
         user_prompt = (
             f"Current scene:\n{json.dumps(to_query_scene_payload(scene), indent=2)}\n\n"

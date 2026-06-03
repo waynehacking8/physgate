@@ -307,6 +307,26 @@ failing on a limitation the LLM cannot know about. Revisit after training a
 more robust policy (more iterations, velocity-command curriculum) or replacing
 the P-controller navigator with a proper local planner.
 
+## D-019: Relation vocabulary is part of the tool contract (orchestration-eval finding)
+
+The first real-LLM run of the orchestration evaluation (Phase 3) scored Claude
+*below* the mock planner — because every Claude plan failed the symbolic
+executor's precondition recheck. Root cause: a **vocabulary mismatch**, not an
+orchestration deficiency. Claude grounded relations in scene object ids
+("go2 near box_03", "go2 holding box_03" — entirely reasonable), while
+MockWorldBackend's internal convention is "robot near <id>" / "gripper holding
+<id>". The mock planner only "passed" because it was written against the same
+private convention (and declares almost no relational preconditions at all).
+
+Decision: the relation vocabulary is part of the **tool contract** and is now
+documented in the planner system prompt (RELATION VOCABULARY section). An LLM
+that still uses other subjects after being told the contract is exhibiting a
+real instruction-following deficiency; before being told, it was not.
+
+Evaluation-integrity lesson: when an eval shows "the LLM is worse than a
+trivial baseline", first suspect the eval's interface, not the LLM. The mock
+baseline had insider knowledge of the backend's private vocabulary.
+
 ## D-020: Never command pure rotation — the policy cannot turn in place (Phase 2 verification finding)
 
 The definitive Phase 2 verification (full Isaac suite ×2 + feasibility) exposed a
