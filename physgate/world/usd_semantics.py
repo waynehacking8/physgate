@@ -43,7 +43,7 @@ def _read_prim_labels(prim) -> list[str]:
 
         for label_list in get_labels(prim).values():
             labels.extend(label_list)
-    except Exception:  # noqa: BLE001 — fall through to legacy scan
+    except (ImportError, AttributeError, RuntimeError):
         pass
     if labels:
         return labels

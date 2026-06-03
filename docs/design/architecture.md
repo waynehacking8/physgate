@@ -1,5 +1,12 @@
 # physgate — Architecture
 
+> [!CAUTION]
+> **SUPERSEDED.** This document predates the navigation rebuild (2026-06-03).
+> The authoritative design is [`REBUILD.md`](REBUILD.md). Key corrections:
+> best-of-N framing eliminated, RL fallback and Monitor components do NOT exist,
+> PostgresSaver → MemorySaver, ROS 2 executor is NOT implemented.
+> Retained for historical context only.
+
 > Research software. **Not a certified safety system.** See [README Safety & Scope](../../README.md#safety--scope).
 
 physgate inserts a **physics-verification gate** between an LLM planner and a robot:

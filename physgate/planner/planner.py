@@ -216,7 +216,7 @@ class ClaudePlanner:
         for raw in raw_plans:
             try:
                 plans.append(Plan.model_validate(raw))
-            except Exception:  # noqa: BLE001 — invalid candidates are dropped, not fatal
+            except (ValueError, KeyError, TypeError):
                 continue
         if not plans:
             raise ValueError(f"could not parse any valid Plan from LLM response: {text[:200]!r}")

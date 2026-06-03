@@ -339,6 +339,24 @@ for research settings, not a certified safety function.
 PROVIDED "AS IS" WITHOUT WARRANTY. Do not deploy near persons without hardware safety
 infrastructure independent of this software.
 
+## Current Limitations
+
+- **Single scene type.** All evaluations use one fetch-and-place scenario (box →
+  shelf with one pillar obstacle). Multi-room, multi-object, and outdoor scenes
+  are not tested.
+- **Single robot.** Validated only on the Unitree Go2 quadruped with the rsl_rl
+  flat locomotion policy. Other morphologies (arms, wheels, humanoids) are out of
+  scope.
+- **Single task class.** The planner is tested on pick-and-place tasks. Longer
+  horizons (tool use, sequential manipulation, multi-agent coordination) are not
+  covered.
+- **No real-robot deployment.** All validation is in simulation (Isaac Lab PhysX).
+  ROS 2 executor interface is defined but NOT implemented.
+- **Sim-to-real gap.** A simulation PASS reduces risk but does not prove real-world
+  safety. Contact dynamics, sensor noise, and communication latency are not modeled.
+- **Sample size.** Current evaluation uses n=20 feasible + n=8 infeasible procedurally
+  generated instances — far below cited standards (SafeAgentBench 750, PlanBench 600).
+
 ## License
 
 [MIT](LICENSE) © 2026 Wei Cheng (Wayne) Chiu

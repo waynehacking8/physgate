@@ -8,3 +8,5 @@ the project's primary evidence:
     E3  procedural scenarios     — generated layouts with certified solvability
     E4  statistical repeats      — dispersion of all stochastic measurements
 """
+
+__all__: list[str] = []

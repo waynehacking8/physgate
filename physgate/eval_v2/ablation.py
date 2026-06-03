@@ -143,8 +143,7 @@ def _navigation_compiles(plan: Plan, layout: dict) -> bool:
         return True
     except PathPlannerError:
         return False
-    except Exception:
-        # unknown targets etc. — not a navigation failure, but not executable
+    except (ValueError, KeyError):
         return False
 
 
