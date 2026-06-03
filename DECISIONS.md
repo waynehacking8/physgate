@@ -172,3 +172,35 @@ Implementation (`physgate/planner/headless_client.py`):
 
 Verified live 2026-06-03: ClaudePlanner over headless client generated valid
 plans with claude-opus-4-8 in 18.5 s (2 candidates).
+
+## D-016: Anti-hallucination validation (root cause of the first real-LLM demo escalation)
+
+The first real-LLM Isaac demo (2026-06-03) escalated: all 7 critic-surviving
+plans failed L2 at "0.0s, 0 collisions". Root cause chain:
+
+1. Claude, asked for 8 *diverse* plans, can invent object ids that are not in
+   the scene (extra waypoints, staging areas). LLM output is stochastic — some
+   runs produce only valid ids, some do not.
+2. ClaudeCritic (also an LLM) did not reliably reject those plans.
+3. L3 only checked *declared preconditions* — a plan moving to a hallucinated
+   waypoint without declaring "waypoint_X exists" passed L3.
+4. `_compile_mission` silently skipped unknown move targets (`continue`),
+   degrading plans to `[pick, place]`-only missions that "complete" in 0.02 s
+   with the box never moved → misleading "box not on shelf" failures.
+
+Fixes (defense in depth):
+
+- **L3 `check_step_targets`**: every step's `target` arg must name an object in
+  the scene; violations are explicit (`unknown_object`). Runs before
+  preconditions in `_l3_check` — hallucinated plans never reach physics.
+- **L2 `UnknownTargetError`**: `_compile_mission` now raises instead of
+  silently skipping; `rollout_plans_with_policy` converts that into an explicit
+  failed PhysicsResult. Backstop for direct L2 callers.
+- **Planner prompt**: HARD CONSTRAINTS section forbids inventing ids and pins
+  the exact args schema (standoff_m/speed ranges, skill arg format).
+- **Demo report**: failed plans now print their violation details, and the full
+  candidate step dump is included — no more undiagnosable failures.
+
+Lesson recorded: validate at every trust boundary; never silently degrade
+LLM-provided references. An LLM critic is not a substitute for deterministic
+structural validation.

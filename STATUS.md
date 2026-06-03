@@ -148,13 +148,21 @@ more than validating 1.** Best-of-N quality is effectively free in GPU time
 App launch 3.8 s + 8-env scene 1.9 s + identical reset 0.1 s = **6.6 s total**
 (the design assumed 10–30 s — better than expected).
 
-### #7 — LLM planning latency
+### #7 — LLM planning latency (real Claude Opus 4.8, subscription OAuth via `claude -p`)
 
-Script ready (`benchmark_7_llm_latency.py`); measures single-call-8-plans vs
-8-parallel-calls vs critic latency with P50/P95. Running autonomously in patient
-retry mode — the Claude subscription that powers it is shared with the
-interactive Claude Code session that built this codebase, so it completes once
-that session goes quiet (results auto-commit).
+| Stage | P50 | P95 | Notes |
+|---|---|---|---|
+| Planner — 1 call returning 8 plans | 56.2 s | 56.2 s | 8/8 valid plans every trial |
+| Planner — **8 parallel calls**, 1 plan each | **15.9 s** | 20.9 s | **3.5× faster** — validates the original design sketch |
+| Safety critic | 14.6 s | 16.3 s | consistently prunes 2/8 reckless candidates |
+
+3 trials per strategy; auth path = `ClaudeCodeHeadlessClient` (`claude -p`
+subprocess, ~1-3 s CLI startup included in each call).
+
+**Gate criterion check:** with parallel planning (15.9 s) + critic (14.6 s) +
+L2 policy validation (17.4 s, benchmark #4), the LLM accounts for ~64% of
+pipeline wall-clock — the architecture's 75-85% estimate was slightly
+pessimistic, and parallel candidate generation is the clear win.
 
 ## What physics validation now proves (policy mode)
 

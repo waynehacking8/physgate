@@ -1,0 +1,50 @@
+{
+  "benchmark": "phase0 #7 - LLM planning latency",
+  "model": "claude-opus-4-8",
+  "n_candidates": 8,
+  "trials": 3,
+  "auth_path": "ClaudeCodeHeadlessClient",
+  "note": "ClaudeCodeHeadlessClient = claude -p subprocess (subscription OAuth); latency includes ~1-3s CLI startup per call",
+  "timestamp": "2026-06-03 14:16:54",
+  "single_call": {
+    "strategy": "single_call_8_plans",
+    "latencies_s": [
+      56.22,
+      54.14,
+      56.18
+    ],
+    "p50_s": 56.18,
+    "p95_s": 56.21,
+    "valid_plans_per_call": [
+      8,
+      8,
+      8
+    ]
+  },
+  "parallel_calls": {
+    "strategy": "parallel_8_calls",
+    "wall_latencies_s": [
+      21.45,
+      15.53,
+      15.92
+    ],
+    "wall_p50_s": 15.92,
+    "wall_p95_s": 20.9,
+    "per_call_p50_s": 14.72,
+    "per_call_p95_s": 16.4
+  },
+  "critic": {
+    "latencies_s": [
+      16.45,
+      7.46,
+      14.64
+    ],
+    "p50_s": 14.64,
+    "p95_s": 16.27,
+    "survivors_per_call": [
+      6,
+      6,
+      6
+    ]
+  }
+}

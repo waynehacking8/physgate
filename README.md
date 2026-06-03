@@ -90,25 +90,30 @@ works on the target hardware. See [`STATUS.md`](STATUS.md) for the component mat
 [`DECISIONS.md`](DECISIONS.md) for build decisions, and
 [`benchmarks/`](benchmarks/) for hardware-gate results and demo transcripts.
 
-Current MVP scope: mock LLM planner unless `ANTHROPIC_API_KEY` is set; kinematic
-base motion (no learned locomotion policy yet); auto-approval. Hardware gate
-(Phase 0 benchmark #1) **passed**.
+Current scope (milestone 2): **trained Go2 locomotion policy** (robots walk in
+L2 validation and execution), real Claude planner/critic when LLM credentials
+are set (mock fallback otherwise), LangGraph human-approval interrupt, and
+three-stream Merkle audit. Hardware gate (Phase 0 benchmark #1) **passed**;
+benchmarks #3–#5 and #7 measured (see `STATUS.md`).
 
 ## Quick start
 
 ```bash
 # Pure-logic pipeline (no GPU, no API key needed)
 pip install -e ".[dev]"
-pytest                                    # 113 tests
+pytest                                    # 148 tests
 python examples/fetch_and_place.py        # offline end-to-end demo
 
-# With real LLM planning
-ANTHROPIC_API_KEY=sk-ant-... python examples/fetch_and_place.py
+# With real LLM planning — either credential works:
+ANTHROPIC_API_KEY=sk-ant-api03-... python examples/fetch_and_place.py    # API key
+CLAUDE_CODE_OAUTH_TOKEN=sk-ant-oat01-... python examples/fetch_and_place.py
+#   ^ Claude subscription token (from `claude setup-token`); routed through
+#     Claude Code headless mode automatically — see DECISIONS.md D-015
 
 # With Isaac Sim physics validation + execution (requires the env_isaaclab venv,
 # see scripts/install_sim_stack.sh and DECISIONS.md D-005)
 source ~/env_isaaclab/bin/activate
-pytest tests/test_isaac_sim_gate.py       # 9 Isaac integration tests
+pytest tests/test_isaac_sim_gate.py       # 11 Isaac integration tests
 python examples/fetch_and_place.py --isaac
 ```
 
