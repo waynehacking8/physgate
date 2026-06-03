@@ -1,0 +1,112 @@
+{
+  "benchmark": "phase0 #2 - bug #2133 same-state parallel reset + rollout determinism",
+  "timestamp": "2026-06-03 15:31:33",
+  "gpu": "RTX PRO 6000 Blackwell Max-Q (sm_120, 300W)",
+  "tolerance_m": 0.001,
+  "per_env_count": [
+    {
+      "num_envs": 8,
+      "reset_cycles": 5,
+      "identity_max_deviation_m": 0.000388,
+      "identity_deviations_m": [
+        0.000388,
+        0.000388,
+        0.000388,
+        0.000388,
+        0.000388
+      ],
+      "repeatability_max_deviation_m": 0.0,
+      "rollout_determinism": {
+        "verdicts_identical": true,
+        "collision_counts_identical": true,
+        "max_completion_time_diff_s": 0.12,
+        "run_1": {
+          "wall_s": 23.3,
+          "verdicts": {
+            "mock_0_direct": false,
+            "mock_1_scan_first": false,
+            "mock_2_cautious": true,
+            "mock_3_reckless": false,
+            "mock_4_direct": false,
+            "mock_5_scan_first": false,
+            "mock_6_cautious": true,
+            "mock_7_reckless": false
+          },
+          "times": {
+            "mock_0_direct": 90.0,
+            "mock_1_scan_first": 90.0,
+            "mock_2_cautious": 12.24,
+            "mock_3_reckless": 0.02,
+            "mock_4_direct": 90.0,
+            "mock_5_scan_first": 90.0,
+            "mock_6_cautious": 12.22,
+            "mock_7_reckless": 0.02
+          },
+          "collisions": {
+            "mock_0_direct": 1,
+            "mock_1_scan_first": 1,
+            "mock_2_cautious": 0,
+            "mock_3_reckless": 0,
+            "mock_4_direct": 1,
+            "mock_5_scan_first": 1,
+            "mock_6_cautious": 0,
+            "mock_7_reckless": 0
+          }
+        },
+        "run_2": {
+          "wall_s": 26.23,
+          "verdicts": {
+            "mock_0_direct": false,
+            "mock_1_scan_first": false,
+            "mock_2_cautious": true,
+            "mock_3_reckless": false,
+            "mock_4_direct": false,
+            "mock_5_scan_first": false,
+            "mock_6_cautious": true,
+            "mock_7_reckless": false
+          },
+          "times": {
+            "mock_0_direct": 90.0,
+            "mock_1_scan_first": 90.0,
+            "mock_2_cautious": 12.12,
+            "mock_3_reckless": 0.02,
+            "mock_4_direct": 90.0,
+            "mock_5_scan_first": 90.0,
+            "mock_6_cautious": 12.18,
+            "mock_7_reckless": 0.02
+          },
+          "collisions": {
+            "mock_0_direct": 1,
+            "mock_1_scan_first": 1,
+            "mock_2_cautious": 0,
+            "mock_3_reckless": 0,
+            "mock_4_direct": 1,
+            "mock_5_scan_first": 1,
+            "mock_6_cautious": 0,
+            "mock_7_reckless": 0
+          }
+        }
+      }
+    },
+    {
+      "num_envs": 64,
+      "reset_cycles": 5,
+      "identity_max_deviation_m": 0.000948,
+      "identity_deviations_m": [
+        0.000948,
+        0.000948,
+        0.000948,
+        0.000948,
+        0.000948
+      ],
+      "repeatability_max_deviation_m": 0.0
+    }
+  ],
+  "go_no_go": {
+    "reset_identity_ok": true,
+    "reset_repeatability_ok": true,
+    "rollout_verdicts_deterministic": true,
+    "verdict": "GO"
+  },
+  "interpretation": "All envs reset to the same state within tolerance, resets do not drift across cycles, and identical plan batches produce identical L2 verdicts \u2014 the parallel best-of-N method (C2) is valid and its verdicts are reproducible."
+}

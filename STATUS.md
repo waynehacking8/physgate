@@ -138,6 +138,35 @@ validation (D-016). The escalation itself was correct fail-safe behaviour.
 
 ## Phase 0 benchmark results (RTX Pro 6000 Blackwell Max-Q, 300W)
 
+**All 8 Phase 0 benchmarks are now complete** (#1 hardware gate in milestone 1;
+#2–#8 below and in `benchmarks/phase0/results/`). Every go/no-go criterion
+passed — the design assumptions of the architecture doc hold on this hardware.
+
+### #2 — Same-state parallel reset + rollout determinism (bug #2133)
+
+| envs | reset identity dev | cross-cycle drift | rollout determinism |
+|---|---|---|---|
+| 8 | 0.388 mm | 0.000 mm | verdicts + collision counts identical across runs (max time diff 0.12 s) |
+| 64 | 0.948 mm | 0.000 mm | — |
+
+**Verdict: GO.** All envs reset to the same state within the 1 mm tolerance,
+resets do not drift, and identical plan batches produce identical L2 verdicts —
+best-of-N comparisons are valid and reproducible. Note: identity deviation
+grows with env count (0.39 mm at 8 → 0.95 mm at 64); re-check if N is ever
+pushed past 64.
+
+### #6 — Warp (Newton foundation) JIT + kernel cache on sm_120
+
+Newton itself is not in the current stack (Isaac Lab 2.3.2 = PhysX), so this
+measures **Warp 1.14** — the kernel framework Newton is built on:
+
+- Cold JIT of a representative sim-kernel set: **0.53 s** (go/no-go line: 1 h)
+- Kernel cache **persists across processes** (cached load <0.01 s, below timing
+  resolution)
+
+**Verdict: GO.** Newton/Warp dev iteration on Blackwell is not blocked. Re-run
+against Newton itself when it enters the stack.
+
 ### #3 — GPU saturation curve
 
 | envs | env-steps/s | scaling efficiency |

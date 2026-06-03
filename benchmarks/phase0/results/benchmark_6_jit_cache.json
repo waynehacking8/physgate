@@ -1,0 +1,46 @@
+{
+  "benchmark": "phase0 #6 - Warp (Newton foundation) JIT + kernel-cache persistence on sm_120",
+  "timestamp": "2026-06-03 15:30:30",
+  "gpu": "RTX PRO 6000 Blackwell Max-Q (sm_120, 300W)",
+  "scope_note": "Newton engine not in current stack (Isaac Lab 2.3.2 = PhysX); measured Warp 1.14.0, the kernel framework Newton is built on. PhysX startup cost is covered by benchmark #5 (3.8 s app launch, no JIT).",
+  "cold_run": {
+    "warp_version": "1.14.0",
+    "device": "NVIDIA RTX PRO 6000 Blackwell Max-Q Workstation Edition",
+    "arch": 120,
+    "import_init_s": 0.4,
+    "compile_and_launch_s": 0.53,
+    "kernel_cache_dir": "/tmp/claude-1001/warp_jit_bench_0exwhr_3",
+    "cache_size_kb": 120
+  },
+  "warm_run": {
+    "warp_version": "1.14.0",
+    "device": "NVIDIA RTX PRO 6000 Blackwell Max-Q Workstation Edition",
+    "arch": 120,
+    "import_init_s": 0.41,
+    "compile_and_launch_s": 0.0,
+    "kernel_cache_dir": "/tmp/claude-1001/warp_jit_bench_0exwhr_3",
+    "cache_size_kb": 120
+  },
+  "warm_run_repeat": {
+    "warp_version": "1.14.0",
+    "device": "NVIDIA RTX PRO 6000 Blackwell Max-Q Workstation Edition",
+    "arch": 120,
+    "import_init_s": 0.4,
+    "compile_and_launch_s": 0.0,
+    "kernel_cache_dir": "/tmp/claude-1001/warp_jit_bench_0exwhr_3",
+    "cache_size_kb": 120
+  },
+  "analysis": {
+    "cold_jit_s": 0.53,
+    "cached_s": 0.0,
+    "cache_speedup_x": null,
+    "cache_statement": "cached load <0.01 s (below timing resolution; cold was 0.53 s)",
+    "cache_persists_across_processes": true,
+    "jit_under_1h_threshold": true
+  },
+  "go_no_go": {
+    "verdict": "GO",
+    "criterion": ">1 h JIT with no cache persistence would block dev iteration"
+  },
+  "interpretation": "sm_120 cold JIT for a representative sim-kernel set takes 0.5 s (threshold: 1 h) and the kernel cache persists across processes (cached load <0.01 s (below timing resolution; cold was 0.53 s)) \u2014 Newton/Warp dev iteration on Blackwell is not blocked. Re-run against Newton itself when it enters the stack."
+}
