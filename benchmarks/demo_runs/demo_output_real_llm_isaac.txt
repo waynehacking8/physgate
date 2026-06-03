@@ -1,0 +1,222 @@
+[isaac] launching headless Isaac Sim (this takes ~30-60 s)...
+[INFO][AppLauncher]: Using device: cuda:0
+[INFO][AppLauncher]: Loading experience file: /home/wayne/IsaacLab/apps/isaaclab.python.headless.kit
+Loading user config located at: '/home/wayne/env_isaaclab/lib/python3.11/site-packages/isaacsim/kit/data/Kit/Isaac-Sim/5.1/user.config.json'
+[Info] [carb] Logging to file: /home/wayne/env_isaaclab/lib/python3.11/site-packages/isaacsim/kit/logs/Kit/Isaac-Sim/5.1/kit_20260603_144955.log
+2026-06-03T06:49:55Z [88ms] [Warning] [omni.usd_config.extension] Enable omni.materialx.libs extension to use MaterialX
+2026-06-03T06:49:55Z [540ms] [Warning] [carb] Acquiring non optional plugin interface which is not listed as dependency: [omni::physx::IPhysxBenchmarks v1.0] (plugin: <default plugin>), by client: omni.physics.physx.plugin. Add it to CARB_PLUGIN_IMPL_DEPS() macro of a client.
+2026-06-03T06:49:55Z [549ms] [Warning] [omni.isaac.dynamic_control] omni.isaac.dynamic_control is deprecated as of Isaac Sim 4.5. No action is needed from end-users.
+
+|---------------------------------------------------------------------------------------------|
+| Driver Version: 580.159.03    | Graphics API: Vulkan
+|=============================================================================================|
+| GPU | Name                             | Active | LDA | GPU Memory | Vendor-ID | LUID       |
+|     |                                  |        |     |            | Device-ID | UUID       |
+|     |                                  |        |     |            | Bus-ID    |            |
+|---------------------------------------------------------------------------------------------|
+| 0   | NVIDIA RTX PRO 6000 Blackwell .. | Yes: 0 |     | 97887   MB | 10de      | 0          |
+|     |                                  |        |     |            | 2bb4      | d7b119f7.. |
+|     |                                  |        |     |            | 70        |            |
+|=============================================================================================|
+| OS: 22.04.5 LTS (Jammy Jellyfish) ubuntu, Version: 22.04.5, Kernel: 6.8.0-111-generic
+| XServer Vendor: The X.Org Foundation, XServer Version: 12101004 (1.21.1.4)
+| Processor: Intel(R) Xeon(R) w5-3425
+| Cores: 12 | Logical Cores: 24
+|---------------------------------------------------------------------------------------------|
+| Total Memory (MB): 257244 | Free Memory: 214156
+| Total Page/Swap (MB): 2047 | Free Page/Swap: 2047
+|---------------------------------------------------------------------------------------------|
+2026-06-03T06:49:59Z [3,774ms] [Warning] [gpu.foundation.plugin] CPU performance profile is set to powersave. This profile sets the CPU to the lowest frequency reducing performance.
+2026-06-03T06:49:59Z [3,784ms] [Warning] [gpu.foundation.plugin] IOMMU is enabled.
+[isaac] building 8-env fetch-and-place scene...
+
+[36m==================================================================================================[0m
+[36m[1m[INFO][IsaacLab]: Logging to file: /tmp/claude-1001/isaaclab/logs/isaaclab_2026-06-03_14-49-59.log[0m
+[36m==================================================================================================[0m
+
+[33m14:49:59 [simulation_context.py] WARNING: The `enable_external_forces_every_iteration` parameter in the PhysxCfg is set to False. If you are experiencing noisy velocities, consider enabling this flag. You may need to slightly increase the number of velocity iterations (setting it to 1 or 2 rather than 0), together with this flag, to improve the accuracy of velocity updates.[0m
+[33m14:50:01 [semantics.py] WARNING: Failed to add labels to prim /World/envs/env_0/Box using Replicator API: No module named 'omni.replicator'. 
+Please ensure Replicator API is enabled by passing '--enable_cameras' to the AppLauncher.
+Falling back to legacy approach.[0m
+[33m14:50:01 [semantics.py] WARNING: Failed to add labels to prim /World/envs/env_0/Shelf using Replicator API: No module named 'omni.replicator'. 
+Please ensure Replicator API is enabled by passing '--enable_cameras' to the AppLauncher.
+Falling back to legacy approach.[0m
+[33m14:50:01 [semantics.py] WARNING: Failed to add labels to prim /World/envs/env_0/Obstacle using Replicator API: No module named 'omni.replicator'. 
+Please ensure Replicator API is enabled by passing '--enable_cameras' to the AppLauncher.
+Falling back to legacy approach.[0m
+[33m14:50:01 [semantics.py] WARNING: Failed to add labels to prim /World/envs/env_0/Waypoint using Replicator API: No module named 'omni.replicator'. 
+Please ensure Replicator API is enabled by passing '--enable_cameras' to the AppLauncher.
+Falling back to legacy approach.[0m
+[33m14:50:01 [semantics.py] WARNING: Failed to add labels to prim /World/envs/env_1/Box using Replicator API: No module named 'omni.replicator'. 
+Please ensure Replicator API is enabled by passing '--enable_cameras' to the AppLauncher.
+Falling back to legacy approach.[0m
+[33m14:50:01 [semantics.py] WARNING: Failed to add labels to prim /World/envs/env_1/Shelf using Replicator API: No module named 'omni.replicator'. 
+Please ensure Replicator API is enabled by passing '--enable_cameras' to the AppLauncher.
+Falling back to legacy approach.[0m
+[33m14:50:01 [semantics.py] WARNING: Failed to add labels to prim /World/envs/env_1/Obstacle using Replicator API: No module named 'omni.replicator'. 
+Please ensure Replicator API is enabled by passing '--enable_cameras' to the AppLauncher.
+Falling back to legacy approach.[0m
+[33m14:50:01 [semantics.py] WARNING: Failed to add labels to prim /World/envs/env_1/Waypoint using Replicator API: No module named 'omni.replicator'. 
+Please ensure Replicator API is enabled by passing '--enable_cameras' to the AppLauncher.
+Falling back to legacy approach.[0m
+[33m14:50:01 [semantics.py] WARNING: Failed to add labels to prim /World/envs/env_2/Box using Replicator API: No module named 'omni.replicator'. 
+Please ensure Replicator API is enabled by passing '--enable_cameras' to the AppLauncher.
+Falling back to legacy approach.[0m
+[33m14:50:01 [semantics.py] WARNING: Failed to add labels to prim /World/envs/env_2/Shelf using Replicator API: No module named 'omni.replicator'. 
+Please ensure Replicator API is enabled by passing '--enable_cameras' to the AppLauncher.
+Falling back to legacy approach.[0m
+[33m14:50:01 [semantics.py] WARNING: Failed to add labels to prim /World/envs/env_2/Obstacle using Replicator API: No module named 'omni.replicator'. 
+Please ensure Replicator API is enabled by passing '--enable_cameras' to the AppLauncher.
+Falling back to legacy approach.[0m
+[33m14:50:01 [semantics.py] WARNING: Failed to add labels to prim /World/envs/env_2/Waypoint using Replicator API: No module named 'omni.replicator'. 
+Please ensure Replicator API is enabled by passing '--enable_cameras' to the AppLauncher.
+Falling back to legacy approach.[0m
+[33m14:50:01 [semantics.py] WARNING: Failed to add labels to prim /World/envs/env_3/Box using Replicator API: No module named 'omni.replicator'. 
+Please ensure Replicator API is enabled by passing '--enable_cameras' to the AppLauncher.
+Falling back to legacy approach.[0m
+[33m14:50:01 [semantics.py] WARNING: Failed to add labels to prim /World/envs/env_3/Shelf using Replicator API: No module named 'omni.replicator'. 
+Please ensure Replicator API is enabled by passing '--enable_cameras' to the AppLauncher.
+Falling back to legacy approach.[0m
+[33m14:50:01 [semantics.py] WARNING: Failed to add labels to prim /World/envs/env_3/Obstacle using Replicator API: No module named 'omni.replicator'. 
+Please ensure Replicator API is enabled by passing '--enable_cameras' to the AppLauncher.
+Falling back to legacy approach.[0m
+[33m14:50:01 [semantics.py] WARNING: Failed to add labels to prim /World/envs/env_3/Waypoint using Replicator API: No module named 'omni.replicator'. 
+Please ensure Replicator API is enabled by passing '--enable_cameras' to the AppLauncher.
+Falling back to legacy approach.[0m
+[33m14:50:01 [semantics.py] WARNING: Failed to add labels to prim /World/envs/env_4/Box using Replicator API: No module named 'omni.replicator'. 
+Please ensure Replicator API is enabled by passing '--enable_cameras' to the AppLauncher.
+Falling back to legacy approach.[0m
+[33m14:50:01 [semantics.py] WARNING: Failed to add labels to prim /World/envs/env_4/Shelf using Replicator API: No module named 'omni.replicator'. 
+Please ensure Replicator API is enabled by passing '--enable_cameras' to the AppLauncher.
+Falling back to legacy approach.[0m
+[33m14:50:01 [semantics.py] WARNING: Failed to add labels to prim /World/envs/env_4/Obstacle using Replicator API: No module named 'omni.replicator'. 
+Please ensure Replicator API is enabled by passing '--enable_cameras' to the AppLauncher.
+Falling back to legacy approach.[0m
+[33m14:50:01 [semantics.py] WARNING: Failed to add labels to prim /World/envs/env_4/Waypoint using Replicator API: No module named 'omni.replicator'. 
+Please ensure Replicator API is enabled by passing '--enable_cameras' to the AppLauncher.
+Falling back to legacy approach.[0m
+[33m14:50:01 [semantics.py] WARNING: Failed to add labels to prim /World/envs/env_5/Box using Replicator API: No module named 'omni.replicator'. 
+Please ensure Replicator API is enabled by passing '--enable_cameras' to the AppLauncher.
+Falling back to legacy approach.[0m
+[33m14:50:01 [semantics.py] WARNING: Failed to add labels to prim /World/envs/env_5/Shelf using Replicator API: No module named 'omni.replicator'. 
+Please ensure Replicator API is enabled by passing '--enable_cameras' to the AppLauncher.
+Falling back to legacy approach.[0m
+[33m14:50:01 [semantics.py] WARNING: Failed to add labels to prim /World/envs/env_5/Obstacle using Replicator API: No module named 'omni.replicator'. 
+Please ensure Replicator API is enabled by passing '--enable_cameras' to the AppLauncher.
+Falling back to legacy approach.[0m
+[33m14:50:01 [semantics.py] WARNING: Failed to add labels to prim /World/envs/env_5/Waypoint using Replicator API: No module named 'omni.replicator'. 
+Please ensure Replicator API is enabled by passing '--enable_cameras' to the AppLauncher.
+Falling back to legacy approach.[0m
+[33m14:50:01 [semantics.py] WARNING: Failed to add labels to prim /World/envs/env_6/Box using Replicator API: No module named 'omni.replicator'. 
+Please ensure Replicator API is enabled by passing '--enable_cameras' to the AppLauncher.
+Falling back to legacy approach.[0m
+[33m14:50:01 [semantics.py] WARNING: Failed to add labels to prim /World/envs/env_6/Shelf using Replicator API: No module named 'omni.replicator'. 
+Please ensure Replicator API is enabled by passing '--enable_cameras' to the AppLauncher.
+Falling back to legacy approach.[0m
+[33m14:50:01 [semantics.py] WARNING: Failed to add labels to prim /World/envs/env_6/Obstacle using Replicator API: No module named 'omni.replicator'. 
+Please ensure Replicator API is enabled by passing '--enable_cameras' to the AppLauncher.
+Falling back to legacy approach.[0m
+[33m14:50:01 [semantics.py] WARNING: Failed to add labels to prim /World/envs/env_6/Waypoint using Replicator API: No module named 'omni.replicator'. 
+Please ensure Replicator API is enabled by passing '--enable_cameras' to the AppLauncher.
+Falling back to legacy approach.[0m
+[33m14:50:01 [semantics.py] WARNING: Failed to add labels to prim /World/envs/env_7/Box using Replicator API: No module named 'omni.replicator'. 
+Please ensure Replicator API is enabled by passing '--enable_cameras' to the AppLauncher.
+Falling back to legacy approach.[0m
+[33m14:50:01 [semantics.py] WARNING: Failed to add labels to prim /World/envs/env_7/Shelf using Replicator API: No module named 'omni.replicator'. 
+Please ensure Replicator API is enabled by passing '--enable_cameras' to the AppLauncher.
+Falling back to legacy approach.[0m
+[33m14:50:01 [semantics.py] WARNING: Failed to add labels to prim /World/envs/env_7/Obstacle using Replicator API: No module named 'omni.replicator'. 
+Please ensure Replicator API is enabled by passing '--enable_cameras' to the AppLauncher.
+Falling back to legacy approach.[0m
+[33m14:50:01 [semantics.py] WARNING: Failed to add labels to prim /World/envs/env_7/Waypoint using Replicator API: No module named 'omni.replicator'. 
+Please ensure Replicator API is enabled by passing '--enable_cameras' to the AppLauncher.
+Falling back to legacy approach.[0m
+[isaac] perceiving scene from USD stage semantics...
+[isaac] using trained locomotion policy: /home/wayne/IsaacLab/logs/rsl_rl/unitree_go2_flat/2026-06-03_13-21-37/exported/policy.pt
+[planner] LLM credentials found -> using real Claude planner/critic
+
+========================================================================
+physgate — fetch-and-place demo
+========================================================================
+task:            put the fallen box back on shelf A
+planner:         ClaudePlanner
+critic:          ClaudeCritic
+L2 physics:      isaac_l2_policy
+executor:        PolicySimExecutor
+------------------------------------------------------------------------
+candidates:      8 plans generated
+survivors:       7 plans passed the safety critic
+gate verdict:    PASS
+selected plan:   plan_waypoint_return_06
+selection logic: selected 'plan_waypoint_return_06' out of 7 candidates: score 999985.2, 0 collisions, 8.9s, 589J (1/7 candidates were feasible)
+------------------------------------------------------------------------
+per-plan physics scores:
+  plan_waypoint_return_06  score=    999985.2  [ok]    8.9s 0 collisions <== selected
+  plan_waypoint_02         score=       -94.0  [FAIL]   90.0s 0 collisions
+      └─ blocked: robot made no progress for 10 s — physically blocked (obstacle in path)
+  plan_close_standoff_08   score=     -1107.0  [FAIL]   90.0s 1 collisions
+      └─ blocked: robot made no progress for 10 s — physically blocked (obstacle in path)
+  plan_verify_03           score=     -1117.6  [FAIL]   90.0s 1 collisions
+      └─ blocked: robot made no progress for 10 s — physically blocked (obstacle in path)
+  plan_precheck_04         score=     -1117.7  [FAIL]   90.0s 1 collisions
+      └─ blocked: robot made no progress for 10 s — physically blocked (obstacle in path)
+  plan_direct_01           score=     -1118.4  [FAIL]   90.0s 1 collisions
+      └─ blocked: robot made no progress for 10 s — physically blocked (obstacle in path)
+  plan_shelf_check_07      score=     -1118.4  [FAIL]   90.0s 1 collisions
+      └─ blocked: robot made no progress for 10 s — physically blocked (obstacle in path)
+------------------------------------------------------------------------
+candidate plan steps:
+  plan_direct_01:
+    1. move_to_pose {"target": "box_03", "standoff_m": 0.3, "speed": 0.6}
+    2. execute_skill {"skill": "pick", "target": "box_03"}
+    3. move_to_pose {"target": "shelf_A", "standoff_m": 0.3, "speed": 0.6}
+    4. execute_skill {"skill": "place", "target": "shelf_A"}
+  plan_waypoint_02:
+    1. move_to_pose {"target": "waypoint_W", "standoff_m": 0.3, "speed": 0.7}
+    2. move_to_pose {"target": "box_03", "standoff_m": 0.3, "speed": 0.5}
+    3. execute_skill {"skill": "pick", "target": "box_03"}
+    4. move_to_pose {"target": "shelf_A", "standoff_m": 0.3, "speed": 0.5}
+    5. execute_skill {"skill": "place", "target": "shelf_A"}
+  plan_verify_03:
+    1. move_to_pose {"target": "box_03", "standoff_m": 0.3, "speed": 0.6}
+    2. execute_skill {"skill": "pick", "target": "box_03"}
+    3. query_scene {"target": "box_03"}
+    4. move_to_pose {"target": "shelf_A", "standoff_m": 0.3, "speed": 0.6}
+    5. execute_skill {"skill": "place", "target": "shelf_A"}
+  plan_precheck_04:
+    1. query_scene {"target": "box_03"}
+    2. move_to_pose {"target": "box_03", "standoff_m": 0.25, "speed": 0.6}
+    3. execute_skill {"skill": "pick", "target": "box_03"}
+    4. move_to_pose {"target": "shelf_A", "standoff_m": 0.25, "speed": 0.6}
+    5. execute_skill {"skill": "place", "target": "shelf_A"}
+  plan_obstacle_route_05:
+    1. move_to_pose {"target": "obstacle_P", "standoff_m": 0.5, "speed": 0.5}
+    2. move_to_pose {"target": "box_03", "standoff_m": 0.3, "speed": 0.5}
+    3. execute_skill {"skill": "pick", "target": "box_03"}
+    4. move_to_pose {"target": "shelf_A", "standoff_m": 0.3, "speed": 0.5}
+    5. execute_skill {"skill": "place", "target": "shelf_A"}
+  plan_waypoint_return_06:
+    1. move_to_pose {"target": "box_03", "standoff_m": 0.3, "speed": 0.6}
+    2. execute_skill {"skill": "pick", "target": "box_03"}
+    3. move_to_pose {"target": "waypoint_W", "standoff_m": 0.3, "speed": 0.5}
+    4. move_to_pose {"target": "shelf_A", "standoff_m": 0.3, "speed": 0.5}
+    5. execute_skill {"skill": "place", "target": "shelf_A"}
+  plan_shelf_check_07:
+    1. move_to_pose {"target": "box_03", "standoff_m": 0.3, "speed": 0.6}
+    2. execute_skill {"skill": "pick", "target": "box_03"}
+    3. move_to_pose {"target": "shelf_A", "standoff_m": 0.3, "speed": 0.6}
+    4. query_scene {"target": "shelf_A"}
+    5. execute_skill {"skill": "place", "target": "shelf_A"}
+  plan_close_standoff_08:
+    1. move_to_pose {"target": "box_03", "standoff_m": 0.2, "speed": 0.4}
+    2. execute_skill {"skill": "pick", "target": "box_03"}
+    3. move_to_pose {"target": "shelf_A", "standoff_m": 0.2, "speed": 0.4}
+    4. execute_skill {"skill": "place", "target": "shelf_A"}
+------------------------------------------------------------------------
+execution:       5/5 steps completed, success=True
+trace:           planning -> reviewing -> validating -> awaiting_approval -> executing -> done
+OUTCOME:         DONE
+========================================================================
+audit: 5 records, merkle root c23120f039821046..., integrity=OK
+2026-06-03T06:51:53Z [118,577ms] [Warning] [omni.physx.plugin] USD stage detach not called, holding a loose ptr to a stage!
+2026-06-03T06:51:54Z [118,957ms] [Warning] [carb] Recursive unloadAllPlugins() detected!

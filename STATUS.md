@@ -98,8 +98,8 @@ _(test counts approximate; run `pytest` for the authoritative numbers)_
 
 | # | Goal | Status |
 |---|---|---|
-| 1 | Train Go2 locomotion policy → replace kinematic base driving | ✅ **DONE** — rsl_rl, 300 iters, mean reward 35.0; integrated into L2 gate + executor; 11/11 Isaac tests pass |
-| 2 | Real-LLM demo + planning latency (benchmark #7) | 🔄 **code complete, running autonomously** — OAuth wired in; blocked on shared subscription quota (see D-012); patient retry chain auto-commits results when quota recovers |
+| 1 | Train Go2 locomotion policy → replace kinematic base driving | ✅ **DONE** — rsl_rl, 300 iters, mean reward 35.0; integrated into L2 gate + executor; 12/12 Isaac tests pass |
+| 2 | Real-LLM demo + planning latency (benchmark #7) | ✅ **DONE** — see "Real-LLM end-to-end demo" + benchmark #7 below |
 | 3 | Phase 0 benchmarks #3–#5 | ✅ **DONE** — results below |
 | 4 | Approval UX (LangGraph interrupt) + audit streams | ✅ **DONE** — interrupt approval + three-stream Merkle audit, all tested |
 
@@ -108,14 +108,33 @@ _(test counts approximate; run `pytest` for the authoritative numbers)_
 | Component | What it does | Tests |
 |---|---|---|
 | `world/locomotion.py` | Go2PolicyController (exact 48-dim obs layout) + WaypointNavigator | 2 (isaac) |
-| `gate/l2_physics.py::rollout_plans_with_policy` | N plans walk in N parallel envs; stuck/fall detection; placement physics | 2 (isaac) |
+| `gate/l2_physics.py::rollout_plans_with_policy` | N plans walk in N parallel envs; stuck/fall detection; placement physics | 3 (isaac) |
 | `executor/sim_backend.py::PolicySimExecutor` | winning plan executed by the walking robot | — |
 | `orchestrator/graph.py::HUMAN_APPROVAL` | LangGraph interrupt approval + resume_with_approval | 6 |
 | `audit/` (merkle, records, trail) | three-stream audit + periodic Merkle checkpoints + tamper detection | 9 |
-| `planner: ANTHROPIC_AUTH_TOKEN` | Claude subscription OAuth token support | 4 |
+| `planner/headless_client.py` | Claude subscription OAuth via `claude -p` headless mode (D-015) | 15 |
+| `gate/l3_scene.py::check_step_targets` | anti-hallucination: step targets must exist in scene (D-016) | 5 |
 | benchmarks #3/#4/#5/#7 scripts | Phase 0 measurement suite | — |
 
-**Test totals: 133 pure-logic + 11 Isaac integration = 144, all green.**
+**Test totals: 153 pure-logic + 12 Isaac integration = 165, all green.**
+
+## Real-LLM end-to-end demo (Claude Opus 4.8 + walking policy) ✅
+
+Transcript: `benchmarks/demo_runs/demo_output_real_llm_isaac.txt`
+
+- **ClaudePlanner** (via `claude -p`, subscription OAuth): 8 well-formed diverse
+  plans, all referencing only real scene objects (prompt HARD CONSTRAINTS, D-016)
+- **ClaudeCritic**: 7/8 survived
+- **L2 physics (walking policy, 8 parallel envs)**: only **1/7 physically
+  feasible** — `plan_waypoint_return_06` (pick box → detour via waypoint →
+  shelf): 0 collisions, 8.9 s. Every direct route was physically blocked by the
+  pillar (stuck detection) — exactly the discrimination the gate exists for.
+- **Execution**: walking robot ran the winning plan, **5/5 steps, box on shelf**
+- **OUTCOME: DONE**; Merkle audit integrity OK
+
+First attempt escalated (all plans rejected) — root cause was LLM-hallucinated
+object ids passing through every validation layer; fixed with defense-in-depth
+validation (D-016). The escalation itself was correct fail-safe behaviour.
 
 ## Phase 0 benchmark results (RTX Pro 6000 Blackwell Max-Q, 300W)
 
