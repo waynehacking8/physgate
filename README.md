@@ -96,9 +96,11 @@ architecture-correction record [`docs/design/REBUILD.md`](docs/design/REBUILD.md
 
 ## Watch it run — real robotic control in Isaac Sim
 
-| Isaac Sim camera — policy-validation rollout | Top-down — planned A\* route vs walked trail |
-|---|---|
-| ![Go2 walking a validated fetch-and-place plan in Isaac Sim](docs/media/isaac_rollout.gif) | ![Planned route (yellow) vs the trail the robot actually walked (green)](docs/media/topdown_trajectory.gif) |
+**Isaac Sim camera — policy-validation rollout** (Go2 rsl_rl walking policy, PhysX):
+
+<p align="center">
+  <img src="docs/media/isaac_rollout.gif" alt="Go2 walking a validated fetch-and-place plan in Isaac Sim" width="640">
+</p>
 
 A trained Go2 locomotion policy (rsl_rl) walks the A\*-planned route around the
 pillar (red), picks the fallen box, carries it, and places it on the shelf — captured
@@ -108,10 +110,20 @@ The carried box rides overhead because the MVP carry is explicit bookkeeping, no
 gripper physics (see `DECISIONS.md` D-018); what *is* physics: walking, obstacle
 clearance, and the momentum-carrying release at placement.
 
-Right: the planned route (yellow) and the robot's actually-walked trail (green) —
+**Top-down trajectory — planned A\* route vs the trail the robot actually walked:**
+
+<p align="center">
+  <img src="docs/media/topdown_trajectory.gif" alt="Planned A* route (amber) vs the trail the robot actually walked (teal)" width="680">
+</p>
+
+The planned route (amber dashed) and the robot's actually-walked trail (teal) —
 recorded from simulation state, with automated plausibility checks (trail never
 enters the obstacle footprint; box ends at shelf height; speed stays in the
 locomotion envelope). Raw data: [`docs/media/rollout_trajectory.json`](docs/media/rollout_trajectory.json).
+
+> Both clips are committed under [`docs/media/`](docs/media/) (`isaac_rollout.gif`,
+> `topdown_trajectory.gif`) and also available as MP4 (`isaac_rollout.mp4`).
+> If a GIF does not animate in your viewer, open it directly from the repo.
 
 ## Status
 

@@ -36,20 +36,26 @@ import numpy as np
 DPI = 300
 
 #: Shared font sizes (kept consistent across every figure)
-LABEL_FS = 8     # bar value labels
-TICK_FS = 8      # axis tick labels
-TITLE_FS = 10    # axes titles
-SUPTITLE_FS = 11
+LABEL_FS = 8.5   # bar value labels
+TICK_FS = 9      # axis tick labels
+TITLE_FS = 11    # axes titles
+SUPTITLE_FS = 12
 
-#: Colorblind-safe palette (Okabe-Ito). See the module docstring for semantics.
+#: Muted, low-saturation palette (seaborn-"muted" family) — camera-ready, not
+#: candy-bright, while keeping the blue/orange anchors colorblind-distinguishable
+#: and a clear good(green)/bad(rose) contrast disambiguated by position+labels.
 COLORS = {
-    "mock": "#999999",    # baseline
-    "claude": "#0072B2",  # model series
-    "llm": "#0072B2",     # alias of claude (PLANNER_LABELS maps both -> Real Claude)
-    "accent": "#D55E00",  # secondary / efficiency
-    "pre": "#CC79A7",     # bad / artifact
-    "post": "#009E73",    # correct / good
+    "mock": "#9aa0a6",    # neutral grey baseline
+    "claude": "#4c72b0",  # muted blue — model series
+    "llm": "#4c72b0",     # alias of claude (PLANNER_LABELS maps both -> Real Claude)
+    "accent": "#dd8452",  # muted amber — secondary / efficiency
+    "pre": "#c44e6c",     # muted rose — bad / artifact
+    "post": "#55a868",    # muted green — correct / good
 }
+
+#: Greys for text / structure (no pure black — softer, print-friendly).
+INK = "#2b2b2b"
+MUTED_INK = "#5f6368"
 
 PLANNER_LABELS = {"mock": "Mock planner", "claude": "Real Claude", "llm": "Real Claude"}
 
@@ -74,17 +80,34 @@ def _setup_style() -> None:
         {
             "figure.dpi": DPI,
             "savefig.dpi": DPI,
+            "figure.facecolor": "white",
             "figure.constrained_layout.use": True,
-            "font.size": 9,
+            "font.family": "sans-serif",
+            "font.sans-serif": ["DejaVu Sans"],
+            "font.size": 10,
+            "text.color": INK,
             "axes.titlesize": TITLE_FS,
-            "axes.labelsize": 9,
+            "axes.titlepad": 10,
+            "axes.labelsize": 10,
+            "axes.labelcolor": INK,
+            "axes.edgecolor": "#b0b0b0",
+            "axes.linewidth": 0.9,
             "axes.spines.top": False,
             "axes.spines.right": False,
+            # horizontal gridlines only — they help read bar heights; vertical
+            # ones are chartjunk on categorical axes
             "axes.grid": True,
-            "grid.alpha": 0.3,
-            "grid.linewidth": 0.5,
+            "axes.grid.axis": "y",
+            "axes.axisbelow": True,
+            "grid.color": "#d7d7d7",
+            "grid.alpha": 0.8,
+            "grid.linewidth": 0.6,
+            "xtick.color": INK,
+            "ytick.color": INK,
+            "xtick.labelsize": TICK_FS,
+            "ytick.labelsize": TICK_FS,
             "legend.frameon": False,
-            "legend.fontsize": LABEL_FS,
+            "legend.fontsize": 9,
         }
     )
 
@@ -162,11 +185,11 @@ def feasibility_chart(
     property of the broken low level (straight-line driver), not of the plans.
     """
     _setup_style()
-    fig, ax = plt.subplots(figsize=(7.0, 4.0), layout="constrained")
+    fig, ax = plt.subplots(figsize=(6.6, 4.2), layout="constrained")
 
     planners = [m["planner"] for m in data["measurements"]]
     x = np.arange(len(planners))
-    width = 0.36
+    width = 0.34
 
     pre_vals, pre_labels = [], []
     post_vals, post_labels = [], []
@@ -179,11 +202,11 @@ def feasibility_chart(
 
     bars_pre = ax.bar(
         x - width / 2, pre_vals, width,
-        label="Pre-rebuild (routing artifact)", color=COLORS["pre"], alpha=0.9,
+        label="Pre-rebuild (routing artifact)", color=COLORS["pre"],
     )
     bars_post = ax.bar(
         x + width / 2, post_vals, width,
-        label="Post-rebuild (A* navigation)", color=COLORS["post"], alpha=0.9,
+        label="Post-rebuild (A* navigation)", color=COLORS["post"],
     )
 
     for bars, vals, labels in (
@@ -194,21 +217,19 @@ def feasibility_chart(
             ax.annotate(
                 label,
                 (bar.get_x() + bar.get_width() / 2, bar.get_height()),
-                textcoords="offset points", xytext=(0, 3),
+                textcoords="offset points", xytext=(0, 4),
                 ha="center", va="bottom", fontsize=LABEL_FS,
-                fontweight="bold", clip_on=False,
+                fontweight="bold", color=INK, clip_on=False,
             )
 
     ax.set_xticks(x)
-    ax.set_xticklabels([PLANNER_LABELS.get(p, p) for p in planners], fontsize=TICK_FS)
+    ax.set_xticklabels([PLANNER_LABELS.get(p, p) for p in planners])
+    ax.set_xlim(-0.65, len(planners) - 0.35)
     ax.set_ylabel("Physically feasible plans (%)")
-    ax.set_ylim(0, 118)
-    # all 3 repeat runs are identical (sigma = 0): say so rather than fake error bars
-    ax.text(
-        0.5, 0.04, "post-rebuild: 100% feasible across n=3 runs (σ = 0)",
-        transform=ax.transAxes, ha="center", va="bottom",
-        fontsize=LABEL_FS, color="#444444",
-    )
+    ax.set_ylim(0, 116)
+    # n=3 runs, σ=0: stated as a clean axis caption (never over the bars)
+    ax.set_xlabel("post-rebuild feasibility held at 100% across n = 3 repeat runs (σ = 0)",
+                  fontsize=LABEL_FS, color=MUTED_INK, labelpad=8)
     ax.set_title("Plan feasibility before vs after the navigation rebuild")
     handles, labels = ax.get_legend_handles_labels()
     fig.legend(handles, labels, loc="outside upper center", ncol=2, frameon=False)
@@ -266,13 +287,12 @@ def orchestrator_chart(
     ax.set_xticklabels([lbl for _, lbl in METRIC_LABELS], fontsize=TICK_FS)
     ax.set_ylabel("Score")
     ax.set_ylim(0, 1.12)
-    ax.axhline(1.0, color="black", linewidth=0.6, linestyle=":", alpha=0.5)
-    note = (
-        "orchestrator score = unweighted mean of the 5 metrics at left"
-        + ("   ·   error bars = sample SD (σ = 0 across n=3 runs)" if stats and sd_zero else "")
+    ax.axhline(1.0, color=MUTED_INK, linewidth=0.6, linestyle=":", alpha=0.5)
+    sd_note = "   ·   error bars = sample SD (σ = 0 across n = 3 runs)" if stats and sd_zero else ""
+    ax.set_xlabel(
+        "rightmost bar = orchestrator score (unweighted mean of the 5 metrics)" + sd_note,
+        fontsize=LABEL_FS, color=MUTED_INK, labelpad=8,
     )
-    ax.text(0.5, 0.02, note, transform=ax.transAxes, ha="center", va="bottom",
-            fontsize=LABEL_FS, color="#444444")
     ax.set_title(
         "Agent-orchestrator quality: 5 metrics + derived score\n"
         "(7-scenario corpus: ordering / preconditions / recovery / multi-step / infeasible)"
@@ -429,9 +449,9 @@ def ablation_chart(data: dict, output: str | Path) -> Path:
         "rejected before wasting execution (higher is better)"
     )
     ax_reject.text(
-        0.02, 0.96, "green = task rejected (good)\npink = falsely executed (bad)",
+        0.02, 0.96, "green = task rejected (good)\nrose = falsely executed (bad)",
         transform=ax_reject.transAxes, ha="left", va="top",
-        fontsize=LABEL_FS, color="#444444",
+        fontsize=LABEL_FS, color=MUTED_INK,
     )
 
     fig.suptitle(
@@ -477,7 +497,7 @@ def gate_classifier_chart(data: dict, output: str | Path) -> Path:
         ax_recall.text(
             0.02, 0.97, "FPR = 0.00 across all layers\n(no valid plan ever rejected)",
             transform=ax_recall.transAxes, ha="left", va="top",
-            fontsize=7.5, color="#444444",
+            fontsize=7.5, color=MUTED_INK,
         )
 
     ax_recall.set_xticks(x)
