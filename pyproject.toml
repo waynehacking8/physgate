@@ -27,10 +27,15 @@ classifiers = [
 dependencies = [
     "pydantic>=2.6",
     "numpy>=1.26",
+    "langgraph>=0.2",
 ]
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "pytest-cov>=5.0", "ruff>=0.6"]
+# Claude API planner/critic (optional: mock fallback used when absent)
+llm = ["anthropic>=0.40"]
+# MCP server tools
+mcp = ["mcp>=1.2"]
 
 [project.urls]
 Homepage = "https://github.com/waynehacking8/physgate"
