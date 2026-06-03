@@ -70,7 +70,7 @@ def main() -> int:
     from physgate.gate.trajectory import compile_mission
     from physgate.planner.planner import MockPlanner
     from physgate.viz.encode import encode_frames_to_gif, encode_frames_to_mp4
-    from physgate.viz.topdown import render_rollout_animation
+    from physgate.viz.topdown_mpl import render_topdown_animation
     from physgate.world.fetch_scene import FetchSimWorld
     from physgate.world.layout import SCENE_LAYOUT, SHELF_TOP_Z
     from physgate.world.locomotion import find_exported_policy
@@ -303,15 +303,15 @@ def main() -> int:
     gif_frames = [f[::2, ::2] for f in camera_frames[::3]]
     encode_frames_to_gif(gif_frames, MEDIA_DIR / "isaac_rollout.gif", fps=8)
 
-    # top-down trajectory animation (with collision checking on)
-    topdown_frames = render_rollout_animation(
+    # top-down trajectory animation (publication-quality matplotlib frames)
+    topdown_frames = render_topdown_animation(
         layout=SCENE_LAYOUT,
         planned_path=planned_path,
-        samples=samples,
+        samples=samples[::2],  # 12.5 fps from 25 fps samples
         hold_last_frames=18,
         check_collisions=True,
     )
-    encode_frames_to_gif(topdown_frames, MEDIA_DIR / "topdown_trajectory.gif", fps=12)
+    encode_frames_to_gif(topdown_frames, MEDIA_DIR / "topdown_trajectory.gif", fps=10)
 
     # raw trajectory log (the evidence the checks ran against)
     log = {

@@ -472,7 +472,10 @@ def gate_classifier_chart(data: dict, output: str | Path) -> Path:
         )
     ax_recall.set_xticks(x)
     ax_recall.set_xticklabels(
-        [LAYER_LABELS.get(layer, layer) for layer in layers], fontsize=7.5
+        [LAYER_LABELS.get(layer, layer).replace("\n", " ") for layer in layers],
+        fontsize=7,
+        rotation=20,
+        ha="right",
     )
     ax_recall.set_ylabel("Rate")
     ax_recall.set_ylim(0, 1.3)

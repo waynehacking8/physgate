@@ -213,7 +213,7 @@ regression test; the headline evidence is E1/E2 above.
 | Invalid-plan catch rate | 1.00 | 1.00 |
 | **Orchestrator score** | 0.92 | 1.00 |
 
-Error bars: mean ± sd over 2 independent runs (fresh LLM plan generations each run).
+Error bars: mean ± sd over 3 independent runs (fresh LLM plan generations each run).
 
 ### GPU parallel-validation scaling (RTX PRO 6000 Blackwell, 300 W)
 
