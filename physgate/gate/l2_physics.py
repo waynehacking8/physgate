@@ -231,6 +231,7 @@ def rollout_plans_with_policy(
     plans: list[Plan],
     policy_path,
     max_sim_time_s: float = 90.0,
+    on_control_step=None,
 ) -> list[PhysicsResult]:
     """Run N plans in N parallel envs with the trained Go2 locomotion policy.
 
@@ -244,6 +245,13 @@ def rollout_plans_with_policy(
                      the obstacle footprint
         time       = simulated seconds until mission completion (or timeout)
         energy     = sum |joint torque * joint velocity| * dt (real actuation energy)
+
+    Args:
+        on_control_step: optional hook ``(control_step, world, state) -> None``
+            invoked after each control step (state = {"carrying", "mission_index",
+            "completed"} lists). Used by the recording pipeline
+            (benchmarks/rebuild/record_rollout.py) to capture camera frames and
+            trajectory samples without duplicating this control loop.
     """
     from physgate.gate.reset_workaround import reset_scene_to_identical_state
     from physgate.world.locomotion import (
@@ -512,6 +520,18 @@ def rollout_plans_with_policy(
         pos_local = world.robot.data.root_pos_w - env_origins
         inside = ((pos_local[:, :2] - obstacle_center).abs() < obstacle_half).all(dim=-1)
         proximity_history.append(inside.clone())
+
+        # recording / inspection hook (benchmarks/rebuild/record_rollout.py)
+        if on_control_step is not None:
+            on_control_step(
+                control_step,
+                world,
+                {
+                    "carrying": list(carrying),
+                    "mission_index": list(mission_index),
+                    "completed": list(completed),
+                },
+            )
 
         if all(completed[i] or fell_over[i] or stuck[i] for i in range(num_active)):
             break

@@ -369,6 +369,36 @@ def test_policy_rollout_handles_out_of_range_speeds(sim_world):
     assert not failures, f"clamped-speed plans failed: {failures}"
 
 
+def test_policy_rollout_invokes_control_step_callback(sim_world):
+    """The rollout exposes an on_control_step hook (used by the recording
+    pipeline to capture camera frames and trajectory samples without
+    duplicating the control loop)."""
+    from physgate.gate.l2_physics import rollout_plans_with_policy
+
+    policy = _policy_path()
+    if policy is None:
+        pytest.skip("no exported Go2 policy (run rsl_rl play.py first)")
+
+    steps_seen = []
+    states_seen = []
+
+    def on_step(control_step, world, state):
+        steps_seen.append(control_step)
+        states_seen.append(state)
+
+    results = rollout_plans_with_policy(
+        sim_world, [_fetch_plan("callback_test", 0.5)], policy, on_control_step=on_step
+    )
+
+    assert results[0].success
+    assert steps_seen, "callback never invoked"
+    assert steps_seen == sorted(steps_seen), "callback must be invoked in step order"
+    # the state dict exposes what the recorder needs
+    assert all({"carrying", "mission_index", "completed"} <= set(s) for s in states_seen)
+    # the carry flag must have been True at some point (the box was picked up)
+    assert any(s["carrying"][0] for s in states_seen), "carry state never reported"
+
+
 # -------------------------------------------------------------- E17 SimBackend
 
 
