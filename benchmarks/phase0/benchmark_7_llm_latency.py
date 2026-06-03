@@ -57,10 +57,13 @@ def _with_retries(fn, max_attempts: int = 5, base_delay: float = 20.0):
     """Run fn(), retrying on rate limits with exponential backoff."""
     import anthropic
 
+    from physgate.planner.headless_client import ClaudeCodeRateLimitError
+
+    retryable = (anthropic.RateLimitError, ClaudeCodeRateLimitError)
     for attempt in range(max_attempts):
         try:
             return fn()
-        except anthropic.RateLimitError:
+        except retryable:
             if attempt == max_attempts - 1:
                 raise
             delay = base_delay * (2**attempt)
@@ -118,26 +121,56 @@ async def _one_plan_call(async_client, scene_payload: str, plan_index: int) -> f
     return time.perf_counter() - t0
 
 
-async def _parallel_trial(scene_payload: str, n: int) -> tuple[float, list[float]]:
+async def _parallel_trial_api(scene_payload: str, n: int) -> tuple[float, list[float]]:
+    """Concurrent calls via AsyncAnthropic (API-key path)."""
     import os
 
     import anthropic
 
-    auth_token = os.environ.get("ANTHROPIC_AUTH_TOKEN")
-    if auth_token:
-        async_client = anthropic.AsyncAnthropic(
-            auth_token=auth_token,
-            default_headers={"anthropic-beta": "oauth-2025-04-20"},
-        )
-    else:
-        async_client = anthropic.AsyncAnthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
-
+    async_client = anthropic.AsyncAnthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
     t0 = time.perf_counter()
     per_call = await asyncio.gather(
         *[_one_plan_call(async_client, scene_payload, i) for i in range(n)]
     )
     wall = time.perf_counter() - t0
     return wall, list(per_call)
+
+
+def _parallel_trial_headless(scene_payload: str, n: int) -> tuple[float, list[float]]:
+    """Concurrent calls via claude -p subprocesses (subscription OAuth path)."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    from physgate.planner.headless_client import ClaudeCodeHeadlessClient
+    from physgate.planner.planner import _SYSTEM_PROMPT
+
+    client = ClaudeCodeHeadlessClient()
+
+    def one_call(plan_index: int) -> float:
+        t0 = time.perf_counter()
+        client.run_prompt(
+            model=DEFAULT_PLANNER_MODEL,
+            system=_SYSTEM_PROMPT,
+            prompt=(
+                f"Task: {TASK}\n\nCurrent scene:\n{scene_payload}\n\n"
+                f"Generate exactly 1 candidate plan (variant #{plan_index}) as a JSON array."
+            ),
+        )
+        return time.perf_counter() - t0
+
+    t0 = time.perf_counter()
+    with ThreadPoolExecutor(max_workers=n) as pool:
+        per_call = list(pool.map(one_call, range(n)))
+    wall = time.perf_counter() - t0
+    return wall, per_call
+
+
+def _run_parallel_trial(scene_payload: str, n: int) -> tuple[float, list[float]]:
+    """Pick the parallel-call implementation matching the available credential."""
+    import os
+
+    if os.environ.get("ANTHROPIC_API_KEY"):
+        return asyncio.run(_parallel_trial_api(scene_payload, n))
+    return _parallel_trial_headless(scene_payload, n)
 
 
 def measure_parallel_calls(trials: int, scene) -> dict:
@@ -149,7 +182,7 @@ def measure_parallel_calls(trials: int, scene) -> dict:
     for trial in range(trials):
         print(f"  [B parallel x{DEFAULT_NUM_CANDIDATES}] trial {trial + 1}/{trials}...")
         wall, per_call = _with_retries(
-            lambda: asyncio.run(_parallel_trial(scene_payload, DEFAULT_NUM_CANDIDATES))
+            lambda: _run_parallel_trial(scene_payload, DEFAULT_NUM_CANDIDATES)
         )
         walls.append(wall)
         all_calls.extend(per_call)
@@ -201,9 +234,11 @@ def main() -> int:
               "(source ~/.config/physgate/credentials.env)")
         return 1
 
-    # quick credential sanity check
-    make_anthropic_client()
-    print(f"model: {DEFAULT_PLANNER_MODEL}; credentials OK; running {args.trials} trials per strategy\n")
+    # quick credential sanity check + record which auth path is in use
+    client = make_anthropic_client()
+    auth_path = type(client).__name__
+    print(f"model: {DEFAULT_PLANNER_MODEL}; auth path: {auth_path}; "
+          f"running {args.trials} trials per strategy\n")
 
     scene = build_demo_scene()
     results: dict = {
@@ -211,6 +246,11 @@ def main() -> int:
         "model": DEFAULT_PLANNER_MODEL,
         "n_candidates": DEFAULT_NUM_CANDIDATES,
         "trials": args.trials,
+        "auth_path": auth_path,
+        "note": (
+            "ClaudeCodeHeadlessClient = claude -p subprocess (subscription OAuth); "
+            "latency includes ~1-3s CLI startup per call"
+        ),
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
     }
 

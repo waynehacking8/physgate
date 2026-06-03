@@ -27,28 +27,55 @@ from physgate.world.scene_graph import objects_with_affordance, to_query_scene_p
 DEFAULT_PLANNER_MODEL = "claude-opus-4-8"
 
 
-def make_anthropic_client():
-    """Create an Anthropic client from whichever credential is available.
+#: Subscription OAuth tokens carry this prefix; they are rejected by the raw
+#: Anthropic API and must be routed through claude -p (DECISIONS.md D-015).
+_SUBSCRIPTION_TOKEN_PREFIX = "sk-ant-oat"
 
-    Supports both credential types:
-    * ``ANTHROPIC_API_KEY``    — standard API key (x-api-key header)
-    * ``ANTHROPIC_AUTH_TOKEN`` — Claude subscription OAuth token
-      (Authorization: Bearer + oauth beta header)
+
+def make_anthropic_client():
+    """Create an LLM client from whichever credential is available.
+
+    Credential precedence (see DECISIONS.md D-015):
+
+    1. ``ANTHROPIC_API_KEY``       — standard API key → raw Anthropic SDK
+       (pay-per-token, unrestricted).
+    2. ``CLAUDE_CODE_OAUTH_TOKEN`` — Claude subscription OAuth token
+       (``sk-ant-oat01-...``, from ``claude setup-token``) → Claude Code
+       headless mode (``claude -p``). The raw API rejects these tokens.
+    3. ``ANTHROPIC_AUTH_TOKEN``    — if it holds a subscription token, route it
+       through claude -p too; otherwise treat it as a gateway/proxy bearer
+       token for the raw SDK.
     """
     import anthropic
 
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if api_key:
+        return anthropic.Anthropic(api_key=api_key)
+
+    oauth_token = os.environ.get("CLAUDE_CODE_OAUTH_TOKEN")
     auth_token = os.environ.get("ANTHROPIC_AUTH_TOKEN")
+    if oauth_token or (auth_token and auth_token.startswith(_SUBSCRIPTION_TOKEN_PREFIX)):
+        from physgate.planner.headless_client import ClaudeCodeHeadlessClient
+
+        return ClaudeCodeHeadlessClient(oauth_token=oauth_token or auth_token)
+
     if auth_token:
         return anthropic.Anthropic(
             auth_token=auth_token,
             default_headers={"anthropic-beta": "oauth-2025-04-20"},
         )
-    return anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+    raise ValueError(
+        "no LLM credentials: set ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN"
+    )
 
 
 def llm_credentials_available() -> bool:
-    """True when either an API key or an OAuth token is configured."""
-    return bool(os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN"))
+    """True when an API key or an OAuth token is configured."""
+    return bool(
+        os.environ.get("ANTHROPIC_API_KEY")
+        or os.environ.get("CLAUDE_CODE_OAUTH_TOKEN")
+        or os.environ.get("ANTHROPIC_AUTH_TOKEN")
+    )
 
 _SYSTEM_PROMPT = """\
 You are a robot task planner for a Unitree Go2 quadruped with a top-mounted gripper.

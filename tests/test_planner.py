@@ -179,6 +179,7 @@ def test_claude_planner_raises_on_unparseable_response():
 def test_make_planner_returns_mock_without_credentials(monkeypatch):
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     monkeypatch.delenv("ANTHROPIC_AUTH_TOKEN", raising=False)
+    monkeypatch.delenv("CLAUDE_CODE_OAUTH_TOKEN", raising=False)
     planner = make_planner()
     assert isinstance(planner, MockPlanner)
 
@@ -198,12 +199,14 @@ def test_make_planner_returns_claude_with_oauth_token(monkeypatch):
     assert isinstance(planner, ClaudePlanner)
 
 
-def test_oauth_client_uses_bearer_and_beta_header(monkeypatch):
-    """The OAuth client must use Bearer auth + the oauth beta header."""
+def test_subscription_oauth_token_routes_to_claude_code_headless(monkeypatch):
+    """Subscription OAuth tokens (sk-ant-oat) must go through claude -p, NOT the
+    raw Anthropic API — the raw API rejects them with an opaque 429 (D-015)."""
+    from physgate.planner.headless_client import ClaudeCodeHeadlessClient
     from physgate.planner.planner import make_anthropic_client
 
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("CLAUDE_CODE_OAUTH_TOKEN", raising=False)
     monkeypatch.setenv("ANTHROPIC_AUTH_TOKEN", "sk-ant-oat01-test-not-real")
     client = make_anthropic_client()
-    assert client.auth_token == "sk-ant-oat01-test-not-real"
-    assert client.default_headers.get("anthropic-beta") == "oauth-2025-04-20"
+    assert isinstance(client, ClaudeCodeHeadlessClient)

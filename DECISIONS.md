@@ -140,3 +140,35 @@ kinematic base driving. Integration choices:
 checkpoints from architecture doc §4 with an in-memory trail and JSONL export.
 Langfuse/OTEL (decision stream) and MCAP (physical stream) back-ends are NOT
 wired yet — they plug in behind `AuditTrail.record()` without changing callers.
+
+## D-015: Subscription OAuth tokens must go through `claude -p` (corrects D-012)
+
+D-012's diagnosis was wrong. The 429 `rate_limit_error` responses were NOT
+shared-quota exhaustion — Anthropic **rejects subscription OAuth tokens
+(sk-ant-oat01) on the raw API** (`api.anthropic.com/v1/messages`) regardless of
+quota. The opaque `{"message": "Error"}` 429 is the rejection signature; no
+amount of retrying can succeed.
+
+The officially supported programmatic path for a Claude subscription is
+**Claude Code headless mode** (`claude -p`), authenticated via the
+`CLAUDE_CODE_OAUTH_TOKEN` env var (the token from `claude setup-token` is
+exactly this kind of token).
+
+Implementation (`physgate/planner/headless_client.py`):
+
+- `ClaudeCodeHeadlessClient` wraps `claude -p --output-format json` behind the
+  same `client.messages.create()` interface as the Anthropic SDK, so
+  ClaudePlanner/ClaudeCritic work unchanged.
+- Prompt goes via **stdin** (scene JSON exceeds argv limits); the planner/critic
+  system prompt replaces Claude Code's via `--system-prompt`.
+- `--bare` must NOT be used (bare mode ignores CLAUDE_CODE_OAUTH_TOKEN).
+- Credential routing in `make_anthropic_client()`:
+  1. `ANTHROPIC_API_KEY` → raw Anthropic SDK (pay-per-token, unrestricted)
+  2. `CLAUDE_CODE_OAUTH_TOKEN` / `ANTHROPIC_AUTH_TOKEN` starting with
+     `sk-ant-oat` → `claude -p` headless client
+  3. other bearer tokens (gateway/proxy) → raw SDK with Bearer auth
+- Trade-off: each call carries ~1-3 s of CLI startup overhead, and parallel
+  candidate generation uses concurrent subprocesses instead of async HTTP.
+
+Verified live 2026-06-03: ClaudePlanner over headless client generated valid
+plans with claude-opus-4-8 in 18.5 s (2 candidates).
