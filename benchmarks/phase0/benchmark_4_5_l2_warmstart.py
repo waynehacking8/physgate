@@ -37,7 +37,6 @@ T_APP_READY = time.perf_counter()
 from physgate.examples_lib.fetch_and_place import build_demo_scene  # noqa: E402
 from physgate.gate.l2_physics import rollout_plans, rollout_plans_with_policy  # noqa: E402
 from physgate.gate.reset_workaround import (  # noqa: E402
-    reset_scene_to_identical_state,
     verify_identical_reset,
 )
 from physgate.planner.planner import MockPlanner  # noqa: E402
