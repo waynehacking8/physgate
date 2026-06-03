@@ -159,8 +159,24 @@ def run_fetch_and_place(
 
     executor_fn = executor_fn_override or default_executor_fn
 
-    def approval_fn(selection: SelectionResult) -> bool:
-        return auto_approve
+    # audit trail: every run records its three-stream audit (architecture §4)
+    from physgate.audit.trail import AuditTrail
+
+    audit_trail = AuditTrail()
+
+    if auto_approve:
+        def approval_fn(selection: SelectionResult) -> bool:
+            return True
+
+        checkpointer = None
+    else:
+        # human-in-the-loop: pause at the approval gate (LangGraph interrupt)
+        from langgraph.checkpoint.memory import MemorySaver
+
+        from physgate.orchestrator.graph import HUMAN_APPROVAL
+
+        approval_fn = HUMAN_APPROVAL
+        checkpointer = MemorySaver()
 
     graph = build_orchestrator(
         planner_fn=planner,
@@ -169,8 +185,24 @@ def run_fetch_and_place(
         executor_fn=executor_fn,
         approval_fn=approval_fn,
         config=config or OrchestratorConfig(),
+        checkpointer=checkpointer,
+        audit_trail=audit_trail,
     )
     final_state = run_task(graph, task=task, scene=initial_scene)
+
+    # interactive approval: show the selection on the terminal, ask, resume
+    if not auto_approve and final_state.get("__interrupt__"):
+        from physgate.orchestrator.graph import resume_with_approval
+
+        payload = final_state["__interrupt__"][0].value
+        print("\n" + "=" * 60)
+        print("HUMAN APPROVAL REQUIRED")
+        print(f"  task:          {payload['task']}")
+        print(f"  selected plan: {payload['best_plan_id']}")
+        print(f"  rationale:     {payload['rationale']}")
+        print("=" * 60)
+        answer = input("Approve execution? [y/N] ").strip().lower()
+        final_state = resume_with_approval(graph, approved=answer == "y")
 
     # final world state comes from the backend that actually executed
     if executor_fn_override is not None:
@@ -190,8 +222,13 @@ def run_fetch_and_place(
         backend_name=executor_name,
     )
 
+    # seal the audit trail (final Merkle checkpoint)
+    audit_root = audit_trail.close()
+
     return {
         **final_state,
         "final_scene": final_scene,
         "report": report,
+        "audit_trail": audit_trail,
+        "audit_merkle_root": audit_root,
     }

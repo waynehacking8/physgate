@@ -30,6 +30,11 @@ def main() -> int:
         action="store_true",
         help="use Isaac Sim for L2 physics + execution (requires env_isaaclab venv)",
     )
+    parser.add_argument(
+        "--interactive",
+        action="store_true",
+        help="pause at the approval gate and ask for human confirmation (LangGraph interrupt)",
+    )
     args = parser.parse_args()
 
     kwargs = {}
@@ -75,9 +80,15 @@ def main() -> int:
         print("[planner] no ANTHROPIC_API_KEY -> using deterministic mock planner/critic")
         print("[planner] (export ANTHROPIC_API_KEY=... to plan with the real LLM)")
 
+    if args.interactive:
+        kwargs["auto_approve"] = False
+
     outcome = run_fetch_and_place(task=args.task, **kwargs)
     print()
     print(outcome["report"])
+    print(f"audit: {len(outcome['audit_trail']._records)} records, "
+          f"merkle root {outcome['audit_merkle_root'][:16]}..., "
+          f"integrity={'OK' if outcome['audit_trail'].verify_integrity() else 'TAMPERED'}")
     return 0 if outcome["outcome"] == "done" else 1
 
 
