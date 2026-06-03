@@ -183,7 +183,7 @@ rejected.
 | A0 — No validation | 0.43 [0.43, 0.43] | 0.00 |
 | A1 — + LLM critic | 0.50 [0.50, 0.50] | 0.00 |
 | A2 — + Symbolic gate | 1.00 [0.93, 1.00] | 0.00 |
-| A3 — + Physics gate (nav + goal) | 1.00 [0.93, 1.00] | 1.00 |
+| A3 — + Nav-aware gate (symbolic + A*) | 1.00 [0.93, 1.00] | 1.00 |
 
 n = 50 feasible + 20 infeasible
 procedurally generated layouts (A*-certified labels); plan pool of

@@ -227,7 +227,8 @@ CONDITION_LABELS = {
     "A0_no_validation": "A0\nNone",
     "A1_critic_only": "A1\n+ Critic",
     "A2_symbolic_gate": "A2\n+ Symbolic",
-    "A3_nav_aware_gate": "A3\n+ Physics",
+    "A3_nav_aware_gate": "A3\n+ Nav/A*",
+    "A3_physics": "A3p\n+ Isaac",
 }
 
 ABLATION_COLORS = ["#bab0ac", "#f28e2b", "#4e79a7", "#59a14f"]

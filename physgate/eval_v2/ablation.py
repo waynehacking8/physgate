@@ -47,6 +47,8 @@ CONDITIONS = [
     "A3_nav_aware_gate",
 ]
 
+CONDITIONS_WITH_PHYSICS = [*CONDITIONS, "A3_physics"]
+
 
 @dataclass(frozen=True)
 class PooledPlan:
@@ -207,11 +209,31 @@ def _select_plans_a3(pool: list[PooledPlan], instance: TaskInstance) -> list[Pla
     return []  # nothing passes -> reject (escalate)
 
 
+def _select_plans_a3_physics(
+    pool: list[PooledPlan], instance: TaskInstance, *, isaac_gate_fn=None
+) -> list[Plan]:
+    """A3_physics: the actual Isaac physics gate replaces the symbolic surrogate.
+
+    Requires an isaac_gate_fn (from l2_physics) — only available in the Isaac venv.
+    Falls back to A3_nav_aware_gate if isaac_gate_fn is None.
+    """
+    if isaac_gate_fn is None:
+        return _select_plans_a3(pool, instance)
+    survivors = MockCritic()([p.plan for p in pool], instance.scene)
+    if not survivors:
+        return []
+    selection = isaac_gate_fn(survivors, instance.scene)
+    if not selection.any_feasible or selection.best_plan_id is None:
+        return []
+    return [next(p for p in survivors if p.plan_id == selection.best_plan_id)]
+
+
 _SELECTORS = {
     "A0_no_validation": _select_plans_a0,
     "A1_critic_only": _select_plans_a1,
     "A2_symbolic_gate": _select_plans_a2,
     "A3_nav_aware_gate": _select_plans_a3,
+    "A3_physics": _select_plans_a3_physics,
 }
 
 
@@ -289,7 +311,10 @@ def run_condition(
 
 
 def run_ablation(
-    instances: list[TaskInstance], pool: list[PooledPlan]
+    instances: list[TaskInstance],
+    pool: list[PooledPlan],
+    conditions: list[str] | None = None,
 ) -> dict[str, ConditionOutcome]:
-    """Run all four conditions over the instance set."""
-    return {condition: run_condition(condition, instances, pool) for condition in CONDITIONS}
+    """Run specified conditions (default: all four symbolic) over the instance set."""
+    conds = conditions or CONDITIONS
+    return {condition: run_condition(condition, instances, pool) for condition in conds}

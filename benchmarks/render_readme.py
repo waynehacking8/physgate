@@ -35,7 +35,8 @@ CONDITION_NAMES = {
     "A0_no_validation": "A0 — No validation",
     "A1_critic_only": "A1 — + LLM critic",
     "A2_symbolic_gate": "A2 — + Symbolic gate",
-    "A3_nav_aware_gate": "A3 — + Physics gate (nav + goal)",
+    "A3_nav_aware_gate": "A3 — + Nav-aware gate (symbolic + A*)",
+    "A3_physics": "A3p — + Isaac physics L2",
 }
 
 LAYER_NAMES = {

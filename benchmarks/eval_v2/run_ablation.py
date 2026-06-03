@@ -34,9 +34,13 @@ def main() -> int:
     parser.add_argument("--feasible", type=int, default=50)
     parser.add_argument("--infeasible", type=int, default=20)
     parser.add_argument("--seed", type=int, default=2026)
+    parser.add_argument("--physics", action="store_true",
+                        help="include A3_physics condition (requires Isaac venv + GPU)")
+    parser.add_argument("--physics-instances", type=int, default=5,
+                        help="number of instances for the physics condition (subset)")
     args = parser.parse_args()
 
-    from physgate.eval_v2.ablation import CONDITIONS, build_plan_pool, run_ablation
+    from physgate.eval_v2.ablation import CONDITIONS, CONDITIONS_WITH_PHYSICS, build_plan_pool, run_ablation
     from physgate.eval_v2.scenario_gen import generate_instances
 
     print(f"generating {args.feasible} feasible + {args.infeasible} infeasible instances...")
@@ -50,11 +54,12 @@ def main() -> int:
         f"plan pool: {len(pool)} plans ({n_clean} valid, {len(pool) - n_clean} defect-injected)"
     )
 
-    print("running ablation conditions...")
-    report = run_ablation(instances, pool)
+    conditions = CONDITIONS_WITH_PHYSICS if args.physics else CONDITIONS
+    print(f"running ablation conditions ({len(conditions)})...")
+    report = run_ablation(instances, pool, conditions=conditions)
     wall_s = time.perf_counter() - t0
 
-    for condition in CONDITIONS:
+    for condition in conditions:
         outcome = report[condition]
         ci = outcome.success_ci
         print(

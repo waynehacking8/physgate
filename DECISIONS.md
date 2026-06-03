@@ -435,3 +435,23 @@ Honest scoping that replaces the old framing: for plan-level defects, symbolic
 validation is sufficient (physics adds nothing there); the physics/navigation
 gate's unique, quantified value is **world-level infeasibility detection and
 physical outcome verification**. The v1 suite is retained as a regression test.
+
+## D-024: A3_physics condition — real Isaac rollout in E1 ablation (review F1)
+
+**Decision (2026-06-03):** Added `A3_physics` condition to the E1 pipeline ablation
+that uses actual Isaac Lab parallel physics rollouts instead of the symbolic
+surrogate. The symbolic `A3_nav_aware_gate` is kept for comparison (it verifies
+navigation compilation + symbolic goal, but does NOT run physics simulation).
+
+**Trade-off:** Isaac L2 rollouts take ~10-15s per plan (vs <1s for symbolic).
+Running 50 instances × 21 plans is prohibitively expensive (~3 hours). The
+`--physics` flag runs on a configurable subset (default 5 instances) and the
+results are reported alongside the full symbolic run with an honest annotation
+about the subset size.
+
+**Why:** The review identified that the E1 ablation's A3 condition uses
+`symbolic_l2 + MockWorldBackend`, not actual GPU simulation. The README table
+said "Physics gate" but no physics ever ran. This is an overclaim. The fix
+adds the infrastructure and documents the cost/coverage trade-off honestly.
+
+**Run:** `source ~/env_isaaclab/bin/activate && python benchmarks/eval_v2/run_ablation.py --physics --physics-instances 5`
