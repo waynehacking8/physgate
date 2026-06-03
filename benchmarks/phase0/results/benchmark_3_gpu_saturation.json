@@ -52,6 +52,6 @@
       "scaling_efficiency": 0.868
     }
   ],
-  "saturation_knee_envs": 1024,
-  "interpretation": "GPU scales near-linearly up to ~1024 envs; best-of-N validation with N=8 uses a small fraction of available parallelism."
+  "saturation_knee_envs": null,
+  "interpretation": "Scaling efficiency declines monotonically with env count (1.00 at 1 env -> 0.87 at 1024 envs) and the curve has NOT reached a saturation knee within the measured range \u2014 1024 envs is the largest measured point, not a saturation point. Best-of-N validation with N=8 uses a small fraction of the measured parallelism; how far the GPU scales beyond 1024 envs is unmeasured."
 }

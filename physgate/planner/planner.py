@@ -45,11 +45,14 @@ def make_anthropic_client():
     3. ``ANTHROPIC_AUTH_TOKEN``    — if it holds a subscription token, route it
        through claude -p too; otherwise treat it as a gateway/proxy bearer
        token for the raw SDK.
-    """
-    import anthropic
 
+    The anthropic SDK is imported only on the raw-SDK paths, so subscription-only
+    installs (claude -p headless) do not need the ``anthropic`` package at all.
+    """
     api_key = os.environ.get("ANTHROPIC_API_KEY")
     if api_key:
+        import anthropic
+
         return anthropic.Anthropic(api_key=api_key)
 
     oauth_token = os.environ.get("CLAUDE_CODE_OAUTH_TOKEN")
@@ -60,6 +63,8 @@ def make_anthropic_client():
         return ClaudeCodeHeadlessClient(oauth_token=oauth_token or auth_token)
 
     if auth_token:
+        import anthropic
+
         return anthropic.Anthropic(
             auth_token=auth_token,
             default_headers={"anthropic-beta": "oauth-2025-04-20"},

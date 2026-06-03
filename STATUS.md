@@ -31,9 +31,12 @@ _(test counts approximate; run `pytest` for the authoritative numbers)_
 
 ## Test summary
 
-- **Pure-logic suite** (any venv): `pytest` → **113 passed** (no GPU, no API key)
+> Historical (milestone 1) numbers. Current totals after milestone 3 (the
+> architecture-correction rebuild) are in the milestone 3 section below.
+
+- **Pure-logic suite** (any venv): `pytest` → 113 passed at milestone 1 (no GPU, no API key)
 - **Isaac integration suite** (env_isaaclab venv): `pytest tests/test_isaac_sim_gate.py`
-  → 9 tests covering C10/C11/C13/E17 against live Isaac Sim
+  → 9 tests at milestone 1, covering C10/C11/C13/E17 against live Isaac Sim
 
 ## What is real vs. simplified (MVP scope)
 
@@ -43,9 +46,9 @@ _(test counts approximate; run `pytest` for the authoritative numbers)_
 | Robot locomotion | Kinematic base driving (root pose writes); legs hold standing pose | learned locomotion policy (rsl_rl) + skill library |
 | L2 physics validation | Box/object dynamics are fully physical (placement stability, contacts); robot path collisions are swept-geometry checks | contact-sensor based collision detection with policy-driven motion |
 | Pick/place | Kinematic attach/detach + physical release dynamics | gripper articulation + grasp physics |
-| Approval gate | Auto-approve in demo | LangGraph interrupt → human approval |
+| Approval gate | Auto-approve in demo _(milestone 2 added the LangGraph interrupt)_ | LangGraph interrupt → human approval |
 | Orchestrator state | MemorySaver (in-process) | PostgresSaver |
-| Audit streams | Not implemented | Langfuse/OTEL + MCAP + Merkle |
+| Audit streams | Not implemented at milestone 1 _(milestone 2 added the in-memory three-stream Merkle audit)_ | Langfuse/OTEL + MCAP back-ends |
 
 ## Demo runs
 
@@ -127,8 +130,10 @@ Transcript: `benchmarks/demo_runs/demo_output_real_llm_isaac.txt`
 - **ClaudeCritic**: 7/8 survived
 - **L2 physics (walking policy, 8 parallel envs)**: only **1/7 physically
   feasible** — `plan_waypoint_return_06` (pick box → detour via waypoint →
-  shelf): 0 collisions, 8.9 s. Every direct route was physically blocked by the
-  pillar (stuck detection) — exactly the discrimination the gate exists for.
+  shelf). _Milestone 3 note: this "discrimination" was the routing artifact —
+  the 6 "infeasible" plans were well-formed decompositions that the
+  straight-line low level could not execute (REBUILD.md). After the rebuild,
+  8/8 real Claude plans are feasible._
 - **Execution**: walking robot ran the winning plan, **5/5 steps, box on shelf**
 - **OUTCOME: DONE**; Merkle audit integrity OK
 
@@ -177,8 +182,10 @@ against Newton itself when it enters the stack.
 | 256 | 64,249 | 0.89 |
 | 1024 | 250,227 | **0.87** |
 
-**The GPU scales near-linearly to ≥1024 envs.** N=8 best-of-N uses <1% of available
-parallelism — there is enormous headroom for larger candidate sets.
+**Scaling efficiency declines monotonically (1.00 → 0.87) and the curve has NOT
+reached a saturation knee within the measured range** — 1024 envs is the largest
+measured point, not a saturation point. N=8 validation uses a small fraction of
+the measured parallelism; how far the GPU scales beyond 1024 envs is unmeasured.
 
 ### #4 — L2 validation wall-clock
 
@@ -189,38 +196,39 @@ parallelism — there is enormous headroom for larger candidate sets.
 
 **Marginal cost of +7 candidates is small in policy mode (0.32 s), but L2
 validation is not free end to end** — the ~17 s base rollout dominates the
-wall-clock. The gate's value is feasibility discrimination, not speed: in the
-real-LLM demo only **1/7** critic-approved plans was physically feasible
-(mock: 2/8) — physics identifies the workable plan among candidates that all
-look plausible to the LLM (architecture doc §6: a quality contribution, not a
-speed one).
+wall-clock. _The "1/7 feasible / 2/8 feasible" discrimination this section
+originally cited as the gate's value was the routing artifact (see milestone 3 /
+REBUILD.md); the wall-clock measurements above remain valid._
 
 ### #5 — Warm-start latency
 
 App launch 3.8 s + 8-env scene 1.9 s + identical reset 0.1 s = **6.6 s total**
 (the design assumed 10–30 s — better than expected).
 
-### #8 — Cost/quality curve (best-of-N success rate vs GPU time)
+### #8 — Cost/quality curve — **DEPRECATED (artifact, see REBUILD.md)**
 
-The headline deliverable (architecture doc §6). Pool of **24 real Claude plans**
-(measured pool feasibility: **17%** — only 4/24 LLM plans survive physics);
-5 random best-of-N samples per N:
+> [!CAUTION]
+> **This entire result is an artifact of a layering defect**, not a finding about
+> LLM plan quality. Obstacle avoidance was missing from the low level
+> (straight-line driver), so "feasible" meant "the LLM happened to route via the
+> hand-placed waypoint_W". With deterministic navigation in the right layer
+> (milestone 3), feasibility of well-formed plans is **~100%** and this curve
+> vanishes. Kept for the historical record; details in
+> `benchmarks/phase0/results/benchmark_8_cost_quality.md`. The replacement
+> evaluation is the **orchestration suite** (`benchmarks/orchestration/`).
+
+Pool of 24 real Claude plans; measured pool "feasibility" 17%; 5 samples per N:
 
 | N | empirical success | analytical success | GPU wall (mean) | GPU s / candidate |
 |---|---|---|---|---|
 | 1 | 20% | 17% | 19.3 s | 19.3 s |
 | 2 | 0%* | 31% | 16.7 s | 8.4 s |
-| 4 | 80% | 54% | 17.6 s | 4.4 s |
-| 8 | **100%** | 83% | 28.6 s | 3.6 s |
-| 16 | **100%** | 99% | 47.0 s | 2.9 s |
+| 4 | 80%* | 54% | 17.6 s | 4.4 s |
+| 8 | 100%* | 83% | 28.6 s | 3.6 s |
+| 16 | 100%* | 99% | 47.0 s | 2.9 s |
 
-_\* sampling noise at 5 trials; the analytical (hypergeometric) column is the
-better estimate._
-
-**Success climbs 17% → 99% while GPU time grows only 2.4× for 16× the
-candidates** (per-candidate cost drops 6.6×). Plan quality — feasibility
-discrimination — is what the gate buys; the GPU cost growth is sub-linear,
-not zero.
+_\* all empirical rates have 1/trials granularity (5 trials per N) — sampling
+noise; the analytical (hypergeometric) column is the better estimate._
 
 ### #7 — LLM planning latency (real Claude Opus 4.8, subscription OAuth via `claude -p`)
 
@@ -238,14 +246,109 @@ L2 policy validation (17.4 s, benchmark #4), the LLM accounts for ~64% of
 pipeline wall-clock — the architecture's 75-85% estimate was slightly
 pessimistic, and parallel candidate generation is the clear win.
 
-## What physics validation now proves (policy mode)
+## What physics validation proved at milestone 2 — and why it was wrong
 
-With the trained policy, L2 results are fully physical:
-- **Cautious (detour) plans**: robot walks around the pillar, places the box on
-  the shelf → SUCCESS (2/8 candidates feasible)
-- **Direct (straight-line) plans**: robot physically blocked by the pillar →
-  stuck detection → BLOCKED failure
-- **Reckless plans**: pruned by the critic before reaching physics
+> [!CAUTION]
+> The milestone 2 framing below ("physics discriminates routes") was an
+> **artifact**: route feasibility was a property of the broken low level
+> (straight-line driver), not of the plans. Milestone 3 (REBUILD.md) corrected
+> the layering — see the milestone 3 section for what the gate actually
+> validates now (orchestration quality, not route geometry).
 
-The gate selects a cautious plan every time — physics-validated best-of-N
-working end to end with real locomotion.
+At milestone 2, L2 results discriminated:
+- "Cautious (detour) plans" succeeded (2/8) — because they happened to route via
+  the hand-placed waypoint_W,
+- "Direct plans" got physically blocked — because the low level drove straight
+  lines through the pillar instead of navigating around it,
+- Reckless plans were pruned by the critic (this part still holds).
+
+
+---
+
+# Milestone 3 — Architecture-correction rebuild (2026-06-03, REBUILD.md)
+
+Four adversarial code reviews concluded the milestone 2 headline ("17% of LLM
+plans feasible, best-of-N rescues it to 99%") was an **artifact**: obstacle
+avoidance lived in the wrong layer (the LLM had no coordinates; the low level
+drove straight lines), so "feasibility" measured whether the LLM happened to
+name the hand-placed rescue waypoint. This milestone rebuilt the layering per
+[`docs/design/REBUILD.md`](docs/design/REBUILD.md).
+
+## Goal completion
+
+| Phase | Goal | Status |
+|---|---|---|
+| 1 | Remove waypoint_W + straight-line driving → deterministic A* navigation (Nav2-compatible boundary) | ✅ **DONE** — commit `50c05ce` |
+| 2 | Fix the missed `release_boxes` (placement momentum) + reset identity + locomotion envelope | ✅ **DONE** — this commit's parent |
+| 3 | Re-design evaluation around agent orchestration (not navigation geometry) | ✅ **DONE** — `physgate/eval/` + `benchmarks/orchestration/` |
+| 4 | Fix reproducibility (`pip install -e ".[dev]"`), README/STATUS contradictions, benchmark #3/#8 annotations | ✅ **DONE** — this commit |
+
+## Architecture after the rebuild (dual-system)
+
+- **HIGH (LLM agent)**: semantic task decomposition only — pick/place ordering,
+  preconditions, recovery. Never sees coordinates, never plans routes.
+- **LOW (deterministic)**: A* occupancy-grid navigation
+  (`physgate/nav/path_planner.py`, Nav2-swappable interface) + trained Go2
+  walking policy. **Always routes around obstacles, for every plan.**
+- **Sim-Gate**: validates orchestration quality (the thing that can actually be
+  wrong), not route geometry (which the low level guarantees).
+
+## Headline results
+
+### Feasibility — the artifact is eliminated
+
+| | pre-rebuild (milestone 2) | post-rebuild (milestone 3) |
+|---|---|---|
+| Mock planner survivors | 2/8 (25%) | **6/6 (100%)** |
+| Real Claude survivors | 1/7 (14%) | **8/8 (100%)** |
+
+Well-formed pick→carry→place decompositions are ~always physically feasible.
+Feasibility no longer discriminates plans — and that is the *correct* outcome:
+route feasibility was never a property of the plans.
+(`benchmarks/rebuild/results/feasibility_after_rebuild.json`)
+
+### Orchestration evaluation — what the gate now measures
+
+7 scenarios (ordering / preconditions / recovery / multi-step / infeasible),
+real LangGraph orchestrator, fault injection
+(`benchmarks/orchestration/results/orchestration_eval.json`):
+
+| Metric | Mock planner | Real Claude |
+|---|---|---|
+| End-to-end success (feasible tasks) | 0.60 | **1.00** |
+| Infeasible recognition | 1.00 | 1.00 |
+| Recovery from transient failures | 1.00 | 1.00 |
+| Decomposition validity | 1.00 | 0.80 |
+| Invalid-plan catch rate | 1.00 | 1.00 |
+| **Orchestrator score** | **0.92** | **0.96** |
+
+The eval differentiates orchestrators on the dimension that matters: the mock
+fails exactly its known weaknesses (occupied-gripper precondition, multi-step
+tasks); Claude handles both.
+
+## Key findings logged this milestone
+
+- **D-018**: placement momentum transfer; carry is bookkeeping (+0.6 m
+  overhead); reset identity requires actuator-target resets; locomotion
+  envelope is [0.4, 0.6] m/s.
+- **D-019**: relation vocabulary is part of the tool contract — when an eval
+  says "the LLM is worse than a trivial baseline", first suspect the eval's
+  interface.
+- **D-020**: the trained policy cannot turn in place (a "keep standing" fixed
+  point); the navigator never commands pure rotation (TURN_CREEP_SPEED).
+
+## Test summary (current)
+
+- **Pure-logic suite**: `pytest` → **197 passed** (includes 14 orchestration-eval tests)
+- **Isaac integration suite**: `pytest tests/test_isaac_sim_gate.py` → **15 passed**
+  (verified ×2 consecutive runs in one session — world-reuse is deterministic)
+- **Reproducibility**: fresh venv + `pip install -e ".[dev]"` + `pytest` → green
+  (mcp + anthropic now in `[dev]`; anthropic imported lazily)
+
+## What the project is now about
+
+> Validating an **agent orchestrator's** decomposition / precondition /
+> recovery / infeasibility-recognition ability against real physics — not
+> rescuing a broken low level with best-of-N sampling. The pretty 99%
+> best-of-N curve is gone because the problem it "solved" should never have
+> existed.

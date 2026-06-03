@@ -1,14 +1,15 @@
 <h1 align="center">physgate</h1>
 
 <p align="center">
-  <b>Your LLM plans it. Physics proves it. Then the robot moves.</b><br>
-  An open framework that validates LLM-generated robot plans in GPU physics
-  simulation — generating <i>N</i> candidate plans, checking all of them, and
-  executing only the most feasible one.
+  <b>Your LLM agent plans it. Physics proves the plan is right. Then the robot moves.</b><br>
+  An open framework that validates LLM <i>agent orchestration</i> — task
+  decomposition, preconditions, failure recovery — in GPU physics simulation,
+  with deterministic navigation so feasibility never depends on the LLM
+  guessing geometry.
 </p>
 
 <p align="center">
-  <code>LLM plan → best-of-N physics validation → execute</code>
+  <code>LLM decomposes → critic prunes → physics validates the plan logic → deterministic nav executes</code>
 </p>
 
 ---
@@ -24,20 +25,30 @@
 ## What this is
 
 LLM agents that drive robots execute hazardous instructions ~95% of the time even
-when capable of refusing (SafeAgentBench). And LLM-generated plans are frequently
-physically infeasible — collisions, unreachable poses, violated preconditions.
+when capable of refusing (SafeAgentBench). And LLM-generated plans fail in
+characteristic ways: wrong step ordering, violated preconditions, no recovery
+after a failed action, and confidently attempting impossible tasks.
 
-physgate puts a **physics-verification gate** between the LLM planner and the robot:
+physgate is a **dual-system architecture** with a physics-verification gate between
+the LLM agent and the robot:
 
-1. An LLM (Claude) decomposes a natural-language task into **N candidate plans**.
-2. A safety-critic agent adversarially prunes plans that violate safety contracts.
-3. Surviving plans are validated in **parallel NVIDIA Isaac Lab physics simulation**
-   — kinematic limits, collisions, and scene-graph preconditions.
-4. The most feasible plan is selected and executed over ROS 2; the rest are discarded.
+1. **HIGH level — the LLM agent (Claude)** decomposes a natural-language task into
+   semantic skill plans (`move_to_pose(<object>)` / `pick` / `place`). It does NOT
+   do geometry: no coordinates, no waypoints, no obstacle avoidance.
+2. **A safety-critic agent** adversarially prunes plans that violate safety contracts.
+3. **The Sim-Gate** validates surviving plans in **parallel NVIDIA Isaac Lab physics
+   simulation** — step ordering, preconditions, and physical outcome (does the box
+   actually end up on the shelf?).
+4. **LOW level — deterministic navigation** (A\* occupancy-grid planner behind a
+   Nav2-compatible interface) executes the winning plan. Obstacle avoidance is
+   GUARANTEED here, never guessed by the LLM.
 
-The core thesis: **physics simulation is the highest-quality verifier** for robot
-plans — more accurate than a neural verifier or LLM self-critique — and best-of-N
-selection against it measurably improves plan feasibility.
+The core thesis: **physics simulation is the highest-quality verifier of agent
+orchestration** — it catches wrong decomposition, unmet preconditions, and
+infeasible requests more reliably than a neural verifier or LLM self-critique.
+What physics does NOT need to do is rescue bad route geometry: with navigation in
+the right layer, any well-formed plan is executable (measured feasibility ~100%,
+see `benchmarks/rebuild/`).
 
 ## What this is NOT
 
@@ -54,55 +65,64 @@ selection against it measurably improves plan feasibility.
  Natural-language task
         │
  ┌──────────────────────────────────────────────┐
- │ Orchestrator (LangGraph + Postgres state)      │  deterministic harness
+ │ Orchestrator (LangGraph state machine)         │  deterministic harness
  │   phase routing · retry budget · approval gate  │
  └──────────────────────────────────────────────┘
         │
  ┌──────────────────────────────────────────────┐
- │ Planner (Claude Opus 4.8) → N candidate plans  │
- │ Safety Critic (SAFER pattern) → prune unsafe    │
+ │ HIGH: Planner (Claude Opus 4.8) → N candidates │  semantic skills only —
+ │ Safety Critic (SAFER pattern) → prune unsafe    │  no geometry, no waypoints
  └──────────────────────────────────────────────┘
         │ surviving candidates
  ┌──────────────────────────────────────────────┐
- │ Sim-Gate  (soft interlock — NOT a safety fn)   │
- │   L1 kinematic limits (URDF)        <1 ms       │
- │   L3 scene-graph preconditions      <1 ms       │
+ │ Sim-Gate  (soft interlock — NOT a safety fn)   │  validates ORCHESTRATION:
+ │   L1 kinematic limits (URDF)        <1 ms       │  ordering, preconditions,
+ │   L3 scene-graph preconditions      <1 ms       │  physical outcome
  │   L2 parallel physics (Isaac Lab, N envs)       │
- │   → physics score → select best plan            │
+ │   → select a verified plan                      │
  └──────────────────────────────────────────────┘
         │ verified plan artifact (JSON)  ══ no code crosses this line ══
  ┌──────────────────────────────────────────────┐
- │ Executor → ROS 2 (sim backend / real Go2)      │
- │   research-grade RL fallback on divergence      │
+ │ LOW: deterministic navigation (A* / Nav2-ready)│  obstacle avoidance is
+ │   Executor (Isaac sim backend / walking policy) │  guaranteed here
+ │   [planned, NOT implemented: ROS 2 → real Go2]  │
  └──────────────────────────────────────────────┘
         │
- Audit: Langfuse (OTEL) + MCAP + Merkle checkpoint
+ Audit: three-stream records + Merkle checkpoint (in-memory MVP)
 ```
 
-Full design: [`docs/design/architecture.md`](docs/design/architecture.md).
+Full design: [`docs/design/architecture.md`](docs/design/architecture.md) and the
+architecture-correction record [`docs/design/REBUILD.md`](docs/design/REBUILD.md).
 
 ## Status
 
-🚀 **MVP pipeline runs end to end** (2026-06-03). The full loop — natural-language
-task → N=8 candidate plans → safety critic → Sim-Gate (L1 kinematic → L3 scene-graph
-→ L2 parallel Isaac Lab physics) → best-of-N selection → execution in Isaac Sim —
-works on the target hardware. See [`STATUS.md`](STATUS.md) for the component matrix,
-[`DECISIONS.md`](DECISIONS.md) for build decisions, and
-[`benchmarks/`](benchmarks/) for hardware-gate results and demo transcripts.
+🚀 **The pipeline runs end to end, and the architecture was corrected after
+adversarial review** (2026-06-03). The full loop — natural-language task → N=8
+candidate plans → safety critic → Sim-Gate (L1 kinematic → L3 scene-graph → L2
+parallel Isaac Lab physics) → deterministic-navigation execution with a trained
+Go2 walking policy — works on the target hardware.
 
-Current scope (milestone 2): **trained Go2 locomotion policy** (robots walk in
-L2 validation and execution), real Claude planner/critic when LLM credentials
-are set (mock fallback otherwise), LangGraph human-approval interrupt, and
-three-stream Merkle audit. Hardware gate (Phase 0 benchmark #1) **passed**;
-benchmarks #3–#5 and #7 measured (see `STATUS.md`).
+Key correction ([`docs/design/REBUILD.md`](docs/design/REBUILD.md)): an earlier
+version pushed obstacle avoidance to the LLM (straight-line low level + a
+hand-placed rescue waypoint), which produced a misleading "only 17% of LLM plans
+are feasible, best-of-N fixes it" headline. That was an artifact of the layering
+defect. With deterministic A\* navigation in the low level, **feasibility of
+well-formed plans is ~100%** (mock 6/6, real Claude 8/8 — `benchmarks/rebuild/`),
+and the project's evaluation focus is **agent-orchestrator quality**
+(`benchmarks/orchestration/`): decomposition, preconditions, recovery,
+infeasibility recognition.
+
+See [`STATUS.md`](STATUS.md) for the component matrix, [`DECISIONS.md`](DECISIONS.md)
+for build decisions, and [`benchmarks/`](benchmarks/) for results and demo transcripts.
 
 ## Quick start
 
 ```bash
 # Pure-logic pipeline (no GPU, no API key needed)
 pip install -e ".[dev]"
-pytest                                    # 148 tests
+pytest                                    # pure-logic test suite (~200 tests)
 python examples/fetch_and_place.py        # offline end-to-end demo
+python benchmarks/orchestration/run_eval.py --planner mock   # orchestrator eval
 
 # With real LLM planning — either credential works:
 ANTHROPIC_API_KEY=sk-ant-api03-... python examples/fetch_and_place.py    # API key
@@ -113,7 +133,7 @@ CLAUDE_CODE_OAUTH_TOKEN=sk-ant-oat01-... python examples/fetch_and_place.py
 # With Isaac Sim physics validation + execution (requires the env_isaaclab venv,
 # see scripts/install_sim_stack.sh and DECISIONS.md D-005)
 source ~/env_isaaclab/bin/activate
-pytest tests/test_isaac_sim_gate.py       # 11 Isaac integration tests
+pytest tests/test_isaac_sim_gate.py       # Isaac integration tests
 python examples/fetch_and_place.py --isaac
 ```
 

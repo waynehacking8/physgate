@@ -1,4 +1,6 @@
 {
+  "STATUS": "DEPRECATED (artifact)",
+  "deprecation_note": "DEPRECATED \u2014 ARTIFACT (2026-06-03, REBUILD.md). This entire result measures a layering defect, not LLM plan quality: obstacle avoidance was missing from the low level (straight-line driver), so 'feasible' meant 'the LLM happened to route via the hand-placed waypoint_W'. With deterministic A* navigation in the right layer (REBUILD.md Phase 1), feasibility of well-formed plans is ~100% (benchmarks/rebuild/results/feasibility_after_rebuild.json: mock 6/6, real Claude 8/8) and this best-of-N rescue curve vanishes. Kept for the historical record only. The replacement evaluation is benchmarks/orchestration/ (agent-orchestrator metrics).",
   "benchmark": "phase0 #8 - cost/quality curve (best-of-N success vs GPU time)",
   "timestamp": "2026-06-03 15:23:24",
   "gpu": "RTX PRO 6000 Blackwell Max-Q (sm_120, 300W)",
