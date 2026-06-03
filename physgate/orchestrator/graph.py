@@ -23,11 +23,17 @@ from __future__ import annotations
 from typing import Any, Callable, TypedDict
 
 from langgraph.graph import END, START, StateGraph
+from langgraph.types import Command, interrupt
 from pydantic import BaseModel
 
 from physgate.gate.scoring import SelectionResult
 from physgate.gate.schemas import Scene
 from physgate.planner.schemas import DEFAULT_NUM_CANDIDATES, Plan
+
+#: Sentinel: pause the graph at the approval gate and wait for a human verdict
+#: (LangGraph interrupt). Requires a checkpointer. Resume with
+#: :func:`resume_with_approval`.
+HUMAN_APPROVAL = object()
 
 # --------------------------------------------------------------------- config
 
@@ -125,9 +131,25 @@ def build_orchestrator(
         return update
 
     def approve_node(state: OrchestratorState) -> dict:
-        approved = approval_fn(state["selection"])
+        selection: SelectionResult = state["selection"]
+        if approval_fn is HUMAN_APPROVAL:
+            # pause the graph; a human inspects the selection and resumes with
+            # True/False (architecture doc §5: approval via orchestrator interrupt)
+            approved = interrupt(
+                {
+                    "question": "Approve execution of the selected plan?",
+                    "task": state["task"],
+                    "best_plan_id": selection.best_plan_id,
+                    "rationale": selection.rationale,
+                    "scores": selection.scores,
+                    "num_candidates": len(state["candidates"]),
+                    "num_survivors": len(state["survivors"]),
+                }
+            )
+        else:
+            approved = approval_fn(selection)
         return {
-            "approved": approved,
+            "approved": bool(approved),
             "trace": state["trace"] + ["awaiting_approval"],
         }
 
@@ -260,3 +282,25 @@ def run_task(
     if compiled_graph.checkpointer is not None:
         config["configurable"] = {"thread_id": thread_id}
     return compiled_graph.invoke(initial, config=config)
+
+
+def resume_with_approval(
+    compiled_graph,
+    approved: bool,
+    thread_id: str = "default",
+    recursion_limit: int = 100,
+) -> OrchestratorState:
+    """Resume a graph paused at the human-approval interrupt with a verdict.
+
+    Args:
+        compiled_graph: the graph previously run with ``approval_fn=HUMAN_APPROVAL``.
+        approved: the human's verdict (True = execute the selected plan).
+        thread_id: the same thread_id the paused run used.
+    """
+    if compiled_graph.checkpointer is None:
+        raise ValueError("resume_with_approval requires the graph to have a checkpointer")
+    config: dict[str, Any] = {
+        "recursion_limit": recursion_limit,
+        "configurable": {"thread_id": thread_id},
+    }
+    return compiled_graph.invoke(Command(resume=approved), config=config)
