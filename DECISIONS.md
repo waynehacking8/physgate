@@ -71,3 +71,38 @@ features we don't use (wandb logging, wheel building, fastapi endpoints).
 iterations: **PASSED** on first try. No PhysX CPU fallback (the libcuda.so
 symlink workaround was already in place). Extension cache was pre-populated by
 the `isaacsim[extscache]` pip extra, so first launch took seconds, not 10+ min.
+
+## D-009: L2 physics = kinematic base + dynamic objects (no locomotion policy)
+
+The MVP does not train a Go2 locomotion policy. Instead:
+
+- the robot **base is kinematically driven** along the plan's path (root-pose
+  writes each physics step); legs hold the standing configuration,
+- **objects are fully dynamic**: the box is carried kinematically but released
+  with the approach momentum at placement — GPU physics then decides whether it
+  stays on the shelf (slow approach) or slides/bounces off (fast approach),
+- robot-path collisions with static obstacles are **swept-geometry checks**
+  (a kinematic body produces no contact response, so geometry is the honest check).
+
+This gives real physics-based plan discrimination (placement stability, route
+collisions) at zero training cost. The upgrade path is documented in STATUS.md:
+train an rsl_rl locomotion policy and replace pose-writes with velocity commands.
+
+## D-010: route diversity via waypoint detour
+
+For physics validation to be able to *prefer* one plan over another, candidate
+plans must differ physically. MockPlanner's "cautious" variant routes via the
+`waypoint_W` marker (clearing the obstacle pillar); "direct"/"scan_first"
+variants go straight (sweeping through the pillar's inflated footprint). The
+obstacle pillar sits exactly on the straight line box → shelf. Manipulation
+targets (the shelf) are NOT counted as path obstacles — approaching them is the
+point; interaction quality is judged by placement dynamics instead.
+
+## D-011: Isaac pytest pattern
+
+Raw ``isaacsim.SimulationApp`` inside a pytest fixture silently kills the
+process (kit parses pytest's argv). Isaac tests instead use the Isaac Lab
+pattern: ``AppLauncher(headless=True).app`` at module import, no ``app.close()``.
+Isaac tests live in ``tests/test_isaac_sim_gate.py`` (marked ``isaac``), are
+skipped automatically outside the Isaac venv, and run as their own pytest
+invocation inside it.

@@ -1,0 +1,30 @@
+[planner] no ANTHROPIC_API_KEY -> using deterministic mock planner/critic
+[planner] (export ANTHROPIC_API_KEY=... to plan with the real LLM)
+
+========================================================================
+physgate — fetch-and-place demo
+========================================================================
+task:            put the fallen box back on shelf A
+planner:         MockPlanner
+critic:          MockCritic
+L2 physics:      symbolic_l2
+executor:        MockWorldBackend
+------------------------------------------------------------------------
+candidates:      8 plans generated
+survivors:       6 plans passed the safety critic
+gate verdict:    PASS
+selected plan:   mock_4_direct
+selection logic: selected 'mock_4_direct' out of 6 candidates: score 999986.0, 0 collisions, 13.3s, 70J (6/6 candidates were feasible)
+------------------------------------------------------------------------
+per-plan physics scores:
+  mock_4_direct            score=    999986.0  [ok]   13.3s 0 collisions <== selected
+  mock_0_direct            score=    999985.3  [ok]   14.0s 0 collisions
+  mock_1_scan_first        score=    999983.9  [ok]   15.5s 0 collisions
+  mock_5_scan_first        score=    999983.9  [ok]   15.5s 0 collisions
+  mock_2_cautious          score=    999969.5  [ok]   30.0s 0 collisions
+  mock_6_cautious          score=    999969.5  [ok]   30.0s 0 collisions
+------------------------------------------------------------------------
+execution:       4/4 steps completed, success=True
+trace:           planning -> reviewing -> validating -> awaiting_approval -> executing -> done
+OUTCOME:         DONE
+========================================================================

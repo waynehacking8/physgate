@@ -136,12 +136,20 @@ def run_fetch_and_place(
 
     planner = make_planner()
     critic = make_critic()
-    execution_backend = backend_factory(initial_scene)
+
+    # The execution backend is created LAZILY, when execution actually starts.
+    # Rationale: the L2 gate's parallel rollouts disturb the (shared) simulation
+    # world; the executor must start from a freshly reset world, which the
+    # backend's constructor performs. Creating it up front would execute against
+    # post-rollout state. The last backend is kept for final-scene readout.
+    backends: list[WorldBackend] = []
 
     def gate_fn(plans: list[Plan], gate_scene: Scene) -> SelectionResult:
         return run_gate(plans, gate_scene, l2_fn=l2_fn)
 
     def executor_fn(plan: Plan, _scene: Scene) -> dict[str, Any]:
+        execution_backend = backend_factory(initial_scene)
+        backends.append(execution_backend)
         return execute_plan(plan, execution_backend)
 
     def approval_fn(selection: SelectionResult) -> bool:
@@ -157,17 +165,20 @@ def run_fetch_and_place(
     )
     final_state = run_task(graph, task=task, scene=initial_scene)
 
+    # final world state comes from the backend that actually executed
+    final_backend = backends[-1] if backends else backend_factory(initial_scene)
+
     report = _format_report(
         task=task,
         final_state=final_state,
         planner_name=type(planner).__name__,
         critic_name=type(critic).__name__,
         l2_name=getattr(l2_fn, "__name__", type(l2_fn).__name__),
-        backend_name=type(execution_backend).__name__,
+        backend_name=type(final_backend).__name__,
     )
 
     return {
         **final_state,
-        "final_scene": execution_backend.get_scene(),
+        "final_scene": final_backend.get_scene(),
         "report": report,
     }

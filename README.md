@@ -83,19 +83,33 @@ Full design: [`docs/design/architecture.md`](docs/design/architecture.md).
 
 ## Status
 
-🚧 **Early development.** Currently in **Phase 0** — de-risking benchmarks on the
-target hardware before integration (see [`benchmarks/phase0/`](benchmarks/phase0/)).
-The MVP targets a single Unitree Go2 quadruped, three MCP tools, and one task type
-(fetch-and-place).
+🚀 **MVP pipeline runs end to end** (2026-06-03). The full loop — natural-language
+task → N=8 candidate plans → safety critic → Sim-Gate (L1 kinematic → L3 scene-graph
+→ L2 parallel Isaac Lab physics) → best-of-N selection → execution in Isaac Sim —
+works on the target hardware. See [`STATUS.md`](STATUS.md) for the component matrix,
+[`DECISIONS.md`](DECISIONS.md) for build decisions, and
+[`benchmarks/`](benchmarks/) for hardware-gate results and demo transcripts.
+
+Current MVP scope: mock LLM planner unless `ANTHROPIC_API_KEY` is set; kinematic
+base motion (no learned locomotion policy yet); auto-approval. Hardware gate
+(Phase 0 benchmark #1) **passed**.
 
 ## Quick start
 
-> Requires the verified Blackwell stack (see [Hardware](#hardware--requirements)).
-> Phase 0 must pass before the simulation components are wired up.
-
 ```bash
-pip install -e .            # pure-logic components (no GPU needed)
-pytest tests/               # run the test suite
+# Pure-logic pipeline (no GPU, no API key needed)
+pip install -e ".[dev]"
+pytest                                    # 113 tests
+python examples/fetch_and_place.py        # offline end-to-end demo
+
+# With real LLM planning
+ANTHROPIC_API_KEY=sk-ant-... python examples/fetch_and_place.py
+
+# With Isaac Sim physics validation + execution (requires the env_isaaclab venv,
+# see scripts/install_sim_stack.sh and DECISIONS.md D-005)
+source ~/env_isaaclab/bin/activate
+pytest tests/test_isaac_sim_gate.py       # 9 Isaac integration tests
+python examples/fetch_and_place.py --isaac
 ```
 
 ## Hardware & requirements
