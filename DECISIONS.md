@@ -106,3 +106,37 @@ pattern: ``AppLauncher(headless=True).app`` at module import, no ``app.close()``
 Isaac tests live in ``tests/test_isaac_sim_gate.py`` (marked ``isaac``), are
 skipped automatically outside the Isaac venv, and run as their own pytest
 invocation inside it.
+
+## D-012: LLM credentials — Claude subscription OAuth token supported
+
+The operator provided a Claude subscription OAuth token (sk-ant-oat01-...)
+instead of a standard API key. OAuth tokens authenticate with
+`Authorization: Bearer` + the `anthropic-beta: oauth-2025-04-20` header.
+`make_anthropic_client()` handles both credential types; `ANTHROPIC_AUTH_TOKEN`
+is checked alongside `ANTHROPIC_API_KEY` everywhere. The token lives in
+`~/.config/physgate/credentials.env` (mode 600, outside the repo). Note: the
+subscription is shared with interactive Claude Code use, so 429 rate limits are
+expected — all benchmark/demo code retries with exponential backoff.
+
+## D-013: Policy locomotion parameters
+
+The trained Go2 policy (rsl_rl, 300 iterations, mean reward 35.0) replaces
+kinematic base driving. Integration choices:
+
+- **Commanded speed floor 0.4 m/s** — the policy tracks sub-0.4 m/s commands
+  poorly (creeps/stalls). Plan "caution" is expressed by the detour route, not
+  by very low speeds.
+- **Stuck detection** — an env that makes <0.15 m of progress in 10 s while a
+  goto step is active is marked `blocked` and fails L2. This is how
+  physically-blocked routes (straight line through the pillar) fail fast
+  instead of consuming the full timeout.
+- **Arrival tolerance 0.35 m**, heading deadband 0.6 rad, heading gain 1.5.
+- Pick/place remain kinematic attach/release (no gripper articulation on Go2);
+  placement is still fully physical (release + settle + read where it landed).
+
+## D-014: Audit MVP scope
+
+`physgate/audit/` implements the three-stream model + periodic Merkle
+checkpoints from architecture doc §4 with an in-memory trail and JSONL export.
+Langfuse/OTEL (decision stream) and MCAP (physical stream) back-ends are NOT
+wired yet — they plug in behind `AuditTrail.record()` without changing callers.
