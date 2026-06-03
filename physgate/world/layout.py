@@ -55,9 +55,6 @@ STATIC_FOOTPRINTS: dict[str, tuple[float, float, float]] = {
     "shelf_A": SHELF_SIZE,
 }
 
-#: Backwards-compatible alias (pre-rebuild name).
-OBSTACLE_FOOTPRINTS = STATIC_FOOTPRINTS
-
 #: Semantic labels applied to prims (read back by world/usd_semantics.py).
 SEMANTIC_LABELS: dict[str, str] = {
     "box_03": "cardboard_box",

@@ -478,9 +478,9 @@ def test_sim_backend_executes_winning_plan(sim_world, demo_scene):
     assert result["success"], f"execution failed: {result.get('error')}"
     # physics ground truth: the box is resting on the shelf in the simulation
     final_box = sim_world.box_positions()[0].cpu().numpy()
-    from physgate.gate.l2_physics import _box_on_shelf
+    from physgate.gate.l2_physics import box_on_shelf
 
-    assert _box_on_shelf(final_box), f"box ended at {final_box}, not on the shelf"
+    assert box_on_shelf(final_box), f"box ended at {final_box}, not on the shelf"
     # the symbolic scene agrees with the physics
     assert backend.get_scene().has_relation("box_03", "on", "shelf_A")
 

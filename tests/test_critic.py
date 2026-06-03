@@ -11,6 +11,7 @@ from physgate.gate.schemas import Scene, SceneObject
 from physgate.planner.critic import SAFETY_CONTRACTS, ClaudeCritic, MockCritic, make_critic
 from physgate.planner.planner import MockPlanner
 from physgate.planner.schemas import Plan, PlanStep, RelationChange, ToolName
+from tests.fakes import FakeAnthropicClient as _FakeAnthropicClient
 
 TASK = "put the fallen box back on shelf A"
 
@@ -120,31 +121,6 @@ def test_safety_contracts_documented():
 
 # --------------------------------------------------------------- ClaudeCritic
 
-
-class _FakeContent:
-    def __init__(self, text: str):
-        self.type = "text"
-        self.text = text
-
-
-class _FakeResponse:
-    def __init__(self, text: str):
-        self.content = [_FakeContent(text)]
-
-
-class _FakeMessages:
-    def __init__(self, response_text: str):
-        self._response_text = response_text
-        self.calls: list[dict] = []
-
-    def create(self, **kwargs):
-        self.calls.append(kwargs)
-        return _FakeResponse(self._response_text)
-
-
-class _FakeAnthropicClient:
-    def __init__(self, response_text: str):
-        self.messages = _FakeMessages(response_text)
 
 
 def test_claude_critic_keeps_approved_ids():

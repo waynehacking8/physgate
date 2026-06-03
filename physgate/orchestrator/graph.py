@@ -20,7 +20,7 @@ for durable state.
 
 from __future__ import annotations
 
-from typing import Any, Callable, TypedDict
+from typing import Any, Callable, Protocol, TypedDict, runtime_checkable
 
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import Command, interrupt
@@ -44,6 +44,7 @@ class OrchestratorConfig(BaseModel):
     num_candidates: int = DEFAULT_NUM_CANDIDATES
     max_replans: int = 2
     max_execution_retries: int = 3
+    max_llm_tokens: int = 200_000
 
 
 # ---------------------------------------------------------------------- state
@@ -75,6 +76,21 @@ ExecutorFn = Callable[[Plan, Scene], dict[str, Any]]
 ApprovalFn = Callable[[SelectionResult], bool]
 
 
+@runtime_checkable
+class Checkpointer(Protocol):
+    """Minimal interface for LangGraph state persistence."""
+
+    def get(self, config: dict) -> Any: ...
+    def put(self, config: dict, data: Any) -> None: ...
+
+
+@runtime_checkable
+class AuditTrailProtocol(Protocol):
+    """Minimal interface expected by the orchestrator for audit recording."""
+
+    def record(self, stream: Any, event: str, correlation_id: str, **kwargs: Any) -> Any: ...
+
+
 # ---------------------------------------------------------------------- graph
 
 
@@ -85,8 +101,8 @@ def build_orchestrator(
     executor_fn: ExecutorFn,
     approval_fn: ApprovalFn,
     config: OrchestratorConfig | None = None,
-    checkpointer: Any = None,
-    audit_trail: Any = None,
+    checkpointer: Checkpointer | None = None,
+    audit_trail: AuditTrailProtocol | None = None,
 ):
     """Build and compile the orchestrator graph with injected components.
 

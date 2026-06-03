@@ -64,10 +64,6 @@ from physgate.world.layout import (
     SHELF_TOP_Z,
 )
 
-# backwards-compatible aliases (pre-rebuild names)
-_box_on_shelf = box_on_shelf
-_yaw_to_quat = yaw_to_quat
-_compile_mission = compile_mission
 
 #: How close (m) the robot must be to the shelf FOOTPRINT edge to place onto it:
 #: max plan standoff (0.5) + waypoint arrival tolerance (0.35) + slack.

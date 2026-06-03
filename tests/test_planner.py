@@ -12,6 +12,7 @@ import pytest
 from physgate.gate.schemas import Scene, SceneObject
 from physgate.planner.planner import ClaudePlanner, MockPlanner, make_planner
 from physgate.planner.schemas import Plan, ToolName
+from tests.fakes import FakeAnthropicClient as _FakeAnthropicClient
 
 
 def _scene() -> Scene:
@@ -68,32 +69,6 @@ def test_mock_planner_feedback_changes_rationale():
 
 
 # -------------------------------------------------------------- ClaudePlanner
-
-
-class _FakeContent:
-    def __init__(self, text: str):
-        self.type = "text"
-        self.text = text
-
-
-class _FakeResponse:
-    def __init__(self, text: str):
-        self.content = [_FakeContent(text)]
-
-
-class _FakeMessages:
-    def __init__(self, response_text: str):
-        self._response_text = response_text
-        self.calls: list[dict] = []
-
-    def create(self, **kwargs):
-        self.calls.append(kwargs)
-        return _FakeResponse(self._response_text)
-
-
-class _FakeAnthropicClient:
-    def __init__(self, response_text: str):
-        self.messages = _FakeMessages(response_text)
 
 
 def _llm_plan_json(n: int = 2) -> str:
