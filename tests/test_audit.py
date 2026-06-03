@@ -122,8 +122,9 @@ def test_trail_tamper_detection():
     trail.close()
     assert trail.verify_integrity() is True
 
-    # tamper with a recorded payload after checkpointing
-    trail._records[1].payload["survivors"] = 999
+    # tamper with a recorded payload after checkpointing (via read-only view —
+    # the tuple element references the same mutable AuditRecord object)
+    trail.records[1].payload["survivors"] = 999
     assert trail.verify_integrity() is False
 
 
@@ -173,13 +174,13 @@ def test_orchestrator_emits_audit_records():
     assert final["outcome"] == "done"
 
     # every pipeline phase produced a decision record
-    events = [r.event for r in trail._records]
+    events = [r.event for r in trail.records]
     assert "candidates_generated" in events
     assert "critic_verdict" in events
     assert "plan_selected" in events
     assert "execution_result" in events
     # the human stream recorded the approval
-    human = [r for r in trail._records if r.stream == AuditStream.HUMAN]
+    human = [r for r in trail.records if r.stream == AuditStream.HUMAN]
     assert len(human) == 1
     assert human[0].payload["approved"] is True
     # integrity holds

@@ -40,8 +40,7 @@ def test_missing_object_is_denied():
 
 
 def test_gripper_not_empty_is_denied():
-    scene = _fetch_scene()
-    scene.gripper_empty = False
+    scene = _fetch_scene().model_copy(update={"gripper_empty": False})
     report = check_preconditions(["gripper_empty"], scene)
     assert report is not None
     assert report.violations[0].type == "gripper_not_empty"
@@ -56,8 +55,7 @@ def test_unmet_relation_is_denied():
 
 
 def test_multiple_violations_all_reported():
-    scene = _fetch_scene()
-    scene.gripper_empty = False
+    scene = _fetch_scene().model_copy(update={"gripper_empty": False})
     report = check_preconditions(["box_99 exists", "gripper_empty"], scene)
     assert report is not None
     assert len(report.violations) == 2

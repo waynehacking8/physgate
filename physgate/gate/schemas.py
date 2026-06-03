@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from enum import Enum
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class FailureCode(str, Enum):
@@ -75,6 +75,8 @@ class Scene(BaseModel):
     `relations` are (subject, predicate, object) triples, e.g.
     ``("box_03", "on", "floor_01")``. This doubles as the L3 precondition input.
     """
+
+    model_config = ConfigDict(frozen=True)
 
     objects: list[SceneObject] = Field(default_factory=list)
     relations: list[tuple[str, str, str]] = Field(default_factory=list)

@@ -23,6 +23,17 @@ from physgate.gate.schemas import Scene
 from physgate.planner.schemas import Plan, PlanStep, RelationChange, ToolName
 from physgate.world.scene_graph import objects_with_affordance, to_query_scene_payload
 
+_MAX_FEEDBACK_LEN = 2000
+_MAX_TASK_LEN = 1000
+
+
+def _sanitize_prompt_input(text: str, max_len: int) -> str:
+    """Truncate and strip prompt-injection patterns from user-controlled strings."""
+    text = text[:max_len]
+    text = re.sub(r"(?i)(system|assistant|human)\s*:", "", text)
+    text = re.sub(r"<\|.*?\|>", "", text)
+    return text.strip()
+
 #: Planner LLM (architecture doc §1: Claude Opus 4.8 via cloud API).
 DEFAULT_PLANNER_MODEL = "claude-opus-4-8"
 
@@ -173,15 +184,17 @@ class ClaudePlanner:
         self._max_tokens = max_tokens
 
     def __call__(self, task: str, scene: Scene, n: int, feedback: str | None = None) -> list[Plan]:
+        safe_task = _sanitize_prompt_input(task, _MAX_TASK_LEN)
         user_prompt = (
-            f"Task: {task}\n\n"
+            f"Task: {safe_task}\n\n"
             f"Current scene (query_scene output):\n"
             f"{json.dumps(to_query_scene_payload(scene), indent=2)}\n\n"
             f"Generate exactly {n} candidate plans as a JSON array."
         )
         if feedback:
+            safe_feedback = _sanitize_prompt_input(feedback, _MAX_FEEDBACK_LEN)
             user_prompt += (
-                f"\n\nPREVIOUS ATTEMPT FAILED. Failure report:\n{feedback}\n"
+                f"\n\nPREVIOUS ATTEMPT FAILED. Failure report:\n{safe_feedback}\n"
                 "Generate new plans that avoid this failure mode."
             )
 

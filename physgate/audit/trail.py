@@ -13,6 +13,7 @@ behind the same ``record()`` call — see DECISIONS.md.
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any
 
@@ -34,10 +35,15 @@ class AuditTrail:
     """Collects audit records and maintains periodic Merkle checkpoints."""
 
     def __init__(self, checkpoint_every: int = 16):
-        self._records: list[AuditRecord] = []
+        self.__records: list[AuditRecord] = []
         self.checkpoints: list[MerkleCheckpoint] = []
         self._checkpoint_every = checkpoint_every
         self._next_checkpoint_start = 0
+
+    @property
+    def records(self) -> tuple[AuditRecord, ...]:
+        """Read-only view of all collected records."""
+        return tuple(self.__records)
 
     # ----- recording -----
 
@@ -57,41 +63,55 @@ class AuditTrail:
             payload=payload or {},
             **kwargs,
         )
-        self._records.append(entry)
-        if len(self._records) - self._next_checkpoint_start >= self._checkpoint_every:
+        self.__records.append(entry)
+        if len(self.__records) - self._next_checkpoint_start >= self._checkpoint_every:
             self._checkpoint()
         return entry
 
     def _checkpoint(self) -> MerkleCheckpoint | None:
         """Compute a Merkle root over records since the last checkpoint."""
-        start, end = self._next_checkpoint_start, len(self._records)
+        start, end = self._next_checkpoint_start, len(self.__records)
         if end <= start:
             return None
-        hashes = [hash_record(r.model_dump(mode="json")) for r in self._records[start:end]]
+        hashes = [hash_record(r.model_dump(mode="json")) for r in self.__records[start:end]]
         checkpoint = MerkleCheckpoint(start_index=start, end_index=end, root=merkle_root(hashes))
         self.checkpoints.append(checkpoint)
         self._next_checkpoint_start = end
         return checkpoint
 
     def close(self) -> str | None:
-        """Flush remaining records into a final checkpoint; return its root."""
-        checkpoint = self._checkpoint()
-        return checkpoint.root if checkpoint else (
-            self.checkpoints[-1].root if self.checkpoints else None
-        )
+        """Flush remaining records into a final checkpoint, verify, return root."""
+        self._checkpoint()
+        if not self.verify_integrity():
+            raise RuntimeError("audit trail integrity check failed at close()")
+        return self.checkpoints[-1].root if self.checkpoints else None
 
     # ----- queries -----
 
     def records_for(self, task_id: str) -> list[AuditRecord]:
         """Three-stream correlation: every record whose correlation_id starts with task_id."""
-        return [r for r in self._records if r.correlation_id.startswith(task_id)]
+        return [r for r in self.__records if r.correlation_id.startswith(task_id)]
 
     # ----- integrity -----
 
     def verify_integrity(self) -> bool:
-        """Recompute every checkpoint root; False if any record was tampered with."""
+        """Recompute every checkpoint root; False if any record was tampered with.
+
+        Also verifies contiguous coverage: checkpoints must span [0, len(records))
+        with no gaps and no overlaps.
+        """
+        if not self.checkpoints:
+            return len(self.__records) == 0
+
+        # coverage check: checkpoints must start at 0 and tile the record space
+        if self.checkpoints[0].start_index != 0:
+            return False
+        for i in range(1, len(self.checkpoints)):
+            if self.checkpoints[i].start_index != self.checkpoints[i - 1].end_index:
+                return False
+
         for checkpoint in self.checkpoints:
-            window = self._records[checkpoint.start_index : checkpoint.end_index]
+            window = self.__records[checkpoint.start_index : checkpoint.end_index]
             hashes = [hash_record(r.model_dump(mode="json")) for r in window]
             try:
                 if merkle_root(hashes) != checkpoint.root:
@@ -105,11 +125,8 @@ class AuditTrail:
     def to_jsonl(self, path: str | Path) -> None:
         """Export records + checkpoints as JSON Lines (one object per line)."""
         path = Path(path)
-        lines = [r.model_dump_json() for r in self._records]
+        lines = [r.model_dump_json() for r in self.__records]
         for checkpoint in self.checkpoints:
-            lines.append(
-                checkpoint.model_copy()
-                .model_dump_json()
-                .replace("{", '{"type": "merkle_checkpoint", ', 1)
-            )
+            obj = {"type": "merkle_checkpoint", **checkpoint.model_dump()}
+            lines.append(json.dumps(obj))
         path.write_text("\n".join(lines) + "\n")

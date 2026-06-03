@@ -157,9 +157,10 @@ def synthesize_base_trajectory(
         elif step.tool == ToolName.MOVE_TO_POSE:
             target_id = step.args["target"]
             if target_id not in lay:
-                # unknown target: hold in place (L3 should have caught this)
-                hold(SCAN_HOLD_STEPS)
-                continue
+                raise UnknownTargetError(
+                    f"plan '{plan.plan_id}' step {step.step_id} moves to unknown "
+                    f"object '{target_id}' (known: {sorted(lay.keys())})"
+                )
             standoff = float(step.args.get("standoff_m", 0.3))
             speed = max(float(step.args.get("speed", 0.5)), 0.05)
 
