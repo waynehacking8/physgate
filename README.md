@@ -180,14 +180,17 @@ rejected.
 
 | Pipeline | Success rate (feasible tasks, 95% CI) | Rejection rate (infeasible tasks) |
 |---|---|---|
-| A0 — No validation | 0.43 [0.38, 0.48] | 0.00 |
-| A1 — + LLM critic | 0.50 [0.45, 0.55] | 0.00 |
+| A0 — No validation | 0.43 [0.43, 0.43] | 0.00 |
+| A1 — + LLM critic | 0.50 [0.50, 0.50] | 0.00 |
 | A2 — + Symbolic gate | 1.00 [0.84, 1.00] | 0.00 |
 | A3 — + Physics gate (nav + goal) | 1.00 [0.84, 1.00] | 1.00 |
 
 n = 20 feasible + 8 infeasible
 procedurally generated layouts (A*-certified labels); plan pool of
-21 plans. Methodology:
+21 plans. CIs are instance-level
+(n = number of independent generated layouts, not plan × instance):
+Wilson CI for binary per-instance outcomes (A2/A3), normal-approximation
+CI for fractional per-instance rates (A0/A1). Methodology:
 [`docs/design/EVALUATION_METHODOLOGY.md`](docs/design/EVALUATION_METHODOLOGY.md).
 
 ### E2 — The gate as a classifier (defect-injection corpus)

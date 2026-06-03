@@ -84,6 +84,8 @@ def main() -> int:
             condition: {
                 "success_rate": outcome.success_rate,
                 "success_ci_95": list(outcome.success_ci),
+                "n_plan_trials": outcome.n_plan_trials,
+                "plan_level_success_rate": outcome.plan_level_success_rate,
                 "false_execution_rate": outcome.false_execution_rate,
                 "rejection_rate": outcome.rejection_rate,
                 "n_instances": outcome.n_instances,

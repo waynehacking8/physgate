@@ -64,12 +64,16 @@ class ConditionOutcome:
     condition: str
     n_instances: int
     #: feasible instances: fraction where the goal relation held after execution
+    #: (instance-level: each instance's expected success is one observation)
     success_rate: float
     success_ci: tuple[float, float]
+    #: plan-level breakdown (for transparency — NOT used for CI)
+    n_plan_trials: int = 0
+    plan_level_success_rate: float = 0.0
     #: infeasible instances: fraction where execution was attempted at all
-    false_execution_rate: float
+    false_execution_rate: float = 0.0
     #: infeasible instances: fraction correctly rejected before execution
-    rejection_rate: float
+    rejection_rate: float = 0.0
     details: list[dict] = field(default_factory=list)
 
 
@@ -87,12 +91,36 @@ def wilson_ci(successes: float, n: int, z: float = 1.96) -> tuple[float, float]:
     return (round(max(0.0, center - margin), 4), round(min(1.0, center + margin), 4))
 
 
+def instance_ci(rates: list[float], z: float = 1.96) -> tuple[float, float]:
+    """95% CI for the mean of instance-level success rates.
+
+    Uses Wilson CI when all rates are binary (0 or 1), otherwise a
+    normal-approximation CI on the mean.
+    """
+    n = len(rates)
+    if n == 0:
+        return (0.0, 1.0)
+    binary = all(r in (0.0, 1.0) for r in rates)
+    if binary:
+        return wilson_ci(sum(rates), n, z)
+    mean = sum(rates) / n
+    if n == 1:
+        return (0.0, 1.0)
+    var = sum((r - mean) ** 2 for r in rates) / (n - 1)
+    se = math.sqrt(var / n)
+    lo = max(0.0, mean - z * se)
+    hi = min(1.0, mean + z * se)
+    return (round(lo, 4), round(hi, 4))
+
+
 def build_plan_pool(seed: int = 0) -> list[PooledPlan]:
     """The contaminated plan pool: clean critic-surviving plans + one variant per
-    defect class — modeling a planner that produces both good and bad plans."""
+    PLAN-LEVEL defect class — modeling a planner that produces both good and bad
+    plans. D5 (world-level defect) is excluded because its defect is in the
+    layout, not the plan — it is evaluated in E2 (gate classifier), not E1."""
     scene = build_demo_scene()
     base_plans = MockCritic()(MockPlanner()(TASK, scene, 8, None), scene)
-    corpus = build_defect_corpus(base_plans[:3])  # 3 base plans x 7 classes = 21 plans
+    corpus = build_defect_corpus(base_plans[:3])
     return [
         PooledPlan(
             plan=item.plan,
@@ -100,6 +128,7 @@ def build_plan_pool(seed: int = 0) -> list[PooledPlan]:
             ground_truth_invalid=item.ground_truth_invalid,
         )
         for item in corpus
+        if item.layout_override is None  # exclude world-level defects (D5)
     ]
 
 
@@ -196,7 +225,10 @@ def run_condition(
     """Run one pipeline condition over the instances."""
     selector = _SELECTORS[condition]
 
-    feasible_outcomes: list[bool] = []
+    # instance-level rates (the independent observations for CI computation)
+    instance_rates: list[float] = []
+    # plan-level outcomes (for transparency, NOT for CI)
+    all_plan_outcomes: list[bool] = []
     infeasible_attempted: list[bool] = []
     details: list[dict] = []
 
@@ -205,25 +237,24 @@ def run_condition(
 
         if instance.feasible:
             if not selected:
-                # rejected a feasible task -> counts as failure
-                feasible_outcomes.append(False)
+                instance_rates.append(0.0)
                 details.append(
                     {"instance": instance.instance_id, "selected": None, "success": False}
                 )
                 continue
-            # expectation over every plan the condition could execute
             successes = [_instance_execution(plan, instance) for plan in selected]
             rate = sum(successes) / len(successes)
-            feasible_outcomes.extend(successes)
+            instance_rates.append(rate)
+            all_plan_outcomes.extend(successes)
             details.append(
                 {
                     "instance": instance.instance_id,
                     "selected": [p.plan_id for p in selected],
                     "success": round(rate, 4),
+                    "n_plans_tested": len(successes),
                 }
             )
         else:
-            # infeasible instance: did the condition attempt execution at all?
             attempted = bool(selected)
             infeasible_attempted.append(attempted)
             details.append(
@@ -234,9 +265,13 @@ def run_condition(
                 }
             )
 
-    n_feasible_trials = len(feasible_outcomes)
-    successes = sum(feasible_outcomes)
-    success_rate = successes / n_feasible_trials if n_feasible_trials else 0.0
+    # instance-level aggregation (correct for CI computation: n = n_instances)
+    n_inst = len(instance_rates)
+    success_rate = sum(instance_rates) / n_inst if n_inst else 0.0
+
+    # plan-level breakdown (strictly for transparency)
+    n_plans = len(all_plan_outcomes)
+    plan_success = sum(all_plan_outcomes) / n_plans if n_plans else 0.0
 
     n_infeasible = len(infeasible_attempted)
     false_exec = sum(infeasible_attempted) / n_infeasible if n_infeasible else 0.0
@@ -245,7 +280,9 @@ def run_condition(
         condition=condition,
         n_instances=len(instances),
         success_rate=round(success_rate, 4),
-        success_ci=wilson_ci(successes, n_feasible_trials),
+        success_ci=instance_ci(instance_rates),
+        n_plan_trials=n_plans,
+        plan_level_success_rate=round(plan_success, 4),
         false_execution_rate=round(false_exec, 4),
         rejection_rate=round(1.0 - false_exec, 4) if n_infeasible else 0.0,
         details=details,

@@ -1,7 +1,7 @@
 {
  "experiment": "E1 pipeline ablation",
  "methodology": "docs/design/EVALUATION_METHODOLOGY.md section 4 E1",
- "timestamp": "2026-06-03 20:37:19",
+ "timestamp": "2026-06-03 22:56:52",
  "config": {
   "n_feasible_instances": 20,
   "n_infeasible_instances": 8,
@@ -14,9 +14,11 @@
   "A0_no_validation": {
    "success_rate": 0.4286,
    "success_ci_95": [
-    0.3821,
-    0.4763
+    0.4286,
+    0.4286
    ],
+   "n_plan_trials": 420,
+   "plan_level_success_rate": 0.4286,
    "false_execution_rate": 1.0,
    "rejection_rate": 0.0,
    "n_instances": 28,
@@ -46,7 +48,8 @@
       "mock_2_cautious__D6",
       "mock_2_cautious__D7"
      ],
-     "success": 0.4286
+     "success": 0.4286,
+     "n_plans_tested": 21
     },
     {
      "instance": "gen_feasible_001",
@@ -73,7 +76,8 @@
       "mock_2_cautious__D6",
       "mock_2_cautious__D7"
      ],
-     "success": 0.4286
+     "success": 0.4286,
+     "n_plans_tested": 21
     },
     {
      "instance": "gen_feasible_002",
@@ -100,7 +104,8 @@
       "mock_2_cautious__D6",
       "mock_2_cautious__D7"
      ],
-     "success": 0.4286
+     "success": 0.4286,
+     "n_plans_tested": 21
     },
     {
      "instance": "gen_feasible_003",
@@ -127,7 +132,8 @@
       "mock_2_cautious__D6",
       "mock_2_cautious__D7"
      ],
-     "success": 0.4286
+     "success": 0.4286,
+     "n_plans_tested": 21
     },
     {
      "instance": "gen_feasible_004",
@@ -154,7 +160,8 @@
       "mock_2_cautious__D6",
       "mock_2_cautious__D7"
      ],
-     "success": 0.4286
+     "success": 0.4286,
+     "n_plans_tested": 21
     },
     {
      "instance": "gen_feasible_005",
@@ -181,7 +188,8 @@
       "mock_2_cautious__D6",
       "mock_2_cautious__D7"
      ],
-     "success": 0.4286
+     "success": 0.4286,
+     "n_plans_tested": 21
     },
     {
      "instance": "gen_feasible_006",
@@ -208,7 +216,8 @@
       "mock_2_cautious__D6",
       "mock_2_cautious__D7"
      ],
-     "success": 0.4286
+     "success": 0.4286,
+     "n_plans_tested": 21
     },
     {
      "instance": "gen_feasible_007",
@@ -235,7 +244,8 @@
       "mock_2_cautious__D6",
       "mock_2_cautious__D7"
      ],
-     "success": 0.4286
+     "success": 0.4286,
+     "n_plans_tested": 21
     },
     {
      "instance": "gen_feasible_008",
@@ -262,7 +272,8 @@
       "mock_2_cautious__D6",
       "mock_2_cautious__D7"
      ],
-     "success": 0.4286
+     "success": 0.4286,
+     "n_plans_tested": 21
     },
     {
      "instance": "gen_feasible_009",
@@ -289,7 +300,8 @@
       "mock_2_cautious__D6",
       "mock_2_cautious__D7"
      ],
-     "success": 0.4286
+     "success": 0.4286,
+     "n_plans_tested": 21
     },
     {
      "instance": "gen_feasible_010",
@@ -316,7 +328,8 @@
       "mock_2_cautious__D6",
       "mock_2_cautious__D7"
      ],
-     "success": 0.4286
+     "success": 0.4286,
+     "n_plans_tested": 21
     },
     {
      "instance": "gen_feasible_011",
@@ -343,7 +356,8 @@
       "mock_2_cautious__D6",
       "mock_2_cautious__D7"
      ],
-     "success": 0.4286
+     "success": 0.4286,
+     "n_plans_tested": 21
     },
     {
      "instance": "gen_feasible_012",
@@ -370,7 +384,8 @@
       "mock_2_cautious__D6",
       "mock_2_cautious__D7"
      ],
-     "success": 0.4286
+     "success": 0.4286,
+     "n_plans_tested": 21
     },
     {
      "instance": "gen_feasible_013",
@@ -397,7 +412,8 @@
       "mock_2_cautious__D6",
       "mock_2_cautious__D7"
      ],
-     "success": 0.4286
+     "success": 0.4286,
+     "n_plans_tested": 21
     },
     {
      "instance": "gen_feasible_014",
@@ -424,7 +440,8 @@
       "mock_2_cautious__D6",
       "mock_2_cautious__D7"
      ],
-     "success": 0.4286
+     "success": 0.4286,
+     "n_plans_tested": 21
     },
     {
      "instance": "gen_feasible_015",
@@ -451,7 +468,8 @@
       "mock_2_cautious__D6",
       "mock_2_cautious__D7"
      ],
-     "success": 0.4286
+     "success": 0.4286,
+     "n_plans_tested": 21
     },
     {
      "instance": "gen_feasible_016",
@@ -478,7 +496,8 @@
       "mock_2_cautious__D6",
       "mock_2_cautious__D7"
      ],
-     "success": 0.4286
+     "success": 0.4286,
+     "n_plans_tested": 21
     },
     {
      "instance": "gen_feasible_017",
@@ -505,7 +524,8 @@
       "mock_2_cautious__D6",
       "mock_2_cautious__D7"
      ],
-     "success": 0.4286
+     "success": 0.4286,
+     "n_plans_tested": 21
     },
     {
      "instance": "gen_feasible_018",
@@ -532,7 +552,8 @@
       "mock_2_cautious__D6",
       "mock_2_cautious__D7"
      ],
-     "success": 0.4286
+     "success": 0.4286,
+     "n_plans_tested": 21
     },
     {
      "instance": "gen_feasible_019",
@@ -559,7 +580,8 @@
       "mock_2_cautious__D6",
       "mock_2_cautious__D7"
      ],
-     "success": 0.4286
+     "success": 0.4286,
+     "n_plans_tested": 21
     },
     {
      "instance": "gen_infeasible_000",
@@ -782,9 +804,11 @@
   "A1_critic_only": {
    "success_rate": 0.5,
    "success_ci_95": [
-    0.4486,
-    0.5514
+    0.5,
+    0.5
    ],
+   "n_plan_trials": 360,
+   "plan_level_success_rate": 0.5,
    "false_execution_rate": 1.0,
    "rejection_rate": 0.0,
    "n_instances": 28,
@@ -811,7 +835,8 @@
       "mock_2_cautious__D6",
       "mock_2_cautious__D7"
      ],
-     "success": 0.5
+     "success": 0.5,
+     "n_plans_tested": 18
     },
     {
      "instance": "gen_feasible_001",
@@ -835,7 +860,8 @@
       "mock_2_cautious__D6",
       "mock_2_cautious__D7"
      ],
-     "success": 0.5
+     "success": 0.5,
+     "n_plans_tested": 18
     },
     {
      "instance": "gen_feasible_002",
@@ -859,7 +885,8 @@
       "mock_2_cautious__D6",
       "mock_2_cautious__D7"
      ],
-     "success": 0.5
+     "success": 0.5,
+     "n_plans_tested": 18
     },
     {
      "instance": "gen_feasible_003",
@@ -883,7 +910,8 @@
       "mock_2_cautious__D6",
       "mock_2_cautious__D7"
      ],
-     "success": 0.5
+     "success": 0.5,
+     "n_plans_tested": 18
     },
     {
      "instance": "gen_feasible_004",
@@ -907,7 +935,8 @@
       "mock_2_cautious__D6",
       "mock_2_cautious__D7"
      ],
-     "success": 0.5
+     "success": 0.5,
+     "n_plans_tested": 18
     },
     {
      "instance": "gen_feasible_005",
@@ -931,7 +960,8 @@
       "mock_2_cautious__D6",
       "mock_2_cautious__D7"
      ],
-     "success": 0.5
+     "success": 0.5,
+     "n_plans_tested": 18
     },
     {
      "instance": "gen_feasible_006",
@@ -955,7 +985,8 @@
       "mock_2_cautious__D6",
       "mock_2_cautious__D7"
      ],
-     "success": 0.5
+     "success": 0.5,
+     "n_plans_tested": 18
     },
     {
      "instance": "gen_feasible_007",
@@ -979,7 +1010,8 @@
       "mock_2_cautious__D6",
       "mock_2_cautious__D7"
      ],
-     "success": 0.5
+     "success": 0.5,
+     "n_plans_tested": 18
     },
     {
      "instance": "gen_feasible_008",
@@ -1003,7 +1035,8 @@
       "mock_2_cautious__D6",
       "mock_2_cautious__D7"
      ],
-     "success": 0.5
+     "success": 0.5,
+     "n_plans_tested": 18
     },
     {
      "instance": "gen_feasible_009",
@@ -1027,7 +1060,8 @@
       "mock_2_cautious__D6",
       "mock_2_cautious__D7"
      ],
-     "success": 0.5
+     "success": 0.5,
+     "n_plans_tested": 18
     },
     {
      "instance": "gen_feasible_010",
@@ -1051,7 +1085,8 @@
       "mock_2_cautious__D6",
       "mock_2_cautious__D7"
      ],
-     "success": 0.5
+     "success": 0.5,
+     "n_plans_tested": 18
     },
     {
      "instance": "gen_feasible_011",
@@ -1075,7 +1110,8 @@
       "mock_2_cautious__D6",
       "mock_2_cautious__D7"
      ],
-     "success": 0.5
+     "success": 0.5,
+     "n_plans_tested": 18
     },
     {
      "instance": "gen_feasible_012",
@@ -1099,7 +1135,8 @@
       "mock_2_cautious__D6",
       "mock_2_cautious__D7"
      ],
-     "success": 0.5
+     "success": 0.5,
+     "n_plans_tested": 18
     },
     {
      "instance": "gen_feasible_013",
@@ -1123,7 +1160,8 @@
       "mock_2_cautious__D6",
       "mock_2_cautious__D7"
      ],
-     "success": 0.5
+     "success": 0.5,
+     "n_plans_tested": 18
     },
     {
      "instance": "gen_feasible_014",
@@ -1147,7 +1185,8 @@
       "mock_2_cautious__D6",
       "mock_2_cautious__D7"
      ],
-     "success": 0.5
+     "success": 0.5,
+     "n_plans_tested": 18
     },
     {
      "instance": "gen_feasible_015",
@@ -1171,7 +1210,8 @@
       "mock_2_cautious__D6",
       "mock_2_cautious__D7"
      ],
-     "success": 0.5
+     "success": 0.5,
+     "n_plans_tested": 18
     },
     {
      "instance": "gen_feasible_016",
@@ -1195,7 +1235,8 @@
       "mock_2_cautious__D6",
       "mock_2_cautious__D7"
      ],
-     "success": 0.5
+     "success": 0.5,
+     "n_plans_tested": 18
     },
     {
      "instance": "gen_feasible_017",
@@ -1219,7 +1260,8 @@
       "mock_2_cautious__D6",
       "mock_2_cautious__D7"
      ],
-     "success": 0.5
+     "success": 0.5,
+     "n_plans_tested": 18
     },
     {
      "instance": "gen_feasible_018",
@@ -1243,7 +1285,8 @@
       "mock_2_cautious__D6",
       "mock_2_cautious__D7"
      ],
-     "success": 0.5
+     "success": 0.5,
+     "n_plans_tested": 18
     },
     {
      "instance": "gen_feasible_019",
@@ -1267,7 +1310,8 @@
       "mock_2_cautious__D6",
       "mock_2_cautious__D7"
      ],
-     "success": 0.5
+     "success": 0.5,
+     "n_plans_tested": 18
     },
     {
      "instance": "gen_infeasible_000",
@@ -1469,6 +1513,8 @@
     0.8389,
     1.0
    ],
+   "n_plan_trials": 20,
+   "plan_level_success_rate": 1.0,
    "false_execution_rate": 1.0,
    "rejection_rate": 0.0,
    "n_instances": 28,
@@ -1478,140 +1524,160 @@
      "selected": [
       "mock_0_direct"
      ],
-     "success": 1.0
+     "success": 1.0,
+     "n_plans_tested": 1
     },
     {
      "instance": "gen_feasible_001",
      "selected": [
       "mock_0_direct"
      ],
-     "success": 1.0
+     "success": 1.0,
+     "n_plans_tested": 1
     },
     {
      "instance": "gen_feasible_002",
      "selected": [
       "mock_0_direct"
      ],
-     "success": 1.0
+     "success": 1.0,
+     "n_plans_tested": 1
     },
     {
      "instance": "gen_feasible_003",
      "selected": [
       "mock_0_direct"
      ],
-     "success": 1.0
+     "success": 1.0,
+     "n_plans_tested": 1
     },
     {
      "instance": "gen_feasible_004",
      "selected": [
       "mock_0_direct"
      ],
-     "success": 1.0
+     "success": 1.0,
+     "n_plans_tested": 1
     },
     {
      "instance": "gen_feasible_005",
      "selected": [
       "mock_0_direct"
      ],
-     "success": 1.0
+     "success": 1.0,
+     "n_plans_tested": 1
     },
     {
      "instance": "gen_feasible_006",
      "selected": [
       "mock_0_direct"
      ],
-     "success": 1.0
+     "success": 1.0,
+     "n_plans_tested": 1
     },
     {
      "instance": "gen_feasible_007",
      "selected": [
       "mock_0_direct"
      ],
-     "success": 1.0
+     "success": 1.0,
+     "n_plans_tested": 1
     },
     {
      "instance": "gen_feasible_008",
      "selected": [
       "mock_0_direct"
      ],
-     "success": 1.0
+     "success": 1.0,
+     "n_plans_tested": 1
     },
     {
      "instance": "gen_feasible_009",
      "selected": [
       "mock_0_direct"
      ],
-     "success": 1.0
+     "success": 1.0,
+     "n_plans_tested": 1
     },
     {
      "instance": "gen_feasible_010",
      "selected": [
       "mock_0_direct"
      ],
-     "success": 1.0
+     "success": 1.0,
+     "n_plans_tested": 1
     },
     {
      "instance": "gen_feasible_011",
      "selected": [
       "mock_0_direct"
      ],
-     "success": 1.0
+     "success": 1.0,
+     "n_plans_tested": 1
     },
     {
      "instance": "gen_feasible_012",
      "selected": [
       "mock_0_direct"
      ],
-     "success": 1.0
+     "success": 1.0,
+     "n_plans_tested": 1
     },
     {
      "instance": "gen_feasible_013",
      "selected": [
       "mock_0_direct"
      ],
-     "success": 1.0
+     "success": 1.0,
+     "n_plans_tested": 1
     },
     {
      "instance": "gen_feasible_014",
      "selected": [
       "mock_0_direct"
      ],
-     "success": 1.0
+     "success": 1.0,
+     "n_plans_tested": 1
     },
     {
      "instance": "gen_feasible_015",
      "selected": [
       "mock_0_direct"
      ],
-     "success": 1.0
+     "success": 1.0,
+     "n_plans_tested": 1
     },
     {
      "instance": "gen_feasible_016",
      "selected": [
       "mock_0_direct"
      ],
-     "success": 1.0
+     "success": 1.0,
+     "n_plans_tested": 1
     },
     {
      "instance": "gen_feasible_017",
      "selected": [
       "mock_0_direct"
      ],
-     "success": 1.0
+     "success": 1.0,
+     "n_plans_tested": 1
     },
     {
      "instance": "gen_feasible_018",
      "selected": [
       "mock_0_direct"
      ],
-     "success": 1.0
+     "success": 1.0,
+     "n_plans_tested": 1
     },
     {
      "instance": "gen_feasible_019",
      "selected": [
       "mock_0_direct"
      ],
-     "success": 1.0
+     "success": 1.0,
+     "n_plans_tested": 1
     },
     {
      "instance": "gen_infeasible_000",
@@ -1677,6 +1743,8 @@
     0.8389,
     1.0
    ],
+   "n_plan_trials": 20,
+   "plan_level_success_rate": 1.0,
    "false_execution_rate": 0.0,
    "rejection_rate": 1.0,
    "n_instances": 28,
@@ -1686,140 +1754,160 @@
      "selected": [
       "mock_0_direct"
      ],
-     "success": 1.0
+     "success": 1.0,
+     "n_plans_tested": 1
     },
     {
      "instance": "gen_feasible_001",
      "selected": [
       "mock_0_direct"
      ],
-     "success": 1.0
+     "success": 1.0,
+     "n_plans_tested": 1
     },
     {
      "instance": "gen_feasible_002",
      "selected": [
       "mock_0_direct"
      ],
-     "success": 1.0
+     "success": 1.0,
+     "n_plans_tested": 1
     },
     {
      "instance": "gen_feasible_003",
      "selected": [
       "mock_0_direct"
      ],
-     "success": 1.0
+     "success": 1.0,
+     "n_plans_tested": 1
     },
     {
      "instance": "gen_feasible_004",
      "selected": [
       "mock_0_direct"
      ],
-     "success": 1.0
+     "success": 1.0,
+     "n_plans_tested": 1
     },
     {
      "instance": "gen_feasible_005",
      "selected": [
       "mock_0_direct"
      ],
-     "success": 1.0
+     "success": 1.0,
+     "n_plans_tested": 1
     },
     {
      "instance": "gen_feasible_006",
      "selected": [
       "mock_0_direct"
      ],
-     "success": 1.0
+     "success": 1.0,
+     "n_plans_tested": 1
     },
     {
      "instance": "gen_feasible_007",
      "selected": [
       "mock_0_direct"
      ],
-     "success": 1.0
+     "success": 1.0,
+     "n_plans_tested": 1
     },
     {
      "instance": "gen_feasible_008",
      "selected": [
       "mock_0_direct"
      ],
-     "success": 1.0
+     "success": 1.0,
+     "n_plans_tested": 1
     },
     {
      "instance": "gen_feasible_009",
      "selected": [
       "mock_0_direct"
      ],
-     "success": 1.0
+     "success": 1.0,
+     "n_plans_tested": 1
     },
     {
      "instance": "gen_feasible_010",
      "selected": [
       "mock_0_direct"
      ],
-     "success": 1.0
+     "success": 1.0,
+     "n_plans_tested": 1
     },
     {
      "instance": "gen_feasible_011",
      "selected": [
       "mock_0_direct"
      ],
-     "success": 1.0
+     "success": 1.0,
+     "n_plans_tested": 1
     },
     {
      "instance": "gen_feasible_012",
      "selected": [
       "mock_0_direct"
      ],
-     "success": 1.0
+     "success": 1.0,
+     "n_plans_tested": 1
     },
     {
      "instance": "gen_feasible_013",
      "selected": [
       "mock_0_direct"
      ],
-     "success": 1.0
+     "success": 1.0,
+     "n_plans_tested": 1
     },
     {
      "instance": "gen_feasible_014",
      "selected": [
       "mock_0_direct"
      ],
-     "success": 1.0
+     "success": 1.0,
+     "n_plans_tested": 1
     },
     {
      "instance": "gen_feasible_015",
      "selected": [
       "mock_0_direct"
      ],
-     "success": 1.0
+     "success": 1.0,
+     "n_plans_tested": 1
     },
     {
      "instance": "gen_feasible_016",
      "selected": [
       "mock_0_direct"
      ],
-     "success": 1.0
+     "success": 1.0,
+     "n_plans_tested": 1
     },
     {
      "instance": "gen_feasible_017",
      "selected": [
       "mock_0_direct"
      ],
-     "success": 1.0
+     "success": 1.0,
+     "n_plans_tested": 1
     },
     {
      "instance": "gen_feasible_018",
      "selected": [
       "mock_0_direct"
      ],
-     "success": 1.0
+     "success": 1.0,
+     "n_plans_tested": 1
     },
     {
      "instance": "gen_feasible_019",
      "selected": [
       "mock_0_direct"
      ],
-     "success": 1.0
+     "success": 1.0,
+     "n_plans_tested": 1
     },
     {
      "instance": "gen_infeasible_000",
@@ -1864,7 +1952,7 @@
    ]
   }
  },
- "wall_s": 63.4,
+ "wall_s": 64.5,
  "interpretation": {
   "feasible_instances": "success climbs with each validation layer: no-validation executes defective plans; the critic removes hallucinations; the symbolic gate removes ordering/missing-step defects; the nav-aware gate (physics-gate surrogate) additionally verifies the task goal",
   "infeasible_instances": "ONLY the navigation-aware condition can reject impossible tasks before execution \u2014 symbolic validation has no geometry and attempts every one of them (false_execution_rate=1.0). This is the unique, quantified value of world-level (physics/navigation) validation."

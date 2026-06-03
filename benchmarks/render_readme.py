@@ -107,7 +107,10 @@ rejected.
 
 n = {config.get("n_feasible_instances", "?")} feasible + {config.get("n_infeasible_instances", "?")} infeasible
 procedurally generated layouts (A*-certified labels); plan pool of
-{config.get("plan_pool_size", "?")} plans. Methodology:
+{config.get("plan_pool_size", "?")} plans. CIs are instance-level
+(n = number of independent generated layouts, not plan × instance):
+Wilson CI for binary per-instance outcomes (A2/A3), normal-approximation
+CI for fractional per-instance rates (A0/A1). Methodology:
 [`docs/design/EVALUATION_METHODOLOGY.md`](docs/design/EVALUATION_METHODOLOGY.md).
 """
 
