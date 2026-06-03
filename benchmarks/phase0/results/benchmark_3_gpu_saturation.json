@@ -1,0 +1,57 @@
+{
+  "benchmark": "phase0 #3 - GPU saturation curve (Go2 fetch scene)",
+  "timestamp": "2026-06-03 13:56:28",
+  "gpu": "RTX PRO 6000 Blackwell Max-Q (sm_120, 300W)",
+  "results": [
+    {
+      "num_envs": 1,
+      "scene_creation_s": 1.87,
+      "physics_steps_per_s": 281.4,
+      "env_steps_per_s": 281.4,
+      "wall_s_for_200_steps": 0.711,
+      "scaling_efficiency": 1.0
+    },
+    {
+      "num_envs": 4,
+      "scene_creation_s": 1.86,
+      "physics_steps_per_s": 279.4,
+      "env_steps_per_s": 1117.6,
+      "wall_s_for_200_steps": 0.716,
+      "scaling_efficiency": 0.993
+    },
+    {
+      "num_envs": 16,
+      "scene_creation_s": 1.9,
+      "physics_steps_per_s": 272.5,
+      "env_steps_per_s": 4360.2,
+      "wall_s_for_200_steps": 0.734,
+      "scaling_efficiency": 0.968
+    },
+    {
+      "num_envs": 64,
+      "scene_creation_s": 1.98,
+      "physics_steps_per_s": 253.7,
+      "env_steps_per_s": 16236.7,
+      "wall_s_for_200_steps": 0.788,
+      "scaling_efficiency": 0.902
+    },
+    {
+      "num_envs": 256,
+      "scene_creation_s": 2.34,
+      "physics_steps_per_s": 251.0,
+      "env_steps_per_s": 64248.6,
+      "wall_s_for_200_steps": 0.797,
+      "scaling_efficiency": 0.892
+    },
+    {
+      "num_envs": 1024,
+      "scene_creation_s": 4.02,
+      "physics_steps_per_s": 244.4,
+      "env_steps_per_s": 250227.2,
+      "wall_s_for_200_steps": 0.818,
+      "scaling_efficiency": 0.868
+    }
+  ],
+  "saturation_knee_envs": 1024,
+  "interpretation": "GPU scales near-linearly up to ~1024 envs; best-of-N validation with N=8 uses a small fraction of available parallelism."
+}

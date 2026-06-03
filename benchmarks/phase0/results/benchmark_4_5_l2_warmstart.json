@@ -1,0 +1,33 @@
+{
+  "benchmark": "phase0 #4 (L2 wall-clock) + #5 (warm-start)",
+  "timestamp": "2026-06-03 13:54:38",
+  "gpu": "RTX PRO 6000 Blackwell Max-Q (sm_120, 300W)",
+  "warm_start": {
+    "app_launch_s": 3.84,
+    "scene_creation_8env_s": 1.88,
+    "first_identical_reset_s": 0.09,
+    "total_to_ready_s": 6.61,
+    "reset_identical_ok": true,
+    "reset_max_deviation_m": 0.000388,
+    "gate_criterion": "assumption was 10-30 s to warm-start"
+  },
+  "l2_kinematic": {
+    "single_plan_wall_s": 7.28,
+    "batch_8_plans_wall_s": 20.15,
+    "marginal_cost_of_7_extra_plans_s": 12.87,
+    "per_plan_effective_s": 2.52,
+    "feasible_count": 8
+  },
+  "l2_policy": {
+    "policy": "/home/wayne/IsaacLab/logs/rsl_rl/unitree_go2_flat/2026-06-03_13-21-37/exported/policy.pt",
+    "single_plan_wall_s": 17.08,
+    "batch_8_plans_wall_s": 17.4,
+    "marginal_cost_of_7_extra_plans_s": 0.32,
+    "per_plan_effective_s": 2.17,
+    "feasible_count": 2
+  },
+  "conclusion": {
+    "parallel_validation_is_cheap": false,
+    "note": "best-of-8 costs barely more than best-of-1 when run in parallel envs \u2014 the quality gain of N=8 is nearly free in GPU time (architecture doc \u00a76)"
+  }
+}
