@@ -134,6 +134,12 @@ reasoning chain, sim/real flag, primary timestamp + clock source. Tamper-evidenc
 
 ## 6. Best-of-N: a quality contribution, not a speed one
 
+> **⚠️ SUPERSEDED — see [REBUILD.md](REBUILD.md).** The best-of-N / "17% feasible"
+> result below is an ARTIFACT of a layering defect (obstacle avoidance was pushed to the
+> LLM; the low level is a straight-line driver). With deterministic Nav2 navigation it
+> vanishes. The corrected architecture (high=agent, low=Nav2, Sim-Gate=agent evaluation)
+> is authoritative in REBUILD.md.
+
 An earlier framing claimed parallel validation is "free" and that this is a test-time
 compute speedup. Adversarial review corrected this: for Go2-class robots the GPU does not
 saturate until ~512+ environments, and the real latency bottleneck is **LLM planning**
