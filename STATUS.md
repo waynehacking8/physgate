@@ -158,9 +158,13 @@ parallelism — there is enormous headroom for larger candidate sets.
 | Kinematic | 7.3 s | 20.2 s | 12.9 s |
 | **Walking policy** | 17.1 s | 17.4 s | **0.32 s** |
 
-**Headline result: with the walking policy, validating 8 candidates costs 1.9%
-more than validating 1.** Best-of-N quality is effectively free in GPU time
-(confirms architecture doc §6).
+**Marginal cost of +7 candidates is small in policy mode (0.32 s), but L2
+validation is not free end to end** — the ~17 s base rollout dominates the
+wall-clock. The gate's value is feasibility discrimination, not speed: in the
+real-LLM demo only **1/7** critic-approved plans was physically feasible
+(mock: 2/8) — physics identifies the workable plan among candidates that all
+look plausible to the LLM (architecture doc §6: a quality contribution, not a
+speed one).
 
 ### #5 — Warm-start latency
 

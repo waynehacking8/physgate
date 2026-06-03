@@ -27,7 +27,9 @@
     "feasible_count": 2
   },
   "conclusion": {
-    "parallel_validation_is_cheap": false,
-    "note": "best-of-8 costs barely more than best-of-1 when run in parallel envs \u2014 the quality gain of N=8 is nearly free in GPU time (architecture doc \u00a76)"
+    "marginal_sim_cost_kinematic_s": 12.87,
+    "marginal_sim_cost_policy_s": 0.32,
+    "end_to_end_validation_free": false,
+    "note": "Marginal sim cost of +7 candidates is small in policy mode (+0.32 s) but L2 validation is not free end to end \u2014 the ~17 s base rollout dominates. The gate's value is feasibility discrimination, not speed: real-LLM demo found 1/7 critic-approved plans physically feasible (mock: 2/8) \u2014 physics identifies the workable plan among candidates that all look plausible to the LLM (architecture doc \u00a76: a quality contribution, not a speed one)."
   }
 }

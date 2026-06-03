@@ -122,15 +122,25 @@ def main() -> int:
         results["l2_policy"] = None
         print("#4 policy L2: skipped (no exported policy)")
 
-    # the headline number the architecture cares about
+    # honest framing (architecture doc §6: quality contribution, not a speed one):
+    # the marginal sim cost of extra candidates is small in policy mode, but L2
+    # validation is not free end to end — its value is feasibility discrimination.
     results["conclusion"] = {
-        "parallel_validation_is_cheap": (
-            results["l2_kinematic"]["marginal_cost_of_7_extra_plans_s"]
-            < results["l2_kinematic"]["single_plan_wall_s"]
+        "marginal_sim_cost_kinematic_s": results["l2_kinematic"][
+            "marginal_cost_of_7_extra_plans_s"
+        ],
+        "marginal_sim_cost_policy_s": (
+            results["l2_policy"]["marginal_cost_of_7_extra_plans_s"]
+            if results["l2_policy"]
+            else None
         ),
+        "end_to_end_validation_free": False,
         "note": (
-            "best-of-8 costs barely more than best-of-1 when run in parallel envs — "
-            "the quality gain of N=8 is nearly free in GPU time (architecture doc §6)"
+            "Marginal sim cost of +7 candidates is small in policy mode, but L2 "
+            "validation is not free end to end — the base rollout dominates. The "
+            "gate's value is feasibility discrimination, not speed: physics "
+            "identifies the few workable plans among candidates that all look "
+            "plausible to the LLM (architecture doc §6)."
         ),
     }
 
