@@ -1,0 +1,3119 @@
+[
+  {
+    "plan_id": "plan_direct",
+    "task": "put the fallen box back on shelf A",
+    "rationale": "Most direct route: approach the box, pick it, approach shelf A, place it.",
+    "steps": [
+      {
+        "step_id": 1,
+        "tool": "move_to_pose",
+        "args": {
+          "target": "box_03",
+          "standoff_m": 0.3,
+          "speed": 0.6
+        },
+        "preconditions": [
+          "box_03 exists"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "near",
+            "object": "box_03"
+          }
+        ]
+      },
+      {
+        "step_id": 2,
+        "tool": "execute_skill",
+        "args": {
+          "skill": "pick",
+          "target": "box_03"
+        },
+        "preconditions": [
+          "box_03 exists",
+          "gripper_empty",
+          "box_03 on floor_01",
+          "go2 near box_03"
+        ],
+        "effects": [
+          {
+            "op": "remove",
+            "subject": "box_03",
+            "predicate": "on",
+            "object": "floor_01"
+          },
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "holding",
+            "object": "box_03"
+          },
+          {
+            "op": "remove",
+            "subject": "go2",
+            "predicate": "gripper",
+            "object": "empty"
+          }
+        ]
+      },
+      {
+        "step_id": 3,
+        "tool": "move_to_pose",
+        "args": {
+          "target": "shelf_A",
+          "standoff_m": 0.3,
+          "speed": 0.6
+        },
+        "preconditions": [
+          "shelf_A exists",
+          "go2 holding box_03"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "near",
+            "object": "shelf_A"
+          }
+        ]
+      },
+      {
+        "step_id": 4,
+        "tool": "execute_skill",
+        "args": {
+          "skill": "place",
+          "target": "shelf_A"
+        },
+        "preconditions": [
+          "shelf_A exists",
+          "go2 holding box_03",
+          "shelf_A unoccupied shelf_A",
+          "go2 near shelf_A"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "box_03",
+            "predicate": "on",
+            "object": "shelf_A"
+          },
+          {
+            "op": "remove",
+            "subject": "go2",
+            "predicate": "holding",
+            "object": "box_03"
+          },
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "gripper",
+            "object": "empty"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "plan_id": "plan_verify_first",
+    "task": "put the fallen box back on shelf A",
+    "rationale": "Query the scene first to confirm box state and shelf availability before manipulation.",
+    "steps": [
+      {
+        "step_id": 1,
+        "tool": "query_scene",
+        "args": {
+          "target": "box_03"
+        },
+        "preconditions": [
+          "box_03 exists"
+        ],
+        "effects": []
+      },
+      {
+        "step_id": 2,
+        "tool": "move_to_pose",
+        "args": {
+          "target": "box_03",
+          "standoff_m": 0.3,
+          "speed": 0.6
+        },
+        "preconditions": [
+          "box_03 exists"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "near",
+            "object": "box_03"
+          }
+        ]
+      },
+      {
+        "step_id": 3,
+        "tool": "execute_skill",
+        "args": {
+          "skill": "pick",
+          "target": "box_03"
+        },
+        "preconditions": [
+          "box_03 exists",
+          "gripper_empty",
+          "box_03 on floor_01",
+          "go2 near box_03"
+        ],
+        "effects": [
+          {
+            "op": "remove",
+            "subject": "box_03",
+            "predicate": "on",
+            "object": "floor_01"
+          },
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "holding",
+            "object": "box_03"
+          },
+          {
+            "op": "remove",
+            "subject": "go2",
+            "predicate": "gripper",
+            "object": "empty"
+          }
+        ]
+      },
+      {
+        "step_id": 4,
+        "tool": "move_to_pose",
+        "args": {
+          "target": "shelf_A",
+          "standoff_m": 0.3,
+          "speed": 0.6
+        },
+        "preconditions": [
+          "shelf_A exists",
+          "go2 holding box_03"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "near",
+            "object": "shelf_A"
+          }
+        ]
+      },
+      {
+        "step_id": 5,
+        "tool": "execute_skill",
+        "args": {
+          "skill": "place",
+          "target": "shelf_A"
+        },
+        "preconditions": [
+          "shelf_A exists",
+          "go2 holding box_03",
+          "shelf_A unoccupied shelf_A",
+          "go2 near shelf_A"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "box_03",
+            "predicate": "on",
+            "object": "shelf_A"
+          },
+          {
+            "op": "remove",
+            "subject": "go2",
+            "predicate": "holding",
+            "object": "box_03"
+          },
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "gripper",
+            "object": "empty"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "plan_id": "plan_via_waypoint",
+    "task": "put the fallen box back on shelf A",
+    "rationale": "Route through waypoint_W to navigate around obstacles between the box and the shelf.",
+    "steps": [
+      {
+        "step_id": 1,
+        "tool": "move_to_pose",
+        "args": {
+          "target": "box_03",
+          "standoff_m": 0.3,
+          "speed": 0.6
+        },
+        "preconditions": [
+          "box_03 exists"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "near",
+            "object": "box_03"
+          }
+        ]
+      },
+      {
+        "step_id": 2,
+        "tool": "execute_skill",
+        "args": {
+          "skill": "pick",
+          "target": "box_03"
+        },
+        "preconditions": [
+          "box_03 exists",
+          "gripper_empty",
+          "box_03 on floor_01",
+          "go2 near box_03"
+        ],
+        "effects": [
+          {
+            "op": "remove",
+            "subject": "box_03",
+            "predicate": "on",
+            "object": "floor_01"
+          },
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "holding",
+            "object": "box_03"
+          },
+          {
+            "op": "remove",
+            "subject": "go2",
+            "predicate": "gripper",
+            "object": "empty"
+          }
+        ]
+      },
+      {
+        "step_id": 3,
+        "tool": "move_to_pose",
+        "args": {
+          "target": "waypoint_W",
+          "standoff_m": 0.3,
+          "speed": 0.6
+        },
+        "preconditions": [
+          "waypoint_W exists",
+          "go2 holding box_03"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "near",
+            "object": "waypoint_W"
+          }
+        ]
+      },
+      {
+        "step_id": 4,
+        "tool": "move_to_pose",
+        "args": {
+          "target": "shelf_A",
+          "standoff_m": 0.3,
+          "speed": 0.6
+        },
+        "preconditions": [
+          "shelf_A exists",
+          "go2 holding box_03"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "near",
+            "object": "shelf_A"
+          }
+        ]
+      },
+      {
+        "step_id": 5,
+        "tool": "execute_skill",
+        "args": {
+          "skill": "place",
+          "target": "shelf_A"
+        },
+        "preconditions": [
+          "shelf_A exists",
+          "go2 holding box_03",
+          "shelf_A unoccupied shelf_A",
+          "go2 near shelf_A"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "box_03",
+            "predicate": "on",
+            "object": "shelf_A"
+          },
+          {
+            "op": "remove",
+            "subject": "go2",
+            "predicate": "holding",
+            "object": "box_03"
+          },
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "gripper",
+            "object": "empty"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "plan_id": "plan_waypoint_before_pick",
+    "task": "put the fallen box back on shelf A",
+    "rationale": "Stage at waypoint_W first to align approach to the box, then pick and deliver.",
+    "steps": [
+      {
+        "step_id": 1,
+        "tool": "move_to_pose",
+        "args": {
+          "target": "waypoint_W",
+          "standoff_m": 0.3,
+          "speed": 0.7
+        },
+        "preconditions": [
+          "waypoint_W exists"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "near",
+            "object": "waypoint_W"
+          }
+        ]
+      },
+      {
+        "step_id": 2,
+        "tool": "move_to_pose",
+        "args": {
+          "target": "box_03",
+          "standoff_m": 0.3,
+          "speed": 0.5
+        },
+        "preconditions": [
+          "box_03 exists"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "near",
+            "object": "box_03"
+          }
+        ]
+      },
+      {
+        "step_id": 3,
+        "tool": "execute_skill",
+        "args": {
+          "skill": "pick",
+          "target": "box_03"
+        },
+        "preconditions": [
+          "box_03 exists",
+          "gripper_empty",
+          "box_03 on floor_01",
+          "go2 near box_03"
+        ],
+        "effects": [
+          {
+            "op": "remove",
+            "subject": "box_03",
+            "predicate": "on",
+            "object": "floor_01"
+          },
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "holding",
+            "object": "box_03"
+          },
+          {
+            "op": "remove",
+            "subject": "go2",
+            "predicate": "gripper",
+            "object": "empty"
+          }
+        ]
+      },
+      {
+        "step_id": 4,
+        "tool": "move_to_pose",
+        "args": {
+          "target": "shelf_A",
+          "standoff_m": 0.3,
+          "speed": 0.5
+        },
+        "preconditions": [
+          "shelf_A exists",
+          "go2 holding box_03"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "near",
+            "object": "shelf_A"
+          }
+        ]
+      },
+      {
+        "step_id": 5,
+        "tool": "execute_skill",
+        "args": {
+          "skill": "place",
+          "target": "shelf_A"
+        },
+        "preconditions": [
+          "shelf_A exists",
+          "go2 holding box_03",
+          "shelf_A unoccupied shelf_A",
+          "go2 near shelf_A"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "box_03",
+            "predicate": "on",
+            "object": "shelf_A"
+          },
+          {
+            "op": "remove",
+            "subject": "go2",
+            "predicate": "holding",
+            "object": "box_03"
+          },
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "gripper",
+            "object": "empty"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "plan_id": "plan_check_shelf_before_place",
+    "task": "put the fallen box back on shelf A",
+    "rationale": "Pick the box, then verify shelf_A is still unoccupied before placing to avoid collision.",
+    "steps": [
+      {
+        "step_id": 1,
+        "tool": "move_to_pose",
+        "args": {
+          "target": "box_03",
+          "standoff_m": 0.3,
+          "speed": 0.6
+        },
+        "preconditions": [
+          "box_03 exists"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "near",
+            "object": "box_03"
+          }
+        ]
+      },
+      {
+        "step_id": 2,
+        "tool": "execute_skill",
+        "args": {
+          "skill": "pick",
+          "target": "box_03"
+        },
+        "preconditions": [
+          "box_03 exists",
+          "gripper_empty",
+          "box_03 on floor_01",
+          "go2 near box_03"
+        ],
+        "effects": [
+          {
+            "op": "remove",
+            "subject": "box_03",
+            "predicate": "on",
+            "object": "floor_01"
+          },
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "holding",
+            "object": "box_03"
+          },
+          {
+            "op": "remove",
+            "subject": "go2",
+            "predicate": "gripper",
+            "object": "empty"
+          }
+        ]
+      },
+      {
+        "step_id": 3,
+        "tool": "move_to_pose",
+        "args": {
+          "target": "shelf_A",
+          "standoff_m": 0.3,
+          "speed": 0.6
+        },
+        "preconditions": [
+          "shelf_A exists",
+          "go2 holding box_03"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "near",
+            "object": "shelf_A"
+          }
+        ]
+      },
+      {
+        "step_id": 4,
+        "tool": "query_scene",
+        "args": {
+          "target": "shelf_A"
+        },
+        "preconditions": [
+          "shelf_A exists"
+        ],
+        "effects": []
+      },
+      {
+        "step_id": 5,
+        "tool": "execute_skill",
+        "args": {
+          "skill": "place",
+          "target": "shelf_A"
+        },
+        "preconditions": [
+          "shelf_A exists",
+          "go2 holding box_03",
+          "shelf_A unoccupied shelf_A",
+          "go2 near shelf_A"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "box_03",
+            "predicate": "on",
+            "object": "shelf_A"
+          },
+          {
+            "op": "remove",
+            "subject": "go2",
+            "predicate": "holding",
+            "object": "box_03"
+          },
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "gripper",
+            "object": "empty"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "plan_id": "plan_slow_careful",
+    "task": "put the fallen box back on shelf A",
+    "rationale": "Conservative low-speed, wider standoff approach for stable manipulation of the anomalous box.",
+    "steps": [
+      {
+        "step_id": 1,
+        "tool": "move_to_pose",
+        "args": {
+          "target": "box_03",
+          "standoff_m": 0.4,
+          "speed": 0.4
+        },
+        "preconditions": [
+          "box_03 exists"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "near",
+            "object": "box_03"
+          }
+        ]
+      },
+      {
+        "step_id": 2,
+        "tool": "execute_skill",
+        "args": {
+          "skill": "pick",
+          "target": "box_03"
+        },
+        "preconditions": [
+          "box_03 exists",
+          "gripper_empty",
+          "box_03 on floor_01",
+          "go2 near box_03"
+        ],
+        "effects": [
+          {
+            "op": "remove",
+            "subject": "box_03",
+            "predicate": "on",
+            "object": "floor_01"
+          },
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "holding",
+            "object": "box_03"
+          },
+          {
+            "op": "remove",
+            "subject": "go2",
+            "predicate": "gripper",
+            "object": "empty"
+          }
+        ]
+      },
+      {
+        "step_id": 3,
+        "tool": "move_to_pose",
+        "args": {
+          "target": "shelf_A",
+          "standoff_m": 0.4,
+          "speed": 0.4
+        },
+        "preconditions": [
+          "shelf_A exists",
+          "go2 holding box_03"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "near",
+            "object": "shelf_A"
+          }
+        ]
+      },
+      {
+        "step_id": 4,
+        "tool": "execute_skill",
+        "args": {
+          "skill": "place",
+          "target": "shelf_A"
+        },
+        "preconditions": [
+          "shelf_A exists",
+          "go2 holding box_03",
+          "shelf_A unoccupied shelf_A",
+          "go2 near shelf_A"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "box_03",
+            "predicate": "on",
+            "object": "shelf_A"
+          },
+          {
+            "op": "remove",
+            "subject": "go2",
+            "predicate": "holding",
+            "object": "box_03"
+          },
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "gripper",
+            "object": "empty"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "plan_id": "plan_full_verify",
+    "task": "put the fallen box back on shelf A",
+    "rationale": "Maximum verification: confirm box before pick and shelf before place for robustness.",
+    "steps": [
+      {
+        "step_id": 1,
+        "tool": "query_scene",
+        "args": {
+          "target": "box_03"
+        },
+        "preconditions": [
+          "box_03 exists"
+        ],
+        "effects": []
+      },
+      {
+        "step_id": 2,
+        "tool": "move_to_pose",
+        "args": {
+          "target": "box_03",
+          "standoff_m": 0.3,
+          "speed": 0.6
+        },
+        "preconditions": [
+          "box_03 exists"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "near",
+            "object": "box_03"
+          }
+        ]
+      },
+      {
+        "step_id": 3,
+        "tool": "execute_skill",
+        "args": {
+          "skill": "pick",
+          "target": "box_03"
+        },
+        "preconditions": [
+          "box_03 exists",
+          "gripper_empty",
+          "box_03 on floor_01",
+          "go2 near box_03"
+        ],
+        "effects": [
+          {
+            "op": "remove",
+            "subject": "box_03",
+            "predicate": "on",
+            "object": "floor_01"
+          },
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "holding",
+            "object": "box_03"
+          },
+          {
+            "op": "remove",
+            "subject": "go2",
+            "predicate": "gripper",
+            "object": "empty"
+          }
+        ]
+      },
+      {
+        "step_id": 4,
+        "tool": "move_to_pose",
+        "args": {
+          "target": "shelf_A",
+          "standoff_m": 0.3,
+          "speed": 0.6
+        },
+        "preconditions": [
+          "shelf_A exists",
+          "go2 holding box_03"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "near",
+            "object": "shelf_A"
+          }
+        ]
+      },
+      {
+        "step_id": 5,
+        "tool": "query_scene",
+        "args": {
+          "target": "shelf_A"
+        },
+        "preconditions": [
+          "shelf_A exists"
+        ],
+        "effects": []
+      },
+      {
+        "step_id": 6,
+        "tool": "execute_skill",
+        "args": {
+          "skill": "place",
+          "target": "shelf_A"
+        },
+        "preconditions": [
+          "shelf_A exists",
+          "go2 holding box_03",
+          "shelf_A unoccupied shelf_A",
+          "go2 near shelf_A"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "box_03",
+            "predicate": "on",
+            "object": "shelf_A"
+          },
+          {
+            "op": "remove",
+            "subject": "go2",
+            "predicate": "holding",
+            "object": "box_03"
+          },
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "gripper",
+            "object": "empty"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "plan_id": "plan_waypoint_return",
+    "task": "put the fallen box back on shelf A",
+    "rationale": "Approach box via waypoint_W, pick, and return through waypoint_W to shelf for a known safe corridor both ways.",
+    "steps": [
+      {
+        "step_id": 1,
+        "tool": "move_to_pose",
+        "args": {
+          "target": "waypoint_W",
+          "standoff_m": 0.3,
+          "speed": 0.7
+        },
+        "preconditions": [
+          "waypoint_W exists"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "near",
+            "object": "waypoint_W"
+          }
+        ]
+      },
+      {
+        "step_id": 2,
+        "tool": "move_to_pose",
+        "args": {
+          "target": "box_03",
+          "standoff_m": 0.3,
+          "speed": 0.5
+        },
+        "preconditions": [
+          "box_03 exists"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "near",
+            "object": "box_03"
+          }
+        ]
+      },
+      {
+        "step_id": 3,
+        "tool": "execute_skill",
+        "args": {
+          "skill": "pick",
+          "target": "box_03"
+        },
+        "preconditions": [
+          "box_03 exists",
+          "gripper_empty",
+          "box_03 on floor_01",
+          "go2 near box_03"
+        ],
+        "effects": [
+          {
+            "op": "remove",
+            "subject": "box_03",
+            "predicate": "on",
+            "object": "floor_01"
+          },
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "holding",
+            "object": "box_03"
+          },
+          {
+            "op": "remove",
+            "subject": "go2",
+            "predicate": "gripper",
+            "object": "empty"
+          }
+        ]
+      },
+      {
+        "step_id": 4,
+        "tool": "move_to_pose",
+        "args": {
+          "target": "waypoint_W",
+          "standoff_m": 0.3,
+          "speed": 0.5
+        },
+        "preconditions": [
+          "waypoint_W exists",
+          "go2 holding box_03"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "near",
+            "object": "waypoint_W"
+          }
+        ]
+      },
+      {
+        "step_id": 5,
+        "tool": "move_to_pose",
+        "args": {
+          "target": "shelf_A",
+          "standoff_m": 0.3,
+          "speed": 0.5
+        },
+        "preconditions": [
+          "shelf_A exists",
+          "go2 holding box_03"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "near",
+            "object": "shelf_A"
+          }
+        ]
+      },
+      {
+        "step_id": 6,
+        "tool": "execute_skill",
+        "args": {
+          "skill": "place",
+          "target": "shelf_A"
+        },
+        "preconditions": [
+          "shelf_A exists",
+          "go2 holding box_03",
+          "shelf_A unoccupied shelf_A",
+          "go2 near shelf_A"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "box_03",
+            "predicate": "on",
+            "object": "shelf_A"
+          },
+          {
+            "op": "remove",
+            "subject": "go2",
+            "predicate": "holding",
+            "object": "box_03"
+          },
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "gripper",
+            "object": "empty"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "plan_id": "plan_direct_call1_2",
+    "task": "put the fallen box back on shelf A",
+    "rationale": "Most direct route: approach the box, grasp it, approach the shelf, and place it.",
+    "steps": [
+      {
+        "step_id": 1,
+        "tool": "move_to_pose",
+        "args": {
+          "target": "box_03",
+          "standoff_m": 0.3,
+          "speed": 0.6
+        },
+        "preconditions": [
+          "box_03 exists"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "near",
+            "object": "box_03"
+          }
+        ]
+      },
+      {
+        "step_id": 2,
+        "tool": "execute_skill",
+        "args": {
+          "skill": "pick",
+          "target": "box_03"
+        },
+        "preconditions": [
+          "box_03 exists",
+          "gripper_empty",
+          "go2 near box_03",
+          "box_03 on floor_01"
+        ],
+        "effects": [
+          {
+            "op": "remove",
+            "subject": "box_03",
+            "predicate": "on",
+            "object": "floor_01"
+          },
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "holding",
+            "object": "box_03"
+          },
+          {
+            "op": "remove",
+            "subject": "go2",
+            "predicate": "gripper_empty",
+            "object": "go2"
+          }
+        ]
+      },
+      {
+        "step_id": 3,
+        "tool": "move_to_pose",
+        "args": {
+          "target": "shelf_A",
+          "standoff_m": 0.3,
+          "speed": 0.5
+        },
+        "preconditions": [
+          "shelf_A exists",
+          "go2 holding box_03"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "near",
+            "object": "shelf_A"
+          }
+        ]
+      },
+      {
+        "step_id": 4,
+        "tool": "execute_skill",
+        "args": {
+          "skill": "place",
+          "target": "shelf_A"
+        },
+        "preconditions": [
+          "shelf_A exists",
+          "go2 holding box_03",
+          "go2 near shelf_A",
+          "shelf_A unoccupied shelf_A"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "box_03",
+            "predicate": "on",
+            "object": "shelf_A"
+          },
+          {
+            "op": "remove",
+            "subject": "go2",
+            "predicate": "holding",
+            "object": "box_03"
+          },
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "gripper_empty",
+            "object": "go2"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "plan_id": "plan_verify_first_call1_2",
+    "task": "put the fallen box back on shelf A",
+    "rationale": "Re-scan the scene before manipulating to confirm anomaly state and shelf availability.",
+    "steps": [
+      {
+        "step_id": 1,
+        "tool": "query_scene",
+        "args": {
+          "target": "box_03"
+        },
+        "preconditions": [
+          "box_03 exists"
+        ],
+        "effects": []
+      },
+      {
+        "step_id": 2,
+        "tool": "move_to_pose",
+        "args": {
+          "target": "box_03",
+          "standoff_m": 0.3,
+          "speed": 0.6
+        },
+        "preconditions": [
+          "box_03 exists"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "near",
+            "object": "box_03"
+          }
+        ]
+      },
+      {
+        "step_id": 3,
+        "tool": "execute_skill",
+        "args": {
+          "skill": "pick",
+          "target": "box_03"
+        },
+        "preconditions": [
+          "box_03 exists",
+          "gripper_empty",
+          "go2 near box_03",
+          "box_03 on floor_01"
+        ],
+        "effects": [
+          {
+            "op": "remove",
+            "subject": "box_03",
+            "predicate": "on",
+            "object": "floor_01"
+          },
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "holding",
+            "object": "box_03"
+          },
+          {
+            "op": "remove",
+            "subject": "go2",
+            "predicate": "gripper_empty",
+            "object": "go2"
+          }
+        ]
+      },
+      {
+        "step_id": 4,
+        "tool": "move_to_pose",
+        "args": {
+          "target": "shelf_A",
+          "standoff_m": 0.3,
+          "speed": 0.5
+        },
+        "preconditions": [
+          "shelf_A exists",
+          "go2 holding box_03"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "near",
+            "object": "shelf_A"
+          }
+        ]
+      },
+      {
+        "step_id": 5,
+        "tool": "execute_skill",
+        "args": {
+          "skill": "place",
+          "target": "shelf_A"
+        },
+        "preconditions": [
+          "shelf_A exists",
+          "go2 holding box_03",
+          "go2 near shelf_A",
+          "shelf_A unoccupied shelf_A"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "box_03",
+            "predicate": "on",
+            "object": "shelf_A"
+          },
+          {
+            "op": "remove",
+            "subject": "go2",
+            "predicate": "holding",
+            "object": "box_03"
+          },
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "gripper_empty",
+            "object": "go2"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "plan_id": "plan_via_waypoint_call1_2",
+    "task": "put the fallen box back on shelf A",
+    "rationale": "Route through the known waypoint after picking to ensure clear navigation to the shelf.",
+    "steps": [
+      {
+        "step_id": 1,
+        "tool": "move_to_pose",
+        "args": {
+          "target": "box_03",
+          "standoff_m": 0.3,
+          "speed": 0.6
+        },
+        "preconditions": [
+          "box_03 exists"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "near",
+            "object": "box_03"
+          }
+        ]
+      },
+      {
+        "step_id": 2,
+        "tool": "execute_skill",
+        "args": {
+          "skill": "pick",
+          "target": "box_03"
+        },
+        "preconditions": [
+          "box_03 exists",
+          "gripper_empty",
+          "go2 near box_03",
+          "box_03 on floor_01"
+        ],
+        "effects": [
+          {
+            "op": "remove",
+            "subject": "box_03",
+            "predicate": "on",
+            "object": "floor_01"
+          },
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "holding",
+            "object": "box_03"
+          },
+          {
+            "op": "remove",
+            "subject": "go2",
+            "predicate": "gripper_empty",
+            "object": "go2"
+          }
+        ]
+      },
+      {
+        "step_id": 3,
+        "tool": "move_to_pose",
+        "args": {
+          "target": "waypoint_W",
+          "standoff_m": 0.3,
+          "speed": 0.6
+        },
+        "preconditions": [
+          "waypoint_W exists",
+          "go2 holding box_03"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "near",
+            "object": "waypoint_W"
+          }
+        ]
+      },
+      {
+        "step_id": 4,
+        "tool": "move_to_pose",
+        "args": {
+          "target": "shelf_A",
+          "standoff_m": 0.3,
+          "speed": 0.5
+        },
+        "preconditions": [
+          "shelf_A exists",
+          "go2 holding box_03"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "near",
+            "object": "shelf_A"
+          }
+        ]
+      },
+      {
+        "step_id": 5,
+        "tool": "execute_skill",
+        "args": {
+          "skill": "place",
+          "target": "shelf_A"
+        },
+        "preconditions": [
+          "shelf_A exists",
+          "go2 holding box_03",
+          "go2 near shelf_A",
+          "shelf_A unoccupied shelf_A"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "box_03",
+            "predicate": "on",
+            "object": "shelf_A"
+          },
+          {
+            "op": "remove",
+            "subject": "go2",
+            "predicate": "holding",
+            "object": "box_03"
+          },
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "gripper_empty",
+            "object": "go2"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "plan_id": "plan_waypoint_first",
+    "task": "put the fallen box back on shelf A",
+    "rationale": "Stage at the waypoint first to establish a clean approach vector to the fallen box.",
+    "steps": [
+      {
+        "step_id": 1,
+        "tool": "move_to_pose",
+        "args": {
+          "target": "waypoint_W",
+          "standoff_m": 0.3,
+          "speed": 0.7
+        },
+        "preconditions": [
+          "waypoint_W exists"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "near",
+            "object": "waypoint_W"
+          }
+        ]
+      },
+      {
+        "step_id": 2,
+        "tool": "move_to_pose",
+        "args": {
+          "target": "box_03",
+          "standoff_m": 0.3,
+          "speed": 0.5
+        },
+        "preconditions": [
+          "box_03 exists"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "near",
+            "object": "box_03"
+          }
+        ]
+      },
+      {
+        "step_id": 3,
+        "tool": "execute_skill",
+        "args": {
+          "skill": "pick",
+          "target": "box_03"
+        },
+        "preconditions": [
+          "box_03 exists",
+          "gripper_empty",
+          "go2 near box_03",
+          "box_03 on floor_01"
+        ],
+        "effects": [
+          {
+            "op": "remove",
+            "subject": "box_03",
+            "predicate": "on",
+            "object": "floor_01"
+          },
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "holding",
+            "object": "box_03"
+          },
+          {
+            "op": "remove",
+            "subject": "go2",
+            "predicate": "gripper_empty",
+            "object": "go2"
+          }
+        ]
+      },
+      {
+        "step_id": 4,
+        "tool": "move_to_pose",
+        "args": {
+          "target": "shelf_A",
+          "standoff_m": 0.3,
+          "speed": 0.5
+        },
+        "preconditions": [
+          "shelf_A exists",
+          "go2 holding box_03"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "near",
+            "object": "shelf_A"
+          }
+        ]
+      },
+      {
+        "step_id": 5,
+        "tool": "execute_skill",
+        "args": {
+          "skill": "place",
+          "target": "shelf_A"
+        },
+        "preconditions": [
+          "shelf_A exists",
+          "go2 holding box_03",
+          "go2 near shelf_A",
+          "shelf_A unoccupied shelf_A"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "box_03",
+            "predicate": "on",
+            "object": "shelf_A"
+          },
+          {
+            "op": "remove",
+            "subject": "go2",
+            "predicate": "holding",
+            "object": "box_03"
+          },
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "gripper_empty",
+            "object": "go2"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "plan_id": "plan_close_standoff",
+    "task": "put the fallen box back on shelf A",
+    "rationale": "Use tight standoff distances and slow speeds for precise grasp and placement of the anomalous box.",
+    "steps": [
+      {
+        "step_id": 1,
+        "tool": "move_to_pose",
+        "args": {
+          "target": "box_03",
+          "standoff_m": 0.2,
+          "speed": 0.4
+        },
+        "preconditions": [
+          "box_03 exists"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "near",
+            "object": "box_03"
+          }
+        ]
+      },
+      {
+        "step_id": 2,
+        "tool": "execute_skill",
+        "args": {
+          "skill": "pick",
+          "target": "box_03"
+        },
+        "preconditions": [
+          "box_03 exists",
+          "gripper_empty",
+          "go2 near box_03",
+          "box_03 on floor_01"
+        ],
+        "effects": [
+          {
+            "op": "remove",
+            "subject": "box_03",
+            "predicate": "on",
+            "object": "floor_01"
+          },
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "holding",
+            "object": "box_03"
+          },
+          {
+            "op": "remove",
+            "subject": "go2",
+            "predicate": "gripper_empty",
+            "object": "go2"
+          }
+        ]
+      },
+      {
+        "step_id": 3,
+        "tool": "move_to_pose",
+        "args": {
+          "target": "shelf_A",
+          "standoff_m": 0.2,
+          "speed": 0.4
+        },
+        "preconditions": [
+          "shelf_A exists",
+          "go2 holding box_03"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "near",
+            "object": "shelf_A"
+          }
+        ]
+      },
+      {
+        "step_id": 4,
+        "tool": "execute_skill",
+        "args": {
+          "skill": "place",
+          "target": "shelf_A"
+        },
+        "preconditions": [
+          "shelf_A exists",
+          "go2 holding box_03",
+          "go2 near shelf_A",
+          "shelf_A unoccupied shelf_A"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "box_03",
+            "predicate": "on",
+            "object": "shelf_A"
+          },
+          {
+            "op": "remove",
+            "subject": "go2",
+            "predicate": "holding",
+            "object": "box_03"
+          },
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "gripper_empty",
+            "object": "go2"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "plan_id": "plan_scan_before_place",
+    "task": "put the fallen box back on shelf A",
+    "rationale": "Confirm the shelf is still unoccupied immediately before placing to avoid collisions.",
+    "steps": [
+      {
+        "step_id": 1,
+        "tool": "move_to_pose",
+        "args": {
+          "target": "box_03",
+          "standoff_m": 0.3,
+          "speed": 0.6
+        },
+        "preconditions": [
+          "box_03 exists"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "near",
+            "object": "box_03"
+          }
+        ]
+      },
+      {
+        "step_id": 2,
+        "tool": "execute_skill",
+        "args": {
+          "skill": "pick",
+          "target": "box_03"
+        },
+        "preconditions": [
+          "box_03 exists",
+          "gripper_empty",
+          "go2 near box_03",
+          "box_03 on floor_01"
+        ],
+        "effects": [
+          {
+            "op": "remove",
+            "subject": "box_03",
+            "predicate": "on",
+            "object": "floor_01"
+          },
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "holding",
+            "object": "box_03"
+          },
+          {
+            "op": "remove",
+            "subject": "go2",
+            "predicate": "gripper_empty",
+            "object": "go2"
+          }
+        ]
+      },
+      {
+        "step_id": 3,
+        "tool": "move_to_pose",
+        "args": {
+          "target": "shelf_A",
+          "standoff_m": 0.3,
+          "speed": 0.5
+        },
+        "preconditions": [
+          "shelf_A exists",
+          "go2 holding box_03"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "near",
+            "object": "shelf_A"
+          }
+        ]
+      },
+      {
+        "step_id": 4,
+        "tool": "query_scene",
+        "args": {
+          "target": "shelf_A"
+        },
+        "preconditions": [
+          "shelf_A exists"
+        ],
+        "effects": []
+      },
+      {
+        "step_id": 5,
+        "tool": "execute_skill",
+        "args": {
+          "skill": "place",
+          "target": "shelf_A"
+        },
+        "preconditions": [
+          "shelf_A exists",
+          "go2 holding box_03",
+          "go2 near shelf_A",
+          "shelf_A unoccupied shelf_A"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "box_03",
+            "predicate": "on",
+            "object": "shelf_A"
+          },
+          {
+            "op": "remove",
+            "subject": "go2",
+            "predicate": "holding",
+            "object": "box_03"
+          },
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "gripper_empty",
+            "object": "go2"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "plan_id": "plan_waypoint_return_scan",
+    "task": "put the fallen box back on shelf A",
+    "rationale": "Pick the box, route via the waypoint, then re-scan the shelf before placement for maximum safety.",
+    "steps": [
+      {
+        "step_id": 1,
+        "tool": "move_to_pose",
+        "args": {
+          "target": "box_03",
+          "standoff_m": 0.3,
+          "speed": 0.6
+        },
+        "preconditions": [
+          "box_03 exists"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "near",
+            "object": "box_03"
+          }
+        ]
+      },
+      {
+        "step_id": 2,
+        "tool": "execute_skill",
+        "args": {
+          "skill": "pick",
+          "target": "box_03"
+        },
+        "preconditions": [
+          "box_03 exists",
+          "gripper_empty",
+          "go2 near box_03",
+          "box_03 on floor_01"
+        ],
+        "effects": [
+          {
+            "op": "remove",
+            "subject": "box_03",
+            "predicate": "on",
+            "object": "floor_01"
+          },
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "holding",
+            "object": "box_03"
+          },
+          {
+            "op": "remove",
+            "subject": "go2",
+            "predicate": "gripper_empty",
+            "object": "go2"
+          }
+        ]
+      },
+      {
+        "step_id": 3,
+        "tool": "move_to_pose",
+        "args": {
+          "target": "waypoint_W",
+          "standoff_m": 0.3,
+          "speed": 0.6
+        },
+        "preconditions": [
+          "waypoint_W exists",
+          "go2 holding box_03"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "near",
+            "object": "waypoint_W"
+          }
+        ]
+      },
+      {
+        "step_id": 4,
+        "tool": "move_to_pose",
+        "args": {
+          "target": "shelf_A",
+          "standoff_m": 0.3,
+          "speed": 0.5
+        },
+        "preconditions": [
+          "shelf_A exists",
+          "go2 holding box_03"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "near",
+            "object": "shelf_A"
+          }
+        ]
+      },
+      {
+        "step_id": 5,
+        "tool": "query_scene",
+        "args": {
+          "target": "shelf_A"
+        },
+        "preconditions": [
+          "shelf_A exists"
+        ],
+        "effects": []
+      },
+      {
+        "step_id": 6,
+        "tool": "execute_skill",
+        "args": {
+          "skill": "place",
+          "target": "shelf_A"
+        },
+        "preconditions": [
+          "shelf_A exists",
+          "go2 holding box_03",
+          "go2 near shelf_A",
+          "shelf_A unoccupied shelf_A"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "box_03",
+            "predicate": "on",
+            "object": "shelf_A"
+          },
+          {
+            "op": "remove",
+            "subject": "go2",
+            "predicate": "holding",
+            "object": "box_03"
+          },
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "gripper_empty",
+            "object": "go2"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "plan_id": "plan_full_verify_call1_2",
+    "task": "put the fallen box back on shelf A",
+    "rationale": "Maximum caution: scan box before pick and scan shelf before place, with moderate standoff throughout.",
+    "steps": [
+      {
+        "step_id": 1,
+        "tool": "query_scene",
+        "args": {
+          "target": "box_03"
+        },
+        "preconditions": [
+          "box_03 exists"
+        ],
+        "effects": []
+      },
+      {
+        "step_id": 2,
+        "tool": "move_to_pose",
+        "args": {
+          "target": "box_03",
+          "standoff_m": 0.25,
+          "speed": 0.5
+        },
+        "preconditions": [
+          "box_03 exists"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "near",
+            "object": "box_03"
+          }
+        ]
+      },
+      {
+        "step_id": 3,
+        "tool": "execute_skill",
+        "args": {
+          "skill": "pick",
+          "target": "box_03"
+        },
+        "preconditions": [
+          "box_03 exists",
+          "gripper_empty",
+          "go2 near box_03",
+          "box_03 on floor_01"
+        ],
+        "effects": [
+          {
+            "op": "remove",
+            "subject": "box_03",
+            "predicate": "on",
+            "object": "floor_01"
+          },
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "holding",
+            "object": "box_03"
+          },
+          {
+            "op": "remove",
+            "subject": "go2",
+            "predicate": "gripper_empty",
+            "object": "go2"
+          }
+        ]
+      },
+      {
+        "step_id": 4,
+        "tool": "move_to_pose",
+        "args": {
+          "target": "shelf_A",
+          "standoff_m": 0.25,
+          "speed": 0.4
+        },
+        "preconditions": [
+          "shelf_A exists",
+          "go2 holding box_03"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "near",
+            "object": "shelf_A"
+          }
+        ]
+      },
+      {
+        "step_id": 5,
+        "tool": "query_scene",
+        "args": {
+          "target": "shelf_A"
+        },
+        "preconditions": [
+          "shelf_A exists"
+        ],
+        "effects": []
+      },
+      {
+        "step_id": 6,
+        "tool": "execute_skill",
+        "args": {
+          "skill": "place",
+          "target": "shelf_A"
+        },
+        "preconditions": [
+          "shelf_A exists",
+          "go2 holding box_03",
+          "go2 near shelf_A",
+          "shelf_A unoccupied shelf_A"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "box_03",
+            "predicate": "on",
+            "object": "shelf_A"
+          },
+          {
+            "op": "remove",
+            "subject": "go2",
+            "predicate": "holding",
+            "object": "box_03"
+          },
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "gripper_empty",
+            "object": "go2"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "plan_id": "plan_direct_call2_2",
+    "task": "put the fallen box back on shelf A",
+    "rationale": "Direct approach: go to the box, pick it, go to shelf, place it.",
+    "steps": [
+      {
+        "step_id": 1,
+        "tool": "move_to_pose",
+        "args": {
+          "target": "box_03",
+          "standoff_m": 0.3,
+          "speed": 0.6
+        },
+        "preconditions": [
+          "box_03 exists"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "near",
+            "object": "box_03"
+          }
+        ]
+      },
+      {
+        "step_id": 2,
+        "tool": "execute_skill",
+        "args": {
+          "skill": "pick",
+          "target": "box_03"
+        },
+        "preconditions": [
+          "box_03 exists",
+          "gripper_empty",
+          "box_03 on floor_01"
+        ],
+        "effects": [
+          {
+            "op": "remove",
+            "subject": "box_03",
+            "predicate": "on",
+            "object": "floor_01"
+          },
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "holding",
+            "object": "box_03"
+          },
+          {
+            "op": "remove",
+            "subject": "go2",
+            "predicate": "gripper_empty",
+            "object": "go2"
+          }
+        ]
+      },
+      {
+        "step_id": 3,
+        "tool": "move_to_pose",
+        "args": {
+          "target": "shelf_A",
+          "standoff_m": 0.3,
+          "speed": 0.5
+        },
+        "preconditions": [
+          "shelf_A exists",
+          "go2 holding box_03"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "near",
+            "object": "shelf_A"
+          }
+        ]
+      },
+      {
+        "step_id": 4,
+        "tool": "execute_skill",
+        "args": {
+          "skill": "place",
+          "target": "shelf_A"
+        },
+        "preconditions": [
+          "shelf_A exists",
+          "go2 holding box_03",
+          "shelf_A unoccupied shelf_A"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "box_03",
+            "predicate": "on",
+            "object": "shelf_A"
+          },
+          {
+            "op": "remove",
+            "subject": "go2",
+            "predicate": "holding",
+            "object": "box_03"
+          },
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "gripper_empty",
+            "object": "go2"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "plan_id": "plan_verify_first_call2_2",
+    "task": "put the fallen box back on shelf A",
+    "rationale": "Re-scan the scene before manipulating to confirm anomaly state and shelf availability.",
+    "steps": [
+      {
+        "step_id": 1,
+        "tool": "query_scene",
+        "args": {
+          "target": "box_03"
+        },
+        "preconditions": [
+          "box_03 exists"
+        ],
+        "effects": []
+      },
+      {
+        "step_id": 2,
+        "tool": "move_to_pose",
+        "args": {
+          "target": "box_03",
+          "standoff_m": 0.3,
+          "speed": 0.6
+        },
+        "preconditions": [
+          "box_03 exists"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "near",
+            "object": "box_03"
+          }
+        ]
+      },
+      {
+        "step_id": 3,
+        "tool": "execute_skill",
+        "args": {
+          "skill": "pick",
+          "target": "box_03"
+        },
+        "preconditions": [
+          "box_03 exists",
+          "gripper_empty",
+          "box_03 on floor_01"
+        ],
+        "effects": [
+          {
+            "op": "remove",
+            "subject": "box_03",
+            "predicate": "on",
+            "object": "floor_01"
+          },
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "holding",
+            "object": "box_03"
+          },
+          {
+            "op": "remove",
+            "subject": "go2",
+            "predicate": "gripper_empty",
+            "object": "go2"
+          }
+        ]
+      },
+      {
+        "step_id": 4,
+        "tool": "move_to_pose",
+        "args": {
+          "target": "shelf_A",
+          "standoff_m": 0.3,
+          "speed": 0.5
+        },
+        "preconditions": [
+          "shelf_A exists",
+          "go2 holding box_03"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "near",
+            "object": "shelf_A"
+          }
+        ]
+      },
+      {
+        "step_id": 5,
+        "tool": "execute_skill",
+        "args": {
+          "skill": "place",
+          "target": "shelf_A"
+        },
+        "preconditions": [
+          "shelf_A exists",
+          "go2 holding box_03",
+          "shelf_A unoccupied shelf_A"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "box_03",
+            "predicate": "on",
+            "object": "shelf_A"
+          },
+          {
+            "op": "remove",
+            "subject": "go2",
+            "predicate": "holding",
+            "object": "box_03"
+          },
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "gripper_empty",
+            "object": "go2"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "plan_id": "plan_via_waypoint_call2_2",
+    "task": "put the fallen box back on shelf A",
+    "rationale": "Route through waypoint_W between pick and place to traverse a known-safe transit path.",
+    "steps": [
+      {
+        "step_id": 1,
+        "tool": "move_to_pose",
+        "args": {
+          "target": "box_03",
+          "standoff_m": 0.3,
+          "speed": 0.6
+        },
+        "preconditions": [
+          "box_03 exists"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "near",
+            "object": "box_03"
+          }
+        ]
+      },
+      {
+        "step_id": 2,
+        "tool": "execute_skill",
+        "args": {
+          "skill": "pick",
+          "target": "box_03"
+        },
+        "preconditions": [
+          "box_03 exists",
+          "gripper_empty",
+          "box_03 on floor_01"
+        ],
+        "effects": [
+          {
+            "op": "remove",
+            "subject": "box_03",
+            "predicate": "on",
+            "object": "floor_01"
+          },
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "holding",
+            "object": "box_03"
+          },
+          {
+            "op": "remove",
+            "subject": "go2",
+            "predicate": "gripper_empty",
+            "object": "go2"
+          }
+        ]
+      },
+      {
+        "step_id": 3,
+        "tool": "move_to_pose",
+        "args": {
+          "target": "waypoint_W",
+          "standoff_m": 0.3,
+          "speed": 0.6
+        },
+        "preconditions": [
+          "waypoint_W exists",
+          "go2 holding box_03"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "near",
+            "object": "waypoint_W"
+          }
+        ]
+      },
+      {
+        "step_id": 4,
+        "tool": "move_to_pose",
+        "args": {
+          "target": "shelf_A",
+          "standoff_m": 0.3,
+          "speed": 0.5
+        },
+        "preconditions": [
+          "shelf_A exists",
+          "go2 holding box_03"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "near",
+            "object": "shelf_A"
+          }
+        ]
+      },
+      {
+        "step_id": 5,
+        "tool": "execute_skill",
+        "args": {
+          "skill": "place",
+          "target": "shelf_A"
+        },
+        "preconditions": [
+          "shelf_A exists",
+          "go2 holding box_03",
+          "shelf_A unoccupied shelf_A"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "box_03",
+            "predicate": "on",
+            "object": "shelf_A"
+          },
+          {
+            "op": "remove",
+            "subject": "go2",
+            "predicate": "holding",
+            "object": "box_03"
+          },
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "gripper_empty",
+            "object": "go2"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "plan_id": "plan_waypoint_approach",
+    "task": "put the fallen box back on shelf A",
+    "rationale": "Stage at waypoint_W first to align, then approach the box for pick.",
+    "steps": [
+      {
+        "step_id": 1,
+        "tool": "move_to_pose",
+        "args": {
+          "target": "waypoint_W",
+          "standoff_m": 0.3,
+          "speed": 0.7
+        },
+        "preconditions": [
+          "waypoint_W exists"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "near",
+            "object": "waypoint_W"
+          }
+        ]
+      },
+      {
+        "step_id": 2,
+        "tool": "move_to_pose",
+        "args": {
+          "target": "box_03",
+          "standoff_m": 0.3,
+          "speed": 0.5
+        },
+        "preconditions": [
+          "box_03 exists"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "near",
+            "object": "box_03"
+          }
+        ]
+      },
+      {
+        "step_id": 3,
+        "tool": "execute_skill",
+        "args": {
+          "skill": "pick",
+          "target": "box_03"
+        },
+        "preconditions": [
+          "box_03 exists",
+          "gripper_empty",
+          "box_03 on floor_01"
+        ],
+        "effects": [
+          {
+            "op": "remove",
+            "subject": "box_03",
+            "predicate": "on",
+            "object": "floor_01"
+          },
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "holding",
+            "object": "box_03"
+          },
+          {
+            "op": "remove",
+            "subject": "go2",
+            "predicate": "gripper_empty",
+            "object": "go2"
+          }
+        ]
+      },
+      {
+        "step_id": 4,
+        "tool": "move_to_pose",
+        "args": {
+          "target": "shelf_A",
+          "standoff_m": 0.3,
+          "speed": 0.5
+        },
+        "preconditions": [
+          "shelf_A exists",
+          "go2 holding box_03"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "near",
+            "object": "shelf_A"
+          }
+        ]
+      },
+      {
+        "step_id": 5,
+        "tool": "execute_skill",
+        "args": {
+          "skill": "place",
+          "target": "shelf_A"
+        },
+        "preconditions": [
+          "shelf_A exists",
+          "go2 holding box_03",
+          "shelf_A unoccupied shelf_A"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "box_03",
+            "predicate": "on",
+            "object": "shelf_A"
+          },
+          {
+            "op": "remove",
+            "subject": "go2",
+            "predicate": "holding",
+            "object": "box_03"
+          },
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "gripper_empty",
+            "object": "go2"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "plan_id": "plan_check_shelf",
+    "task": "put the fallen box back on shelf A",
+    "rationale": "Inspect shelf_A while carrying the box to confirm it is still unoccupied before placing.",
+    "steps": [
+      {
+        "step_id": 1,
+        "tool": "move_to_pose",
+        "args": {
+          "target": "box_03",
+          "standoff_m": 0.3,
+          "speed": 0.6
+        },
+        "preconditions": [
+          "box_03 exists"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "near",
+            "object": "box_03"
+          }
+        ]
+      },
+      {
+        "step_id": 2,
+        "tool": "execute_skill",
+        "args": {
+          "skill": "pick",
+          "target": "box_03"
+        },
+        "preconditions": [
+          "box_03 exists",
+          "gripper_empty",
+          "box_03 on floor_01"
+        ],
+        "effects": [
+          {
+            "op": "remove",
+            "subject": "box_03",
+            "predicate": "on",
+            "object": "floor_01"
+          },
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "holding",
+            "object": "box_03"
+          },
+          {
+            "op": "remove",
+            "subject": "go2",
+            "predicate": "gripper_empty",
+            "object": "go2"
+          }
+        ]
+      },
+      {
+        "step_id": 3,
+        "tool": "move_to_pose",
+        "args": {
+          "target": "shelf_A",
+          "standoff_m": 0.4,
+          "speed": 0.5
+        },
+        "preconditions": [
+          "shelf_A exists",
+          "go2 holding box_03"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "near",
+            "object": "shelf_A"
+          }
+        ]
+      },
+      {
+        "step_id": 4,
+        "tool": "query_scene",
+        "args": {
+          "target": "shelf_A"
+        },
+        "preconditions": [
+          "shelf_A exists"
+        ],
+        "effects": []
+      },
+      {
+        "step_id": 5,
+        "tool": "execute_skill",
+        "args": {
+          "skill": "place",
+          "target": "shelf_A"
+        },
+        "preconditions": [
+          "shelf_A exists",
+          "go2 holding box_03",
+          "shelf_A unoccupied shelf_A"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "box_03",
+            "predicate": "on",
+            "object": "shelf_A"
+          },
+          {
+            "op": "remove",
+            "subject": "go2",
+            "predicate": "holding",
+            "object": "box_03"
+          },
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "gripper_empty",
+            "object": "go2"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "plan_id": "plan_close_standoff_call2_2",
+    "task": "put the fallen box back on shelf A",
+    "rationale": "Use tighter standoffs and slower speeds for precise manipulation of the fallen box.",
+    "steps": [
+      {
+        "step_id": 1,
+        "tool": "move_to_pose",
+        "args": {
+          "target": "box_03",
+          "standoff_m": 0.2,
+          "speed": 0.4
+        },
+        "preconditions": [
+          "box_03 exists"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "near",
+            "object": "box_03"
+          }
+        ]
+      },
+      {
+        "step_id": 2,
+        "tool": "execute_skill",
+        "args": {
+          "skill": "pick",
+          "target": "box_03"
+        },
+        "preconditions": [
+          "box_03 exists",
+          "gripper_empty",
+          "box_03 on floor_01"
+        ],
+        "effects": [
+          {
+            "op": "remove",
+            "subject": "box_03",
+            "predicate": "on",
+            "object": "floor_01"
+          },
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "holding",
+            "object": "box_03"
+          },
+          {
+            "op": "remove",
+            "subject": "go2",
+            "predicate": "gripper_empty",
+            "object": "go2"
+          }
+        ]
+      },
+      {
+        "step_id": 3,
+        "tool": "move_to_pose",
+        "args": {
+          "target": "shelf_A",
+          "standoff_m": 0.2,
+          "speed": 0.4
+        },
+        "preconditions": [
+          "shelf_A exists",
+          "go2 holding box_03"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "near",
+            "object": "shelf_A"
+          }
+        ]
+      },
+      {
+        "step_id": 4,
+        "tool": "execute_skill",
+        "args": {
+          "skill": "place",
+          "target": "shelf_A"
+        },
+        "preconditions": [
+          "shelf_A exists",
+          "go2 holding box_03",
+          "shelf_A unoccupied shelf_A"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "box_03",
+            "predicate": "on",
+            "object": "shelf_A"
+          },
+          {
+            "op": "remove",
+            "subject": "go2",
+            "predicate": "holding",
+            "object": "box_03"
+          },
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "gripper_empty",
+            "object": "go2"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "plan_id": "plan_full_verify_call2_2",
+    "task": "put the fallen box back on shelf A",
+    "rationale": "Maximum caution: scan box before pick and shelf before place to validate both endpoints.",
+    "steps": [
+      {
+        "step_id": 1,
+        "tool": "move_to_pose",
+        "args": {
+          "target": "box_03",
+          "standoff_m": 0.3,
+          "speed": 0.6
+        },
+        "preconditions": [
+          "box_03 exists"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "near",
+            "object": "box_03"
+          }
+        ]
+      },
+      {
+        "step_id": 2,
+        "tool": "query_scene",
+        "args": {
+          "target": "box_03"
+        },
+        "preconditions": [
+          "box_03 exists"
+        ],
+        "effects": []
+      },
+      {
+        "step_id": 3,
+        "tool": "execute_skill",
+        "args": {
+          "skill": "pick",
+          "target": "box_03"
+        },
+        "preconditions": [
+          "box_03 exists",
+          "gripper_empty",
+          "box_03 on floor_01"
+        ],
+        "effects": [
+          {
+            "op": "remove",
+            "subject": "box_03",
+            "predicate": "on",
+            "object": "floor_01"
+          },
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "holding",
+            "object": "box_03"
+          },
+          {
+            "op": "remove",
+            "subject": "go2",
+            "predicate": "gripper_empty",
+            "object": "go2"
+          }
+        ]
+      },
+      {
+        "step_id": 4,
+        "tool": "move_to_pose",
+        "args": {
+          "target": "shelf_A",
+          "standoff_m": 0.3,
+          "speed": 0.5
+        },
+        "preconditions": [
+          "shelf_A exists",
+          "go2 holding box_03"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "near",
+            "object": "shelf_A"
+          }
+        ]
+      },
+      {
+        "step_id": 5,
+        "tool": "query_scene",
+        "args": {
+          "target": "shelf_A"
+        },
+        "preconditions": [
+          "shelf_A exists"
+        ],
+        "effects": []
+      },
+      {
+        "step_id": 6,
+        "tool": "execute_skill",
+        "args": {
+          "skill": "place",
+          "target": "shelf_A"
+        },
+        "preconditions": [
+          "shelf_A exists",
+          "go2 holding box_03",
+          "shelf_A unoccupied shelf_A"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "box_03",
+            "predicate": "on",
+            "object": "shelf_A"
+          },
+          {
+            "op": "remove",
+            "subject": "go2",
+            "predicate": "holding",
+            "object": "box_03"
+          },
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "gripper_empty",
+            "object": "go2"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "plan_id": "plan_waypoint_return_call2_2",
+    "task": "put the fallen box back on shelf A",
+    "rationale": "After placing, return to waypoint_W to clear the shelf and end at a neutral pose.",
+    "steps": [
+      {
+        "step_id": 1,
+        "tool": "move_to_pose",
+        "args": {
+          "target": "box_03",
+          "standoff_m": 0.3,
+          "speed": 0.6
+        },
+        "preconditions": [
+          "box_03 exists"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "near",
+            "object": "box_03"
+          }
+        ]
+      },
+      {
+        "step_id": 2,
+        "tool": "execute_skill",
+        "args": {
+          "skill": "pick",
+          "target": "box_03"
+        },
+        "preconditions": [
+          "box_03 exists",
+          "gripper_empty",
+          "box_03 on floor_01"
+        ],
+        "effects": [
+          {
+            "op": "remove",
+            "subject": "box_03",
+            "predicate": "on",
+            "object": "floor_01"
+          },
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "holding",
+            "object": "box_03"
+          },
+          {
+            "op": "remove",
+            "subject": "go2",
+            "predicate": "gripper_empty",
+            "object": "go2"
+          }
+        ]
+      },
+      {
+        "step_id": 3,
+        "tool": "move_to_pose",
+        "args": {
+          "target": "shelf_A",
+          "standoff_m": 0.3,
+          "speed": 0.5
+        },
+        "preconditions": [
+          "shelf_A exists",
+          "go2 holding box_03"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "near",
+            "object": "shelf_A"
+          }
+        ]
+      },
+      {
+        "step_id": 4,
+        "tool": "execute_skill",
+        "args": {
+          "skill": "place",
+          "target": "shelf_A"
+        },
+        "preconditions": [
+          "shelf_A exists",
+          "go2 holding box_03",
+          "shelf_A unoccupied shelf_A"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "box_03",
+            "predicate": "on",
+            "object": "shelf_A"
+          },
+          {
+            "op": "remove",
+            "subject": "go2",
+            "predicate": "holding",
+            "object": "box_03"
+          },
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "gripper_empty",
+            "object": "go2"
+          }
+        ]
+      },
+      {
+        "step_id": 5,
+        "tool": "move_to_pose",
+        "args": {
+          "target": "waypoint_W",
+          "standoff_m": 0.3,
+          "speed": 0.7
+        },
+        "preconditions": [
+          "waypoint_W exists",
+          "gripper_empty"
+        ],
+        "effects": [
+          {
+            "op": "add",
+            "subject": "go2",
+            "predicate": "near",
+            "object": "waypoint_W"
+          }
+        ]
+      }
+    ]
+  }
+]

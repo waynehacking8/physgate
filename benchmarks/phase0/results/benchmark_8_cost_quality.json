@@ -1,0 +1,544 @@
+{
+  "benchmark": "phase0 #8 - cost/quality curve (best-of-N success vs GPU time)",
+  "timestamp": "2026-06-03 15:23:24",
+  "gpu": "RTX PRO 6000 Blackwell Max-Q (sm_120, 300W)",
+  "task": "put the fallen box back on shelf A",
+  "plan_pool": {
+    "size": 24,
+    "source": "ClaudePlanner (claude-opus-4-8 via claude -p)",
+    "plans_with_physics_verdict": 24,
+    "feasible_in_tested": 4,
+    "estimated_pool_feasible_count": 4,
+    "feasibility_rate": 0.167
+  },
+  "trials_per_n": 5,
+  "seed": 42,
+  "curve": [
+    {
+      "n": 1,
+      "empirical_success_rate": 0.2,
+      "analytical_success_rate": 0.167,
+      "gpu_wall_s_mean": 19.34,
+      "gpu_wall_s_min": 6.99,
+      "gpu_wall_s_max": 23.29,
+      "gpu_s_per_candidate": 19.34
+    },
+    {
+      "n": 2,
+      "empirical_success_rate": 0.0,
+      "analytical_success_rate": 0.312,
+      "gpu_wall_s_mean": 16.73,
+      "gpu_wall_s_min": 16.13,
+      "gpu_wall_s_max": 17.37,
+      "gpu_s_per_candidate": 8.36
+    },
+    {
+      "n": 4,
+      "empirical_success_rate": 0.8,
+      "analytical_success_rate": 0.544,
+      "gpu_wall_s_mean": 17.62,
+      "gpu_wall_s_min": 16.71,
+      "gpu_wall_s_max": 18.68,
+      "gpu_s_per_candidate": 4.4
+    },
+    {
+      "n": 8,
+      "empirical_success_rate": 1.0,
+      "analytical_success_rate": 0.829,
+      "gpu_wall_s_mean": 28.56,
+      "gpu_wall_s_min": 25.66,
+      "gpu_wall_s_max": 36.16,
+      "gpu_s_per_candidate": 3.57
+    },
+    {
+      "n": 16,
+      "empirical_success_rate": 1.0,
+      "analytical_success_rate": 0.993,
+      "gpu_wall_s_mean": 47.02,
+      "gpu_wall_s_min": 34.65,
+      "gpu_wall_s_max": 51.36,
+      "gpu_s_per_candidate": 2.94
+    }
+  ],
+  "per_n_detail": [
+    {
+      "n": 1,
+      "trials": [
+        {
+          "sampled_plan_ids": [
+            "plan_verify_first"
+          ],
+          "feasible_plan_ids": [],
+          "best_of_n_success": false,
+          "gpu_wall_s": 23.29
+        },
+        {
+          "sampled_plan_ids": [
+            "plan_verify_first_call1_2"
+          ],
+          "feasible_plan_ids": [],
+          "best_of_n_success": false,
+          "gpu_wall_s": 23.04
+        },
+        {
+          "sampled_plan_ids": [
+            "plan_full_verify_call2_2"
+          ],
+          "feasible_plan_ids": [],
+          "best_of_n_success": false,
+          "gpu_wall_s": 23.09
+        },
+        {
+          "sampled_plan_ids": [
+            "plan_check_shelf_before_place"
+          ],
+          "feasible_plan_ids": [],
+          "best_of_n_success": false,
+          "gpu_wall_s": 20.3
+        },
+        {
+          "sampled_plan_ids": [
+            "plan_waypoint_return_scan"
+          ],
+          "feasible_plan_ids": [
+            "plan_waypoint_return_scan"
+          ],
+          "best_of_n_success": true,
+          "gpu_wall_s": 6.99
+        }
+      ],
+      "plan_verdicts": {
+        "plan_verify_first": false,
+        "plan_verify_first_call1_2": false,
+        "plan_full_verify_call2_2": false,
+        "plan_check_shelf_before_place": false,
+        "plan_waypoint_return_scan": true
+      }
+    },
+    {
+      "n": 2,
+      "trials": [
+        {
+          "sampled_plan_ids": [
+            "plan_scan_before_place",
+            "plan_direct_call2_2"
+          ],
+          "feasible_plan_ids": [],
+          "best_of_n_success": false,
+          "gpu_wall_s": 17.37
+        },
+        {
+          "sampled_plan_ids": [
+            "plan_verify_first_call2_2",
+            "plan_full_verify_call2_2"
+          ],
+          "feasible_plan_ids": [],
+          "best_of_n_success": false,
+          "gpu_wall_s": 16.88
+        },
+        {
+          "sampled_plan_ids": [
+            "plan_waypoint_before_pick",
+            "plan_slow_careful"
+          ],
+          "feasible_plan_ids": [],
+          "best_of_n_success": false,
+          "gpu_wall_s": 16.69
+        },
+        {
+          "sampled_plan_ids": [
+            "plan_close_standoff",
+            "plan_waypoint_return"
+          ],
+          "feasible_plan_ids": [],
+          "best_of_n_success": false,
+          "gpu_wall_s": 16.58
+        },
+        {
+          "sampled_plan_ids": [
+            "plan_verify_first_call1_2",
+            "plan_direct"
+          ],
+          "feasible_plan_ids": [],
+          "best_of_n_success": false,
+          "gpu_wall_s": 16.13
+        }
+      ],
+      "plan_verdicts": {
+        "plan_scan_before_place": false,
+        "plan_direct_call2_2": false,
+        "plan_verify_first_call2_2": false,
+        "plan_full_verify_call2_2": false,
+        "plan_waypoint_before_pick": false,
+        "plan_slow_careful": false,
+        "plan_close_standoff": false,
+        "plan_waypoint_return": false,
+        "plan_verify_first_call1_2": false,
+        "plan_direct": false
+      }
+    },
+    {
+      "n": 4,
+      "trials": [
+        {
+          "sampled_plan_ids": [
+            "plan_via_waypoint",
+            "plan_close_standoff",
+            "plan_verify_first",
+            "plan_via_waypoint_call2_2"
+          ],
+          "feasible_plan_ids": [
+            "plan_via_waypoint",
+            "plan_via_waypoint_call2_2"
+          ],
+          "best_of_n_success": true,
+          "gpu_wall_s": 16.92
+        },
+        {
+          "sampled_plan_ids": [
+            "plan_via_waypoint_call2_2",
+            "plan_waypoint_return",
+            "plan_check_shelf",
+            "plan_direct_call2_2"
+          ],
+          "feasible_plan_ids": [
+            "plan_via_waypoint_call2_2"
+          ],
+          "best_of_n_success": true,
+          "gpu_wall_s": 18.44
+        },
+        {
+          "sampled_plan_ids": [
+            "plan_check_shelf_before_place",
+            "plan_via_waypoint_call2_2",
+            "plan_verify_first_call2_2",
+            "plan_verify_first"
+          ],
+          "feasible_plan_ids": [
+            "plan_via_waypoint_call2_2"
+          ],
+          "best_of_n_success": true,
+          "gpu_wall_s": 16.71
+        },
+        {
+          "sampled_plan_ids": [
+            "plan_direct",
+            "plan_via_waypoint",
+            "plan_via_waypoint_call1_2",
+            "plan_check_shelf"
+          ],
+          "feasible_plan_ids": [
+            "plan_via_waypoint",
+            "plan_via_waypoint_call1_2"
+          ],
+          "best_of_n_success": true,
+          "gpu_wall_s": 17.33
+        },
+        {
+          "sampled_plan_ids": [
+            "plan_verify_first",
+            "plan_direct",
+            "plan_check_shelf_before_place",
+            "plan_verify_first_call2_2"
+          ],
+          "feasible_plan_ids": [],
+          "best_of_n_success": false,
+          "gpu_wall_s": 18.68
+        }
+      ],
+      "plan_verdicts": {
+        "plan_via_waypoint": true,
+        "plan_close_standoff": false,
+        "plan_verify_first": false,
+        "plan_via_waypoint_call2_2": true,
+        "plan_waypoint_return": false,
+        "plan_check_shelf": false,
+        "plan_direct_call2_2": false,
+        "plan_check_shelf_before_place": false,
+        "plan_verify_first_call2_2": false,
+        "plan_direct": false,
+        "plan_via_waypoint_call1_2": true
+      }
+    },
+    {
+      "n": 8,
+      "trials": [
+        {
+          "sampled_plan_ids": [
+            "plan_full_verify_call1_2",
+            "plan_direct_call1_2",
+            "plan_waypoint_first",
+            "plan_check_shelf",
+            "plan_waypoint_return",
+            "plan_waypoint_return_call2_2",
+            "plan_via_waypoint_call1_2",
+            "plan_via_waypoint"
+          ],
+          "feasible_plan_ids": [
+            "plan_via_waypoint_call1_2",
+            "plan_via_waypoint"
+          ],
+          "best_of_n_success": true,
+          "gpu_wall_s": 26.1
+        },
+        {
+          "sampled_plan_ids": [
+            "plan_verify_first_call2_2",
+            "plan_via_waypoint_call1_2",
+            "plan_waypoint_return",
+            "plan_waypoint_return_call2_2",
+            "plan_via_waypoint",
+            "plan_check_shelf_before_place",
+            "plan_waypoint_first",
+            "plan_waypoint_before_pick"
+          ],
+          "feasible_plan_ids": [
+            "plan_via_waypoint_call1_2",
+            "plan_via_waypoint"
+          ],
+          "best_of_n_success": true,
+          "gpu_wall_s": 27.34
+        },
+        {
+          "sampled_plan_ids": [
+            "plan_waypoint_first",
+            "plan_via_waypoint_call1_2",
+            "plan_waypoint_return",
+            "plan_full_verify",
+            "plan_via_waypoint",
+            "plan_full_verify_call2_2",
+            "plan_scan_before_place",
+            "plan_waypoint_approach"
+          ],
+          "feasible_plan_ids": [
+            "plan_via_waypoint_call1_2",
+            "plan_via_waypoint"
+          ],
+          "best_of_n_success": true,
+          "gpu_wall_s": 27.55
+        },
+        {
+          "sampled_plan_ids": [
+            "plan_via_waypoint",
+            "plan_full_verify_call2_2",
+            "plan_waypoint_approach",
+            "plan_via_waypoint_call1_2",
+            "plan_scan_before_place",
+            "plan_direct",
+            "plan_waypoint_return",
+            "plan_check_shelf"
+          ],
+          "feasible_plan_ids": [
+            "plan_via_waypoint",
+            "plan_via_waypoint_call1_2"
+          ],
+          "best_of_n_success": true,
+          "gpu_wall_s": 25.66
+        },
+        {
+          "sampled_plan_ids": [
+            "plan_direct_call1_2",
+            "plan_scan_before_place",
+            "plan_waypoint_before_pick",
+            "plan_full_verify",
+            "plan_waypoint_return_scan",
+            "plan_waypoint_return_call2_2",
+            "plan_waypoint_approach",
+            "plan_check_shelf_before_place"
+          ],
+          "feasible_plan_ids": [
+            "plan_waypoint_return_scan"
+          ],
+          "best_of_n_success": true,
+          "gpu_wall_s": 36.16
+        }
+      ],
+      "plan_verdicts": {
+        "plan_full_verify_call1_2": false,
+        "plan_direct_call1_2": false,
+        "plan_waypoint_first": false,
+        "plan_check_shelf": false,
+        "plan_waypoint_return": false,
+        "plan_waypoint_return_call2_2": false,
+        "plan_via_waypoint_call1_2": true,
+        "plan_via_waypoint": true,
+        "plan_verify_first_call2_2": false,
+        "plan_check_shelf_before_place": false,
+        "plan_waypoint_before_pick": false,
+        "plan_full_verify": false,
+        "plan_full_verify_call2_2": false,
+        "plan_scan_before_place": false,
+        "plan_waypoint_approach": false,
+        "plan_direct": false,
+        "plan_waypoint_return_scan": true
+      }
+    },
+    {
+      "n": 16,
+      "trials": [
+        {
+          "sampled_plan_ids": [
+            "plan_via_waypoint_call2_2",
+            "plan_full_verify",
+            "plan_full_verify_call2_2",
+            "plan_check_shelf",
+            "plan_close_standoff_call2_2",
+            "plan_verify_first",
+            "plan_waypoint_approach",
+            "plan_waypoint_return_scan",
+            "plan_close_standoff",
+            "plan_slow_careful",
+            "plan_check_shelf_before_place",
+            "plan_full_verify_call1_2",
+            "plan_scan_before_place",
+            "plan_waypoint_return",
+            "plan_verify_first_call1_2",
+            "plan_verify_first_call2_2"
+          ],
+          "feasible_plan_ids": [
+            "plan_via_waypoint_call2_2",
+            "plan_waypoint_return_scan"
+          ],
+          "best_of_n_success": true,
+          "gpu_wall_s": 48.06
+        },
+        {
+          "sampled_plan_ids": [
+            "plan_verify_first_call1_2",
+            "plan_via_waypoint_call2_2",
+            "plan_waypoint_before_pick",
+            "plan_direct",
+            "plan_full_verify_call1_2",
+            "plan_full_verify",
+            "plan_waypoint_approach",
+            "plan_via_waypoint",
+            "plan_waypoint_return_scan",
+            "plan_direct_call1_2",
+            "plan_via_waypoint_call1_2",
+            "plan_full_verify_call2_2",
+            "plan_scan_before_place",
+            "plan_slow_careful",
+            "plan_check_shelf",
+            "plan_verify_first"
+          ],
+          "feasible_plan_ids": [
+            "plan_via_waypoint_call2_2",
+            "plan_via_waypoint",
+            "plan_waypoint_return_scan",
+            "plan_via_waypoint_call1_2"
+          ],
+          "best_of_n_success": true,
+          "gpu_wall_s": 51.15
+        },
+        {
+          "sampled_plan_ids": [
+            "plan_close_standoff_call2_2",
+            "plan_check_shelf_before_place",
+            "plan_verify_first_call1_2",
+            "plan_verify_first",
+            "plan_slow_careful",
+            "plan_waypoint_return_call2_2",
+            "plan_via_waypoint_call2_2",
+            "plan_waypoint_approach",
+            "plan_waypoint_return",
+            "plan_close_standoff",
+            "plan_via_waypoint_call1_2",
+            "plan_check_shelf",
+            "plan_via_waypoint",
+            "plan_waypoint_before_pick",
+            "plan_full_verify_call1_2",
+            "plan_waypoint_first"
+          ],
+          "feasible_plan_ids": [
+            "plan_via_waypoint_call2_2",
+            "plan_via_waypoint_call1_2",
+            "plan_via_waypoint"
+          ],
+          "best_of_n_success": true,
+          "gpu_wall_s": 51.36
+        },
+        {
+          "sampled_plan_ids": [
+            "plan_check_shelf_before_place",
+            "plan_waypoint_return_call2_2",
+            "plan_waypoint_return",
+            "plan_direct",
+            "plan_direct_call1_2",
+            "plan_waypoint_approach",
+            "plan_waypoint_before_pick",
+            "plan_full_verify_call1_2",
+            "plan_via_waypoint_call2_2",
+            "plan_verify_first_call1_2",
+            "plan_via_waypoint_call1_2",
+            "plan_slow_careful",
+            "plan_waypoint_return_scan",
+            "plan_full_verify",
+            "plan_via_waypoint",
+            "plan_full_verify_call2_2"
+          ],
+          "feasible_plan_ids": [
+            "plan_via_waypoint_call2_2",
+            "plan_via_waypoint_call1_2",
+            "plan_waypoint_return_scan",
+            "plan_via_waypoint"
+          ],
+          "best_of_n_success": true,
+          "gpu_wall_s": 49.89
+        },
+        {
+          "sampled_plan_ids": [
+            "plan_direct_call1_2",
+            "plan_full_verify",
+            "plan_waypoint_return_scan",
+            "plan_full_verify_call2_2",
+            "plan_waypoint_approach",
+            "plan_waypoint_return",
+            "plan_close_standoff_call2_2",
+            "plan_via_waypoint",
+            "plan_slow_careful",
+            "plan_verify_first_call2_2",
+            "plan_verify_first",
+            "plan_via_waypoint_call2_2",
+            "plan_waypoint_first",
+            "plan_check_shelf_before_place",
+            "plan_full_verify_call1_2",
+            "plan_close_standoff"
+          ],
+          "feasible_plan_ids": [
+            "plan_waypoint_return_scan",
+            "plan_via_waypoint",
+            "plan_via_waypoint_call2_2"
+          ],
+          "best_of_n_success": true,
+          "gpu_wall_s": 34.65
+        }
+      ],
+      "plan_verdicts": {
+        "plan_via_waypoint_call2_2": true,
+        "plan_full_verify": false,
+        "plan_full_verify_call2_2": false,
+        "plan_check_shelf": false,
+        "plan_close_standoff_call2_2": false,
+        "plan_verify_first": false,
+        "plan_waypoint_approach": false,
+        "plan_waypoint_return_scan": true,
+        "plan_close_standoff": false,
+        "plan_slow_careful": false,
+        "plan_check_shelf_before_place": false,
+        "plan_full_verify_call1_2": false,
+        "plan_scan_before_place": false,
+        "plan_waypoint_return": false,
+        "plan_verify_first_call1_2": false,
+        "plan_verify_first_call2_2": false,
+        "plan_waypoint_before_pick": false,
+        "plan_direct": false,
+        "plan_via_waypoint": true,
+        "plan_direct_call1_2": false,
+        "plan_via_waypoint_call1_2": true,
+        "plan_waypoint_return_call2_2": false,
+        "plan_waypoint_first": false
+      }
+    }
+  ],
+  "interpretation": "Best-of-N success rate climbs steeply with N (analytical 17% at N=1 -> 99% at N=16) while GPU wall-clock grows sub-linearly (19.3s -> 47.0s: 2.4x the time for 16x the candidates; per-candidate cost drops 6.6x). The gate buys plan QUALITY \u2014 feasibility discrimination \u2014 at sub-linear GPU cost. This is the cost/quality curve architecture doc \u00a76 names as the honest deliverable. Note: empirical rates have 1/trials granularity; the analytical (hypergeometric) curve is the better estimate."
+}

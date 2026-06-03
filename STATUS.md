@@ -171,6 +171,28 @@ speed one).
 App launch 3.8 s + 8-env scene 1.9 s + identical reset 0.1 s = **6.6 s total**
 (the design assumed 10–30 s — better than expected).
 
+### #8 — Cost/quality curve (best-of-N success rate vs GPU time)
+
+The headline deliverable (architecture doc §6). Pool of **24 real Claude plans**
+(measured pool feasibility: **17%** — only 4/24 LLM plans survive physics);
+5 random best-of-N samples per N:
+
+| N | empirical success | analytical success | GPU wall (mean) | GPU s / candidate |
+|---|---|---|---|---|
+| 1 | 20% | 17% | 19.3 s | 19.3 s |
+| 2 | 0%* | 31% | 16.7 s | 8.4 s |
+| 4 | 80% | 54% | 17.6 s | 4.4 s |
+| 8 | **100%** | 83% | 28.6 s | 3.6 s |
+| 16 | **100%** | 99% | 47.0 s | 2.9 s |
+
+_\* sampling noise at 5 trials; the analytical (hypergeometric) column is the
+better estimate._
+
+**Success climbs 17% → 99% while GPU time grows only 2.4× for 16× the
+candidates** (per-candidate cost drops 6.6×). Plan quality — feasibility
+discrimination — is what the gate buys; the GPU cost growth is sub-linear,
+not zero.
+
 ### #7 — LLM planning latency (real Claude Opus 4.8, subscription OAuth via `claude -p`)
 
 | Stage | P50 | P95 | Notes |
