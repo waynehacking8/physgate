@@ -12,7 +12,8 @@ validation gate should reject plans of that class.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Any
 
 from physgate.planner.schemas import Plan, PlanStep, ToolName
 
@@ -23,8 +24,9 @@ DEFECT_CLASSES: dict[str, bool] = {
     "D2_missing_pick": True,
     "D3_hallucinated_target": True,
     "D4_wrong_placement": True,
-    "D6_speed_violation": False,  # the gate clamps speeds (D-018); rejection = false positive
-    "D7_redundant_step": False,  # wasteful but executable; rejection = false positive
+    "D5_unreachable_goal": True,   # world-level: obstacles enclose the target
+    "D6_speed_violation": False,   # the gate clamps speeds (D-018); rejection = false positive
+    "D7_redundant_step": False,    # wasteful but executable; rejection = false positive
 }
 
 #: The object id that no scene contains (for hallucination injection).
@@ -39,6 +41,7 @@ class CorpusItem:
     defect_id: str
     ground_truth_invalid: bool
     base_plan_id: str
+    layout_override: dict[str, Any] | None = field(default=None, repr=False)
 
 
 # ------------------------------------------------------------------ injectors
@@ -119,6 +122,29 @@ def inject_wrong_placement(plan: Plan) -> Plan:
     return plan.model_copy(update={"plan_id": f"{plan.plan_id}__D4", "steps": steps})
 
 
+def inject_unreachable_goal(plan: Plan) -> tuple[Plan, dict[str, Any]]:
+    """D5: the plan is correct, but obstacles surround the box target making it
+    unreachable by navigation. This is a WORLD-level defect — the plan itself
+    looks valid; only path-planning or physics simulation catches it.
+
+    Returns (plan, modified_layout) since D5 requires a layout change.
+    """
+    from physgate.world.layout import OBSTACLE_SIZE, SCENE_LAYOUT
+
+    layout = dict(SCENE_LAYOUT)
+    box_pos = list(layout["box_03"])
+    bx, by = box_pos[0], box_pos[1]
+    # surround the box with 4 obstacles at ±0.4m offsets (just outside box size
+    # but inside the standoff + robot radius, blocking all A* paths)
+    offset = 0.4
+    for i, (dx, dy) in enumerate([
+        (offset, 0), (-offset, 0), (0, offset), (0, -offset),
+    ]):
+        layout[f"wall_{i}"] = (bx + dx, by + dy, OBSTACLE_SIZE[2] / 2)
+    d5_plan = plan.model_copy(update={"plan_id": f"{plan.plan_id}__D5"})
+    return d5_plan, layout
+
+
 def inject_speed_violation(plan: Plan) -> Plan:
     """D6: command a speed far outside the locomotion envelope. The gate clamps
     speeds (D-018), so this plan is VALID — rejecting it is a false positive."""
@@ -151,6 +177,11 @@ _INJECTORS = {
     "D7_redundant_step": inject_redundant_step,
 }
 
+# D5 returns (plan, layout_override) instead of just plan
+_WORLD_INJECTORS = {
+    "D5_unreachable_goal": inject_unreachable_goal,
+}
+
 
 # -------------------------------------------------------------------- corpus
 
@@ -175,6 +206,17 @@ def build_defect_corpus(base_plans: list[Plan]) -> list[CorpusItem]:
                     defect_id=defect_id,
                     ground_truth_invalid=DEFECT_CLASSES[defect_id],
                     base_plan_id=plan.plan_id,
+                )
+            )
+        for defect_id, world_injector in _WORLD_INJECTORS.items():
+            d5_plan, layout = world_injector(plan)
+            corpus.append(
+                CorpusItem(
+                    plan=d5_plan,
+                    defect_id=defect_id,
+                    ground_truth_invalid=DEFECT_CLASSES[defect_id],
+                    base_plan_id=plan.plan_id,
+                    layout_override=layout,
                 )
             )
     return corpus

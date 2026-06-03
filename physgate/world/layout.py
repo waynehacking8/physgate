@@ -73,12 +73,14 @@ def navigation_obstacles(
 
     Returns:
         ``list[physgate.nav.path_planner.Obstacle]`` for every entry in
-        :data:`STATIC_FOOTPRINTS` present in the layout.
+        :data:`STATIC_FOOTPRINTS` present in the layout, plus any layout
+        entity whose key starts with ``wall_`` (used by eval D5 to inject
+        procedural obstacles around a target).
     """
     from physgate.nav.path_planner import Obstacle
 
     lay = layout or SCENE_LAYOUT
-    return [
+    obstacles = [
         Obstacle(
             center_xy=(lay[entity_id][0], lay[entity_id][1]),
             half_extents_xy=(size[0] / 2, size[1] / 2),
@@ -86,6 +88,15 @@ def navigation_obstacles(
         for entity_id, size in STATIC_FOOTPRINTS.items()
         if entity_id in lay
     ]
+    for entity_id, pos in lay.items():
+        if entity_id.startswith("wall_"):
+            obstacles.append(
+                Obstacle(
+                    center_xy=(pos[0], pos[1]),
+                    half_extents_xy=(OBSTACLE_SIZE[0] / 2, OBSTACLE_SIZE[1] / 2),
+                )
+            )
+    return obstacles
 
 
 def target_half_extents(target_id: str) -> tuple[float, float] | None:

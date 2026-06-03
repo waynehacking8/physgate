@@ -80,13 +80,27 @@ def evaluate_layer_on_corpus(
     rejects_fn: Callable[[Plan], bool],
     layer_name: str,
 ) -> LayerEvaluation:
-    """Run one validation layer over every corpus item and score it."""
+    """Run one validation layer over every corpus item and score it.
+
+    If rejects_fn accepts an optional ``layout`` keyword argument and a corpus
+    item carries a ``layout_override``, it is passed through — this supports
+    world-level defects (e.g. D5 unreachable goal) where the defect is in the
+    scene, not the plan.
+    """
+    import inspect
+
+    fn_params = inspect.signature(rejects_fn).parameters
+    accepts_layout = "layout" in fn_params
+
     verdicts: dict[str, bool] = {}
     labels: list[bool] = []
     rejections: list[bool] = []
 
     for item in corpus:
-        rejected = bool(rejects_fn(item.plan))
+        if accepts_layout and item.layout_override is not None:
+            rejected = bool(rejects_fn(item.plan, layout=item.layout_override))
+        else:
+            rejected = bool(rejects_fn(item.plan))
         verdicts[item.plan.plan_id] = rejected
         labels.append(item.ground_truth_invalid)
         rejections.append(rejected)
@@ -113,17 +127,17 @@ def evaluate_layer_on_corpus(
 # infeasible (PhysicsResult.success is False).
 
 
-def critic_rejects(critic_fn, scene: Scene) -> Callable[[Plan], bool]:
+def critic_rejects(critic_fn, scene: Scene) -> Callable[..., bool]:
     """The safety critic as a classifier: rejected = pruned from the survivors."""
 
-    def _rejects(plan: Plan) -> bool:
+    def _rejects(plan: Plan, layout: dict | None = None) -> bool:
         survivors = critic_fn([plan], scene)
         return len(survivors) == 0
 
     return _rejects
 
 
-def l1_l3_rejects(scene: Scene) -> Callable[[Plan], bool]:
+def l1_l3_rejects(scene: Scene) -> Callable[..., bool]:
     """L1 kinematic + L3 scene checks as a classifier.
 
     Isolated by running the real gate with a no-op L2 (accepts everything), so
@@ -135,24 +149,26 @@ def l1_l3_rejects(scene: Scene) -> Callable[[Plan], bool]:
     def _noop_l2(plans: list[Plan], _scene: Scene) -> list[PhysicsResult]:
         return [PhysicsResult(plan_id=p.plan_id, success=True) for p in plans]
 
-    def _rejects(plan: Plan) -> bool:
+    def _rejects(plan: Plan, layout: dict | None = None) -> bool:
         selection = run_gate([plan], scene, l2_fn=_noop_l2)
         return not selection.ranked[0].success
 
     return _rejects
 
 
-def symbolic_gate_rejects(scene: Scene) -> Callable[[Plan], bool]:
-    """The full symbolic gate (L1 -> L3 -> symbolic L2 + task-goal check)."""
+def symbolic_gate_rejects(scene: Scene) -> Callable[..., bool]:
+    """The full symbolic gate (L1 -> L3 -> symbolic L2 + task-goal check).
+
+    Accepts optional ``layout`` kwarg for world-level defects (D5), but the
+    symbolic gate does NOT use it — it cannot detect navigation unreachability.
+    """
     from physgate.gate.parallel import run_gate, symbolic_l2
 
-    def _rejects(plan: Plan) -> bool:
+    def _rejects(plan: Plan, layout: dict | None = None) -> bool:
         selection = run_gate([plan], scene, l2_fn=symbolic_l2)
         result = selection.ranked[0]
         if not result.success:
             return True
-        # task-goal check: an executable plan that never achieves the task goal
-        # (e.g. places the box on the floor) is still an invalid plan
         return not _achieves_goal(plan, scene)
 
     return _rejects
@@ -170,14 +186,41 @@ def _achieves_goal(plan: Plan, scene: Scene) -> bool:
     return backend.get_scene().has_relation("box_03", "on", "shelf_A")
 
 
-def physics_gate_rejects(world, policy_path) -> Callable[[Plan], bool]:
+def nav_aware_gate_rejects(scene: Scene) -> Callable[..., bool]:
+    """The symbolic gate + navigation compilation as a classifier.
+
+    Unlike ``symbolic_gate_rejects``, this adapter compiles the plan through the
+    A* path planner. Plans targeting unreachable positions (D5) are caught here
+    but NOT by the pure symbolic gate.
+    """
+    from physgate.gate.parallel import run_gate, symbolic_l2
+    from physgate.gate.trajectory import UnknownTargetError, synthesize_base_trajectory
+    from physgate.nav.path_planner import PathPlannerError
+
+    def _rejects(plan: Plan, layout: dict | None = None) -> bool:
+        selection = run_gate([plan], scene, l2_fn=symbolic_l2)
+        result = selection.ranked[0]
+        if not result.success:
+            return True
+        if not _achieves_goal(plan, scene):
+            return True
+        try:
+            synthesize_base_trajectory(plan, 0.02, layout=layout)
+        except (PathPlannerError, UnknownTargetError):
+            return True
+        return False
+
+    return _rejects
+
+
+def physics_gate_rejects(world, policy_path) -> Callable[..., bool]:
     """The Isaac physics gate (L2 policy rollout) as a classifier.
 
     Requires a live FetchSimWorld — only callable inside the Isaac venv.
     """
     from physgate.gate.l2_physics import rollout_plans_with_policy
 
-    def _rejects(plan: Plan) -> bool:
+    def _rejects(plan: Plan, layout: dict | None = None) -> bool:
         results = rollout_plans_with_policy(world, [plan], policy_path)
         return not results[0].success
 
