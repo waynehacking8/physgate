@@ -22,6 +22,8 @@ from pathlib import Path
 
 import torch
 
+from physgate.nav.path_planner import WAYPOINT_TRACKING_TOLERANCE
+
 #: Go2 velocity-task action scale (rough_env_cfg override, inherited by flat).
 ACTION_SCALE = 0.25
 #: Policy control frequency: one policy step every N physics steps (decimation).
@@ -102,7 +104,9 @@ class WaypointNavigator:
         self,
         num_envs: int,
         device: str = "cuda:0",
-        arrival_tolerance: float = 0.35,
+        # must match the clearance inflation the path planner applies to
+        # policy-followed routes (nav/path_planner.WAYPOINT_TRACKING_TOLERANCE)
+        arrival_tolerance: float = WAYPOINT_TRACKING_TOLERANCE,
         heading_gain: float = 1.5,
         heading_deadband: float = 0.6,
     ):

@@ -27,23 +27,26 @@ import numpy as np
 import torch
 
 from physgate.executor.backend import MockWorldBackend
-from physgate.gate.l2_physics import (
-    PLACE_DROP_HEIGHT,
-    SKILL_HOLD_STEPS,
-    _box_on_shelf,
-    _yaw_to_quat,
-    count_path_collisions,
-)
 from physgate.gate.reset_workaround import reset_scene_to_identical_state
 from physgate.gate.schemas import Scene
-from physgate.world.fetch_scene import (
+from physgate.gate.trajectory import (
+    PLACE_DROP_HEIGHT,
+    SKILL_HOLD_STEPS,
+    box_on_shelf,
+    count_path_collisions,
+    yaw_to_quat,
+)
+from physgate.nav.path_planner import plan_standoff_route
+from physgate.world.fetch_scene import FetchSimWorld, get_shared_world
+from physgate.world.layout import (
     BOX_SIZE,
     CARRY_OFFSET,
     ROBOT_BASE_HEIGHT,
+    ROBOT_COLLISION_RADIUS,
     SCENE_LAYOUT,
     SHELF_TOP_Z,
-    FetchSimWorld,
-    get_shared_world,
+    navigation_obstacles,
+    target_half_extents,
 )
 
 # how close (m, horizontal) the robot base must be to pick an object
@@ -81,34 +84,49 @@ class SimBackend:
         speed = max(float(kwargs.get("speed", 0.5)), 0.05)
         target_pos = np.array(SCENE_LAYOUT[target], dtype=np.float64)
 
-        direction = target_pos[:2] - self._robot_pos[:2]
-        distance = float(np.linalg.norm(direction))
-        direction = direction / distance if distance > 1e-6 else np.array([1.0, 0.0])
-        goal_xy = target_pos[:2] - direction * standoff_m
-        goal = np.array([goal_xy[0], goal_xy[1], ROBOT_BASE_HEIGHT])
-        self._yaw = math.atan2(direction[1], direction[0])
+        # deterministic navigation: route around obstacles to a standoff pose
+        # near the target (REBUILD.md Phase 1 — no straight-line driving)
+        route = plan_standoff_route(
+            (float(self._robot_pos[0]), float(self._robot_pos[1])),
+            (float(target_pos[0]), float(target_pos[1])),
+            standoff=standoff_m,
+            obstacles=navigation_obstacles(),
+            robot_radius=ROBOT_COLLISION_RADIUS,
+            target_half_extents=target_half_extents(target),
+        )
 
-        # drive the base along the path, step by step, carrying the box if held
-        travel = float(np.linalg.norm(goal[:2] - self._robot_pos[:2]))
-        n_steps = max(int(travel / (speed * self._world.dt)), 1)
-        path = np.zeros((n_steps, 3))
-        start = self._robot_pos.copy()
-        for k in range(n_steps):
-            path[k] = start + (goal - start) * ((k + 1) / n_steps)
-            self._write_robot(path[k])
-            if self._carrying:
-                self._write_carried_box(path[k])
-            self._world.step()
-        self._robot_pos = goal
+        # drive the base along every route segment, carrying the box if held
+        path_points: list[np.ndarray] = []
+        travel = 0.0
+        for waypoint in route[1:]:
+            goal = np.array([waypoint[0], waypoint[1], ROBOT_BASE_HEIGHT])
+            direction = goal[:2] - self._robot_pos[:2]
+            seg_len = float(np.linalg.norm(direction))
+            if seg_len < 1e-9:
+                continue
+            self._yaw = math.atan2(direction[1], direction[0])
+            n_steps = max(int(seg_len / (speed * self._world.dt)), 1)
+            start = self._robot_pos.copy()
+            for k in range(n_steps):
+                point = start + (goal - start) * ((k + 1) / n_steps)
+                path_points.append(point)
+                self._write_robot(point)
+                if self._carrying:
+                    self._write_carried_box(point)
+                self._world.step()
+            self._robot_pos = goal
+            travel += seg_len
         self._last_speed = speed
 
+        path = np.array(path_points) if path_points else self._robot_pos.reshape(1, 3)
         collisions = count_path_collisions(path)
         return {
             **symbolic,
             "physical": True,
             "path_length_m": round(travel, 3),
+            "route_waypoints": len(route) - 1,
             "swept_collisions": collisions,
-            "sim_steps": n_steps,
+            "sim_steps": len(path_points),
         }
 
     def execute_skill(self, skill: str, target: str, **kwargs: Any) -> dict[str, Any]:
@@ -171,7 +189,7 @@ class SimBackend:
             self._write_robot(self._robot_pos)
             self._world.step()
         final_box = self._world.box_positions()[EXEC_ENV].cpu().numpy()
-        physically_placed = _box_on_shelf(final_box)
+        physically_placed = box_on_shelf(final_box)
 
         if not physically_placed:
             return {
@@ -201,7 +219,7 @@ class SimBackend:
             position + origins[EXEC_ENV], dtype=torch.float32, device=self._device
         )
         all_quat[EXEC_ENV] = torch.tensor(
-            _yaw_to_quat(self._yaw), dtype=torch.float32, device=self._device
+            yaw_to_quat(self._yaw), dtype=torch.float32, device=self._device
         )
         self._world.write_robot_poses(all_pos, all_quat)
 

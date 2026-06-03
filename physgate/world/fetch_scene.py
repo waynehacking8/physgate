@@ -6,13 +6,13 @@ Defines the physical world that mirrors the symbolic demo scene
 * a Unitree Go2 robot,
 * a fallen cardboard box (dynamic rigid body) on the floor,
 * a target shelf (static),
-* an obstacle pillar between the box and the shelf (static) — straight-line
-  routes clip it, detour routes via the waypoint clear it,
-* a navigation waypoint marker (visual only).
+* an obstacle pillar between the box and the shelf (static) — the deterministic
+  navigation layer (``physgate/nav``) routes around it for every plan.
 
 Spatial layout (per env, relative to the env origin) lives in
-:data:`SCENE_LAYOUT` and is shared by trajectory synthesis (gate/l2_physics),
-collision checks, and the executor (executor/sim_backend).
+:mod:`physgate.world.layout` (pure logic, no Isaac import) and is shared by
+trajectory synthesis (gate/trajectory), collision checks, navigation, and the
+executor (executor/sim_backend).
 
 IMPORTANT: this module imports Isaac Lab and may only be imported AFTER
 ``isaacsim.SimulationApp`` has been launched (headless or not).
@@ -28,35 +28,19 @@ from isaaclab.sim import SimulationContext
 from isaaclab.utils import configclass
 from isaaclab_assets.robots.unitree import UNITREE_GO2_CFG
 
-# --------------------------------------------------------------------- layout
-
-#: World-frame positions (per env, relative to env origin) for every scene entity.
-SCENE_LAYOUT: dict[str, tuple[float, float, float]] = {
-    "go2": (0.0, 0.0, 0.40),
-    "box_03": (1.5, 0.5, 0.10),
-    "shelf_A": (3.0, -1.0, 0.25),
-    "obstacle_P": (2.2, -0.2, 0.40),
-    # far enough out that the detour route clears the obstacle even after
-    # inflating it by the robot's collision radius (see gate/l2_physics.py)
-    "waypoint_W": (3.2, 0.8, 0.005),
-    "floor_01": (0.0, 0.0, 0.0),
-}
-
-BOX_SIZE = (0.2, 0.2, 0.2)
-SHELF_SIZE = (0.8, 0.4, 0.5)        # top surface at z = 0.5
-OBSTACLE_SIZE = (0.3, 0.3, 0.8)
-ROBOT_BASE_HEIGHT = 0.40            # Go2 standing base height
-CARRY_OFFSET = (0.25, 0.0, 0.25)    # carried box rides ahead/above the trunk
-SHELF_TOP_Z = SCENE_LAYOUT["shelf_A"][2] + SHELF_SIZE[2] / 2
-
-#: Semantic labels applied to prims (read back by world/usd_semantics.py).
-SEMANTIC_LABELS: dict[str, str] = {
-    "box_03": "cardboard_box",
-    "shelf_A": "shelf",
-    "obstacle_P": "pillar",
-    "waypoint_W": "waypoint",
-}
-
+# layout constants are pure logic — re-exported here for backwards compatibility
+from physgate.world.layout import (  # noqa: F401  (re-exports)
+    BOX_SIZE,
+    CARRY_OFFSET,
+    OBSTACLE_SIZE,
+    ROBOT_BASE_HEIGHT,
+    ROBOT_COLLISION_RADIUS,
+    SCENE_LAYOUT,
+    SEMANTIC_LABELS,
+    SHELF_SIZE,
+    SHELF_TOP_Z,
+    STATIC_FOOTPRINTS,
+)
 
 # ---------------------------------------------------------------------- scene
 
@@ -106,16 +90,6 @@ class FetchSceneCfg(InteractiveSceneCfg):
         init_state=AssetBaseCfg.InitialStateCfg(pos=SCENE_LAYOUT["obstacle_P"]),
     )
 
-    waypoint = AssetBaseCfg(
-        prim_path="{ENV_REGEX_NS}/Waypoint",
-        spawn=sim_utils.CylinderCfg(
-            radius=0.15,
-            height=0.01,
-            visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.2, 0.8, 0.2)),
-        ),
-        init_state=AssetBaseCfg.InitialStateCfg(pos=SCENE_LAYOUT["waypoint_W"]),
-    )
-
 
 # ----------------------------------------------------------------------- world
 
@@ -129,7 +103,7 @@ class FetchSimWorld:
     """
 
     #: prim entity name -> symbolic scene object id
-    ENTITY_TO_OBJECT_ID = {"box": "box_03", "shelf": "shelf_A", "obstacle": "obstacle_P", "waypoint": "waypoint_W"}
+    ENTITY_TO_OBJECT_ID = {"box": "box_03", "shelf": "shelf_A", "obstacle": "obstacle_P"}
 
     def __init__(self, num_envs: int = 8, device: str = "cuda:0", physics_dt: float = 0.005):
         # default physics_dt matches the Go2 locomotion policy's training timestep
@@ -228,7 +202,6 @@ class FetchSimWorld:
             "Box": SEMANTIC_LABELS["box_03"],
             "Shelf": SEMANTIC_LABELS["shelf_A"],
             "Obstacle": SEMANTIC_LABELS["obstacle_P"],
-            "Waypoint": SEMANTIC_LABELS["waypoint_W"],
         }
         for env_idx in range(self.num_envs):
             for prim_name, label in prim_to_label.items():

@@ -173,6 +173,15 @@ def test_claude_planner_raises_on_unparseable_response():
         ClaudePlanner(client=client)(TASK, _scene(), 2, None)
 
 
+def test_claude_planner_empty_array_signals_infeasible_task():
+    """An empty JSON array is the LLM's explicit 'this task is impossible' signal
+    (per the system prompt) — returned as zero candidates so the orchestrator
+    escalates, NOT raised as a parse error."""
+    client = _FakeAnthropicClient("[]")
+    plans = ClaudePlanner(client=client)(TASK, _scene(), 4, None)
+    assert plans == []
+
+
 # --------------------------------------------------------------- make_planner
 
 

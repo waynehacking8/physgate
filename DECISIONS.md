@@ -204,3 +204,41 @@ Fixes (defense in depth):
 Lesson recorded: validate at every trust boundary; never silently degrade
 LLM-provided references. An LLM critic is not a substitute for deterministic
 structural validation.
+
+## D-017: Deterministic A* navigation replaces the straight-line driver (REBUILD.md Phase 1)
+
+Four adversarial code reviews established that the "17% feasible / best-of-N
+rescues it" headline was an **artifact of a layering defect**: obstacle
+avoidance was implicitly pushed to the LLM (which had no coordinates), while
+the low level drove straight lines through obstacles. The hand-placed
+`waypoint_W` was a physics hack masquerading as a semantic object. See
+`docs/design/REBUILD.md` §1 for the file:line evidence.
+
+Decision: ship a **deterministic A\* occupancy-grid planner**
+(`physgate/nav/path_planner.py`) instead of full ROS 2 Nav2 integration.
+
+Trade-off (recorded per REBUILD.md §3):
+
+- **Why not Nav2 now:** Nav2 requires the ROS 2 executor stack (not yet built),
+  a costmap server, TF tree, and lifecycle nodes — heavy infrastructure that is
+  orthogonal to fixing the layering defect. The A* planner provides the same
+  guarantee (always routes around obstacles, deterministically) behind the same
+  interface contract.
+- **Nav2 drop-in boundary:** `plan_path(start_xy, goal_xy, obstacles) ->
+  list[waypoint]` mirrors Nav2's `ComputePathToPose` over a costmap. When the
+  ROS 2 executor lands, a Nav2-backed implementation replaces the module behind
+  this signature; callers (gate, executor) do not change.
+- **What was removed:** `waypoint_W` (scene, prompt, mock planner, semantics)
+  and ALL straight-line interpolation toward targets
+  (`synthesize_base_trajectory`, `_compile_mission`, `SimBackend.move_to_pose`).
+
+Supporting refactor: scene layout constants moved to `physgate/world/layout.py`
+(pure logic) so navigation and trajectory compilation are unit-testable without
+Isaac; trajectory/mission compilation moved to `physgate/gate/trajectory.py`
+(pure) and `l2_physics.py` consumes it.
+
+Consequence for results: the pre-rebuild "17% feasible → best-of-N 99%" curve
+(benchmark #8) is an artifact and is marked DEPRECATED. With navigation in the
+right layer, feasibility of well-formed plans is ~100%, and the Sim-Gate's role
+is **agent-orchestrator evaluation** (decomposition, ordering, preconditions,
+recovery, infeasibility recognition), not route rescue.

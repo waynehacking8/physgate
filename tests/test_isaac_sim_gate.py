@@ -91,25 +91,19 @@ def test_l2_rollout_returns_result_per_plan(sim_world, demo_scene):
         assert result.energy_j >= 0
 
 
-def test_l2_physics_discriminates_routes(sim_world, demo_scene):
-    """The detour (cautious) route must avoid the obstacle that straight-line
-    routes sweep through — physics validation produces different outcomes."""
+def test_l2_navigation_routes_every_plan_cleanly(sim_world, demo_scene):
+    """REBUILD.md Phase 1: obstacle avoidance is the navigation layer's job, not
+    the plan's. EVERY plan's compiled trajectory must be collision-free — route
+    feasibility is no longer something physics needs to discriminate."""
     from physgate.gate.l2_physics import rollout_plans
     from physgate.planner.planner import MockPlanner
 
     plans = MockPlanner()(TASK, demo_scene, 8, None)
-    results = {r.plan_id: r for r in rollout_plans(sim_world, plans)}
+    results = rollout_plans(sim_world, plans)
 
-    direct = [r for pid, r in results.items() if "direct" in pid]
-    cautious = [r for pid, r in results.items() if "cautious" in pid]
-    assert direct and cautious
-
-    # straight-line routes sweep through the obstacle pillar; detours do not
-    assert all(r.collision_count > 0 for r in direct), (
-        f"direct routes should clip the obstacle: {[(r.plan_id, r.collision_count) for r in direct]}"
-    )
-    assert all(r.collision_count == 0 for r in cautious), (
-        f"cautious detour routes should be clean: {[(r.plan_id, r.collision_count) for r in cautious]}"
+    assert all(r.collision_count == 0 for r in results), (
+        "navigation must route every plan around the obstacle: "
+        + str([(r.plan_id, r.collision_count) for r in results])
     )
 
 
@@ -222,10 +216,16 @@ def test_policy_robot_walks_to_goal(sim_world):
     assert bool(upright.all()), "some robots fell over while walking"
 
 
-def test_policy_rollout_physically_discriminates_plans(sim_world, demo_scene):
-    """With real walking: detour plans complete the task; straight-line plans are
-    physically blocked by the obstacle (timeout or collision)."""
+def test_policy_rollout_feasibility_near_100_percent(sim_world, demo_scene):
+    """REBUILD.md Phase 1 acceptance: with navigation in the right layer, every
+    well-formed plan (correct pick -> carry -> place decomposition) must be
+    physically feasible — feasibility is ~100%, not a route lottery.
+
+    Only the critic-surviving plans count: the reckless variant (no navigation,
+    no preconditions) is SUPPOSED to fail — that is an orchestration error, the
+    thing the gate still exists to catch."""
     from physgate.gate.l2_physics import rollout_plans_with_policy
+    from physgate.planner.critic import MockCritic
     from physgate.planner.planner import MockPlanner
 
     policy = _policy_path()
@@ -233,19 +233,22 @@ def test_policy_rollout_physically_discriminates_plans(sim_world, demo_scene):
         pytest.skip("no exported Go2 policy (run rsl_rl play.py first)")
 
     plans = MockPlanner()(TASK, demo_scene, 8, None)
-    results = {r.plan_id: r for r in rollout_plans_with_policy(sim_world, plans, policy)}
+    survivors = MockCritic()(plans, demo_scene)
+    assert len(survivors) >= 4
 
-    cautious = [r for pid, r in results.items() if "cautious" in pid]
-    direct = [r for pid, r in results.items() if "direct" in pid]
-    assert cautious and direct
+    results = rollout_plans_with_policy(sim_world, survivors, policy)
+    feasible = [r for r in results if r.success]
 
-    # at least one detour plan must physically complete the task
-    assert any(r.success for r in cautious), "no cautious plan succeeded: " + str(
-        [(r.plan_id, r.failure.violations[0].detail if r.failure else "") for r in cautious]
-    )
-    # straight-line plans must be physically penalized: blocked (fail) or collide
-    assert all((not r.success) or r.collision_count > 0 for r in direct), (
-        f"direct plans were not penalized: {[(r.plan_id, r.success, r.collision_count) for r in direct]}"
+    feasibility = len(feasible) / len(results)
+    assert feasibility >= 0.8, (
+        f"feasibility should be ~100% after the rebuild, got {feasibility:.0%}: "
+        + str(
+            [
+                (r.plan_id, r.failure.violations[0].detail if r.failure else "ok")
+                for r in results
+                if not r.success
+            ]
+        )
     )
 
 

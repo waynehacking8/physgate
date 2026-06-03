@@ -107,10 +107,13 @@ HARD CONSTRAINTS (plans violating these are rejected by the validation gate):
   "standoff_m" (0.2-0.5) and "speed" (0.4-1.0, m/s).
 - execute_skill args: {"skill": "pick" | "place", "target": "<scene object id>"}.
 
-Generate plans that are meaningfully DIFFERENT (different routes, orderings,
-intermediate checks) so physics validation can select the best one. Route
-variety must come from different orderings of EXISTING scene objects.
-Every manipulation step must declare its preconditions.
+NOTE: you do NOT plan routes or avoid obstacles — a deterministic navigation
+layer handles "how to get there". Your job is task DECOMPOSITION: correct step
+ordering, satisfied preconditions, and handling of failures. Generate plans that
+differ in decomposition (orderings, intermediate checks, recovery steps), and
+every manipulation step must declare its preconditions. If the task is
+impossible with the available objects and skills, return an empty JSON array []
+instead of inventing steps.
 """
 
 
@@ -177,6 +180,11 @@ class ClaudePlanner:
         text = "".join(block.text for block in response.content if block.type == "text")
         raw_plans = _extract_json_array(text)
 
+        # an empty array is the LLM's explicit "this task is impossible" signal
+        # (per the system prompt) — the orchestrator escalates on zero candidates
+        if not raw_plans:
+            return []
+
         plans: list[Plan] = []
         for raw in raw_plans:
             try:
@@ -195,10 +203,7 @@ class MockPlanner:
     real selection work to do. Used when no ANTHROPIC_API_KEY is available.
     """
 
-    _last_scene: Scene | None = None
-
     def __call__(self, task: str, scene: Scene, n: int, feedback: str | None = None) -> list[Plan]:
-        self._last_scene = scene  # used by route variants that need scene lookups
         fetch_target = self._fetch_target(scene)
         place_target = self._place_target(scene)
         rationale_suffix = " (replan after gate feedback)" if feedback else ""
@@ -233,12 +238,6 @@ class MockPlanner:
             return placeable[0].id
         non_anomalies = [o for o in scene.objects if not o.is_anomaly]
         return non_anomalies[0].id if non_anomalies else scene.objects[-1].id
-
-    @staticmethod
-    def _waypoint(scene: Scene) -> str | None:
-        """Find a navigation waypoint marker in the scene, if any."""
-        waypoints = [o for o in scene.objects if o.label == "waypoint"]
-        return waypoints[0].id if waypoints else None
 
     # ----- plan variants -----
 
@@ -305,21 +304,21 @@ class MockPlanner:
         )
 
     def _cautious_plan(self, i, task, fetch, place, suffix) -> Plan:
-        """Slow detour route: goes via a waypoint (if the scene has one) instead
-        of cutting straight across — trades time for clearance."""
-        waypoint = self._waypoint(self._last_scene) if self._last_scene else None
-        detour_steps = [self._move_step(3, waypoint, standoff=0.0, speed=0.25)] if waypoint else []
+        """Slow, wide-standoff variant: trades time for approach clearance.
+
+        Navigation (obstacle avoidance) is handled by the deterministic low
+        level for every plan — "caution" here means approach speed and standoff
+        choices, not route geometry."""
         steps = [
             self._move_step(1, fetch, standoff=0.5, speed=0.25),
             self._pick_step(2, fetch),
-            *detour_steps,
-            self._move_step(4, place, standoff=0.5, speed=0.25),
-            self._place_step(5, fetch, place),
+            self._move_step(3, place, standoff=0.5, speed=0.25),
+            self._place_step(4, fetch, place),
         ]
         return Plan(
             plan_id=f"mock_{i}_cautious",
             task=task,
-            rationale=f"slow detour route via waypoint for clearance{suffix}",
+            rationale=f"slow approach with wide standoff for clearance{suffix}",
             steps=steps,
         )
 

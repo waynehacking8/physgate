@@ -3,21 +3,23 @@
 Given N candidate plans, runs each one in its own Isaac Lab env (all envs reset
 to an IDENTICAL initial state via gate/reset_workaround.py), simultaneously:
 
-1. each plan is compiled to a base-motion trajectory + carry/release events
-   (``synthesize_base_trajectory``),
-2. all N robots are kinematically driven along their plan's trajectory while
-   the scene objects (the box) simulate dynamically on the GPU,
+1. each plan is compiled to a navigation-routed trajectory/mission
+   (``gate/trajectory.py`` — every move_to_pose goes through the deterministic
+   A* path planner, so routes ALWAYS avoid obstacles),
+2. all N robots execute their plan while the scene objects (the box) simulate
+   dynamically on the GPU,
 3. physics outcomes are read back per env:
      - task success  = the box physically ended up resting on the shelf
        (after the placement release, dynamics decide whether it stays or
        slides/bounces off — fast, sloppy plans drop it),
-     - collisions    = path segments sweeping through static obstacles,
+     - collisions    = path segments sweeping through static obstacles
+       (kinematic mode) / obstacle-proximity events on the walked path (policy mode),
      - time / energy = from the executed trajectory.
 
-MVP scope note (see DECISIONS.md): the robot base is kinematically driven
-(no learned locomotion policy yet); the box, contacts, and placement are
-fully dynamic. Plan quality discrimination comes from real physics
-(placement stability) + swept-path collision checks.
+What L2 validates (REBUILD.md §2): the AGENT's plan quality — decomposition
+correctness, step ordering, preconditions, and physical outcome (placement
+stability). It does NOT validate route geometry; the navigation layer
+guarantees that for every plan.
 
 IMPORTANT: import only after SimulationApp launch.
 """
@@ -26,7 +28,6 @@ from __future__ import annotations
 
 import math
 import os
-from dataclasses import dataclass, field
 
 import numpy as np
 import torch
@@ -34,205 +35,42 @@ import torch
 from physgate.gate.reset_workaround import reset_scene_to_identical_state
 from physgate.gate.schemas import FailureCode, FailureReport, GateLayer, Scene, Violation
 from physgate.gate.scoring import PhysicsResult
-from physgate.planner.schemas import Plan, ToolName
-from physgate.world.fetch_scene import (
+from physgate.gate.trajectory import (  # noqa: F401  (re-exports for existing callers)
+    PLACE_DROP_HEIGHT,
+    RELEASE_VELOCITY_GAIN,
+    ROBOT_MASS_KG,
+    SCAN_HOLD_STEPS,
+    SETTLE_STEPS,
+    SKILL_HOLD_STEPS,
+    PlanTrajectory,
+    TrajectoryEvent,
+    UnknownTargetError,
+    box_on_shelf,
+    compile_mission,
+    count_path_collisions,
+    synthesize_base_trajectory,
+    yaw_to_quat,
+)
+from physgate.planner.schemas import Plan
+from physgate.world.fetch_scene import FetchSimWorld
+from physgate.world.layout import (
     BOX_SIZE,
     CARRY_OFFSET,
     OBSTACLE_SIZE,
-    ROBOT_BASE_HEIGHT,
+    ROBOT_COLLISION_RADIUS,
     SCENE_LAYOUT,
     SHELF_SIZE,
     SHELF_TOP_Z,
-    FetchSimWorld,
 )
 
-# tuning constants
-SKILL_HOLD_STEPS = 60  # sim steps the robot pauses for a pick/place
-SCAN_HOLD_STEPS = 30  # sim steps for a query_scene pause
-SETTLE_STEPS = 240  # sim steps after the last plan step (2 s at 120 Hz)
-RELEASE_VELOCITY_GAIN = 2.0  # released box inherits gain * last motion speed
-ROBOT_COLLISION_RADIUS = 0.30  # Go2 half-width + margin for swept-path checks
-PLACE_DROP_HEIGHT = 0.06  # box released this high above the shelf surface
-ROBOT_MASS_KG = 15.0  # Go2 mass, for the energy proxy
+# backwards-compatible aliases (pre-rebuild names)
+_box_on_shelf = box_on_shelf
+_yaw_to_quat = yaw_to_quat
+_compile_mission = compile_mission
 
-
-# ------------------------------------------------------------------ synthesis
-
-
-@dataclass
-class TrajectoryEvent:
-    """Carry/release event at a specific step of a base trajectory."""
-
-    step_index: int
-    kind: str  # "attach" | "release"
-    object_id: str
-    release_velocity: tuple[float, float, float] = (0.0, 0.0, 0.0)
-    release_position: tuple[float, float, float] | None = None
-
-
-@dataclass
-class PlanTrajectory:
-    """A plan compiled to a kinematic base trajectory."""
-
-    plan_id: str
-    positions: np.ndarray  # (T, 3) base positions, env-local frame
-    yaws: np.ndarray  # (T,) base headings
-    events: list[TrajectoryEvent] = field(default_factory=list)
-    motion_speeds: np.ndarray = field(default_factory=lambda: np.zeros(0))  # (T,) commanded speed
-
-    @property
-    def duration_steps(self) -> int:
-        return len(self.positions)
-
-
-def _yaw_to_quat(yaw: float) -> np.ndarray:
-    """Heading angle -> wxyz quaternion (rotation about +z)."""
-    return np.array([math.cos(yaw / 2), 0.0, 0.0, math.sin(yaw / 2)])
-
-
-def synthesize_base_trajectory(
-    plan: Plan,
-    dt: float,
-    layout: dict[str, tuple[float, float, float]] | None = None,
-) -> PlanTrajectory:
-    """Compile a Plan into a kinematic base trajectory + carry/release events."""
-    lay = layout or SCENE_LAYOUT
-    positions: list[np.ndarray] = []
-    yaws: list[float] = []
-    speeds: list[float] = []
-    events: list[TrajectoryEvent] = []
-
-    current = np.array(lay["go2"], dtype=np.float64)
-    current[2] = ROBOT_BASE_HEIGHT
-    yaw = 0.0
-    held_object: str | None = None
-    last_speed = 0.0
-
-    def hold(steps: int) -> None:
-        for _ in range(steps):
-            positions.append(current.copy())
-            yaws.append(yaw)
-            speeds.append(0.0)
-
-    for step in plan.steps:
-        if step.tool == ToolName.QUERY_SCENE:
-            hold(SCAN_HOLD_STEPS)
-
-        elif step.tool == ToolName.MOVE_TO_POSE:
-            target_id = step.args["target"]
-            if target_id not in lay:
-                # unknown target: hold in place (L3 should have caught this)
-                hold(SCAN_HOLD_STEPS)
-                continue
-            target = np.array(lay[target_id], dtype=np.float64)
-            standoff = float(step.args.get("standoff_m", 0.3))
-            speed = max(float(step.args.get("speed", 0.5)), 0.05)
-
-            direction = target[:2] - current[:2]
-            distance = float(np.linalg.norm(direction))
-            if distance > 1e-6:
-                direction = direction / distance
-            else:
-                direction = np.array([1.0, 0.0])
-            goal_xy = target[:2] - direction * standoff
-            goal = np.array([goal_xy[0], goal_xy[1], ROBOT_BASE_HEIGHT])
-            yaw = math.atan2(direction[1], direction[0])
-
-            travel = float(np.linalg.norm(goal[:2] - current[:2]))
-            n_steps = max(int(travel / (speed * dt)), 1)
-            for k in range(1, n_steps + 1):
-                positions.append(current + (goal - current) * (k / n_steps))
-                yaws.append(yaw)
-                speeds.append(speed)
-            current = goal
-            last_speed = speed
-
-        elif step.tool == ToolName.EXECUTE_SKILL:
-            skill = step.args.get("skill")
-            target_id = step.args.get("target", "")
-            hold(SKILL_HOLD_STEPS)
-            if skill == "pick":
-                events.append(
-                    TrajectoryEvent(
-                        step_index=len(positions) - 1, kind="attach", object_id=target_id
-                    )
-                )
-                held_object = target_id
-            elif skill == "place":
-                # release the carried box above the shelf surface, inheriting
-                # momentum from the approach speed — physics decides if it stays
-                shelf = np.array(lay.get(target_id, lay["shelf_A"]), dtype=np.float64)
-                release_pos = (
-                    float(shelf[0]),
-                    float(shelf[1]),
-                    SHELF_TOP_Z + BOX_SIZE[2] / 2 + PLACE_DROP_HEIGHT,
-                )
-                forward = np.array([math.cos(yaw), math.sin(yaw), 0.0])
-                release_vel = forward * last_speed * RELEASE_VELOCITY_GAIN
-                events.append(
-                    TrajectoryEvent(
-                        step_index=len(positions) - 1,
-                        kind="release",
-                        object_id=held_object or target_id,
-                        release_velocity=tuple(release_vel.tolist()),
-                        release_position=release_pos,
-                    )
-                )
-                held_object = None
-
-    # tail settle so released objects come to rest before readback
-    hold(SETTLE_STEPS)
-
-    return PlanTrajectory(
-        plan_id=plan.plan_id,
-        positions=np.array(positions),
-        yaws=np.array(yaws),
-        events=events,
-        motion_speeds=np.array(speeds),
-    )
-
-
-# ----------------------------------------------------------- geometric checks
-
-
-def count_path_collisions(
-    positions: np.ndarray,
-    layout: dict[str, tuple[float, float, float]] | None = None,
-    robot_radius: float = ROBOT_COLLISION_RADIUS,
-) -> int:
-    """Count how many times a base path sweeps through a static obstacle.
-
-    The base is kinematically driven, so obstacle penetration is a *geometric*
-    check (a kinematic body does not generate contact responses).
-
-    Note: manipulation targets (the shelf) are NOT obstacles — the robot must
-    approach them to act on them. Interaction quality with targets is judged by
-    the placement dynamics instead (box release physics).
-    """
-    lay = layout or SCENE_LAYOUT
-    obstacles = {"obstacle_P": OBSTACLE_SIZE}
-    collisions = 0
-    for obstacle_id, size in obstacles.items():
-        center = np.array(lay[obstacle_id][:2])
-        half = np.array(size[:2]) / 2 + robot_radius
-        inside = np.all(np.abs(positions[:, :2] - center) < half, axis=1)
-        # count entries (rising edges) into the collision volume
-        entries = np.sum(inside[1:] & ~inside[:-1]) + int(inside[0])
-        collisions += int(entries)
-    return collisions
-
-
-def _box_on_shelf(box_pos: np.ndarray, layout: dict | None = None, tol_xy: float = 0.05) -> bool:
-    """Did the box physically end up resting on the shelf surface?"""
-    lay = layout or SCENE_LAYOUT
-    shelf_center = np.array(lay["shelf_A"])
-    half_x, half_y = SHELF_SIZE[0] / 2 + tol_xy, SHELF_SIZE[1] / 2 + tol_xy
-    expected_z = SHELF_TOP_Z + BOX_SIZE[2] / 2
-    return (
-        abs(box_pos[0] - shelf_center[0]) <= half_x
-        and abs(box_pos[1] - shelf_center[1]) <= half_y
-        and abs(box_pos[2] - expected_z) <= 0.08
-    )
+#: How close (m) the robot must be to the shelf FOOTPRINT edge to place onto it:
+#: max plan standoff (0.5) + waypoint arrival tolerance (0.35) + slack.
+PLACE_REACH_M = 1.0
 
 
 # -------------------------------------------------------------------- rollout
@@ -249,7 +87,7 @@ def rollout_plans(world: FetchSimWorld, plans: list[Plan]) -> list[PhysicsResult
     # 1. identical initial state across every env (bug #2133 workaround)
     reset_scene_to_identical_state(world.scene, world.sim)
 
-    # 2. compile plans to trajectories
+    # 2. compile plans to navigation-routed trajectories
     trajectories = [synthesize_base_trajectory(p, world.dt) for p in plans]
     max_steps = max(t.duration_steps for t in trajectories)
 
@@ -279,7 +117,7 @@ def rollout_plans(world: FetchSimWorld, plans: list[Plan]) -> list[PhysicsResult
             if env_idx < num_active:
                 pos, yaw = pose_at(trajectories[env_idx], step_idx)
                 robot_pos[env_idx] = pos + env_origins[env_idx]
-                robot_quat[env_idx] = _yaw_to_quat(yaw)
+                robot_quat[env_idx] = yaw_to_quat(yaw)
             else:
                 # inactive envs hold the spawn pose
                 robot_pos[env_idx] = np.array(SCENE_LAYOUT["go2"]) + env_origins[env_idx]
@@ -337,7 +175,7 @@ def rollout_plans(world: FetchSimWorld, plans: list[Plan]) -> list[PhysicsResult
     results: list[PhysicsResult] = []
     for env_idx, (plan, traj) in enumerate(zip(plans, trajectories)):
         placed = any(ev.kind == "release" for ev in traj.events)
-        success = placed and _box_on_shelf(final_box_positions[env_idx])
+        success = placed and box_on_shelf(final_box_positions[env_idx])
         collisions = count_path_collisions(traj.positions)
 
         # time: trajectory length minus the settle tail
@@ -364,7 +202,12 @@ def rollout_plans(world: FetchSimWorld, plans: list[Plan]) -> list[PhysicsResult
                         detail=detail if placed else "plan never placed the box",
                     )
                 ],
-                remediation_hint="approach the shelf more slowly before placing",
+                remediation_hint=(
+                    "approach the shelf more slowly before placing"
+                    if placed
+                    else "the plan must navigate to the box, pick it, navigate to the "
+                    "shelf, and place it — in that order"
+                ),
             )
 
         results.append(
@@ -383,63 +226,6 @@ def rollout_plans(world: FetchSimWorld, plans: list[Plan]) -> list[PhysicsResult
 # ------------------------------------------------------ policy-driven rollout
 
 
-class UnknownTargetError(ValueError):
-    """A plan references an object id with no physical location in the scene layout.
-
-    L3 (:func:`physgate.gate.l3_scene.check_step_targets`) should reject such
-    plans before they reach L2; this exception is the defense-in-depth backstop
-    for direct L2 callers. Silently skipping unknown targets is NOT acceptable:
-    it degrades plans into do-nothing missions that fail with misleading
-    "box not on shelf" reports (DECISIONS.md D-016).
-    """
-
-
-def _compile_mission(
-    plan: Plan, lay: dict[str, tuple[float, float, float]]
-) -> list[tuple[str, object, float]]:
-    """Compile a Plan into a waypoint mission for the walking robot.
-
-    Mission entries: ("goto", goal_xy_position, speed) | ("pick", object_id, 0)
-    | ("place", object_id, 0) | ("wait", duration_steps, 0).
-
-    Raises:
-        UnknownTargetError: a move_to_pose step targets an id not in ``lay``.
-    """
-    mission: list[tuple[str, object, float]] = []
-    current = np.array(lay["go2"][:2], dtype=np.float64)
-
-    for step in plan.steps:
-        if step.tool == ToolName.QUERY_SCENE:
-            mission.append(("wait", 25, 0.0))  # ~0.5 s at 50 Hz control
-        elif step.tool == ToolName.MOVE_TO_POSE:
-            target_id = step.args.get("target")
-            if target_id not in lay:
-                raise UnknownTargetError(
-                    f"plan '{plan.plan_id}' step {step.step_id} moves to unknown "
-                    f"object '{target_id}' (known: {sorted(lay.keys())})"
-                )
-            target = np.array(lay[target_id][:2], dtype=np.float64)
-            standoff = float(step.args.get("standoff_m", 0.3))
-            # floor the commanded speed at 0.4 m/s: the locomotion policy tracks
-            # very low velocity commands poorly (it creeps or stalls); plan
-            # "caution" is expressed by the route, not by sub-0.4 m/s speeds
-            speed = float(np.clip(float(step.args.get("speed", 0.5)), 0.4, 1.0))
-            direction = target - current
-            dist = float(np.linalg.norm(direction))
-            direction = direction / dist if dist > 1e-6 else np.array([1.0, 0.0])
-            goal = target - direction * standoff
-            mission.append(("goto", goal, speed))
-            current = goal
-        elif step.tool == ToolName.EXECUTE_SKILL:
-            skill = step.args.get("skill")
-            target_id = step.args.get("target", "")
-            if skill == "pick":
-                mission.append(("pick", target_id, 0.0))
-            elif skill == "place":
-                mission.append(("place", target_id, 0.0))
-    return mission
-
-
 def rollout_plans_with_policy(
     world: FetchSimWorld,
     plans: list[Plan],
@@ -449,8 +235,8 @@ def rollout_plans_with_policy(
     """Run N plans in N parallel envs with the trained Go2 locomotion policy.
 
     Unlike :func:`rollout_plans` (kinematic), the robots WALK: the policy tracks
-    velocity commands from a waypoint navigator, the base is fully dynamic, and
-    the obstacle physically blocks paths that go through it. Outcomes:
+    velocity commands from a waypoint navigator following the A*-planned route,
+    the base is fully dynamic, and physics decides every outcome:
 
         success    = mission completed AND box physically resting on the shelf
                      AND the robot never fell over
@@ -485,7 +271,7 @@ def rollout_plans_with_policy(
     compile_errors: dict[int, str] = {}
     for idx, p in enumerate(plans):
         try:
-            missions.append(_compile_mission(p, SCENE_LAYOUT))
+            missions.append(compile_mission(p, SCENE_LAYOUT))
         except UnknownTargetError as exc:
             missions.append([])
             compile_errors[idx] = str(exc)
@@ -595,12 +381,19 @@ def rollout_plans_with_policy(
             elif kind == "place":
                 if carrying[i]:
                     carrying[i] = False
-                    # release above the shelf only if the robot actually got there
+                    # release above the shelf only if the robot actually got there:
+                    # within placing reach of the shelf FOOTPRINT edge (standoffs
+                    # are measured from the footprint since the nav rebuild)
                     shelf_xy = torch.tensor(
                         SCENE_LAYOUT["shelf_A"][:2], dtype=torch.float32, device=device
                     )
-                    dist_to_shelf = torch.norm(robot_pos_local[i, :2] - shelf_xy).item()
-                    if dist_to_shelf < 1.2:
+                    shelf_half = torch.tensor(
+                        [SHELF_SIZE[0] / 2, SHELF_SIZE[1] / 2], dtype=torch.float32, device=device
+                    )
+                    edge_clearance = (
+                        ((robot_pos_local[i, :2] - shelf_xy).abs() - shelf_half).max().item()
+                    )
+                    if edge_clearance < PLACE_REACH_M:
                         release_pos = torch.tensor(
                             [
                                 SCENE_LAYOUT["shelf_A"][0],
@@ -700,7 +493,7 @@ def rollout_plans_with_policy(
             )
             continue
 
-        on_shelf = _box_on_shelf(final_box_positions[i])
+        on_shelf = box_on_shelf(final_box_positions[i])
         success = completed[i] and on_shelf and not fell_over[i]
 
         # count proximity entry events on the walked path
@@ -715,11 +508,11 @@ def rollout_plans_with_policy(
                 detail, vtype = "robot fell over during execution", "robot_fell"
             elif stuck[i]:
                 detail, vtype = (
-                    "robot made no progress for 10 s — physically blocked (obstacle in path)",
+                    "robot made no progress for 10 s while navigating",
                     "blocked",
                 )
             elif not completed[i]:
-                detail, vtype = "mission timed out (likely blocked by obstacle)", "timeout"
+                detail, vtype = "mission timed out", "timeout"
             else:
                 box = final_box_positions[i]
                 detail = (
@@ -730,7 +523,10 @@ def rollout_plans_with_policy(
                 failure_code=FailureCode.TIMEOUT if not completed[i] else FailureCode.GRASP_FAILURE,
                 layer=GateLayer.PHYSICS,
                 violations=[Violation(type=vtype, detail=detail)],
-                remediation_hint="choose a route that avoids the obstacle and approach the shelf closely",
+                remediation_hint=(
+                    "the plan must pick the box before navigating to the shelf, and "
+                    "place it only after arriving — check step ordering and preconditions"
+                ),
             )
 
         results.append(

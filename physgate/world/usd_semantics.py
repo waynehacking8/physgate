@@ -24,7 +24,6 @@ LABEL_AFFORDANCES: dict[str, list[str]] = {
     "cardboard_box": ["graspable"],
     "shelf": ["placeable"],
     "pillar": [],
-    "waypoint": [],
 }
 
 #: semantic label -> symbolic object id used by plans / the demo scene
@@ -32,7 +31,6 @@ LABEL_TO_OBJECT_ID: dict[str, str] = {
     "cardboard_box": "box_03",
     "shelf": "shelf_A",
     "pillar": "obstacle_P",
-    "waypoint": "waypoint_W",
 }
 
 
@@ -109,7 +107,6 @@ def scene_from_stage(
         "Box": "cardboard_box",
         "Shelf": "shelf",
         "Obstacle": "pillar",
-        "Waypoint": "waypoint",
     }
 
     for prim in Usd.PrimRange(env_prim):
