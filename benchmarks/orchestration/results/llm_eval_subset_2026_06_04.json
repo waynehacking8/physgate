@@ -1,0 +1,21 @@
+{
+  "date": "2026-06-04",
+  "planner": "ClaudePlanner (claude-opus-4-8 via claude -p headless)",
+  "subset": ["fetch_and_place_basic", "recovery_transient_pick_failure", "infeasible_ungraspable_object", "ambiguous_multi_shelf"],
+  "subset_note": "4 of 10 scenarios (full suite takes ~50min via headless mode; run with --planner llm for the full set)",
+  "results": {
+    "fetch_and_place_basic": {"expected": "done", "actual": "done", "correct": true},
+    "recovery_transient_pick_failure": {"expected": "done", "actual": "done", "correct": true},
+    "infeasible_ungraspable_object": {"expected": "escalated", "actual": "escalated", "correct": true},
+    "ambiguous_multi_shelf": {"expected": "done", "actual": "done", "correct": true}
+  },
+  "metrics": {
+    "end_to_end_success_rate": 1.0,
+    "infeasible_recognition_rate": 1.0,
+    "recovery_rate": 1.0,
+    "decomposition_validity_rate": 1.0,
+    "orchestrator_score": 0.8
+  },
+  "wall_s": 295,
+  "comparison_vs_mock": "Real Claude solved ambiguous_multi_shelf (box → shelf B) which MockPlanner failed. MockPlanner scored 0.925 on the full 10-scenario suite; Real Claude scored 1.0 on this 4-scenario subset."
+}
