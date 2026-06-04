@@ -107,11 +107,21 @@ class MockWorldBackend:
 
     # ----- skills -----
 
+    def _is_reachable(self, target: str) -> bool:
+        """True if robot is near the target OR near the object the target sits on."""
+        if self._scene.has_relation("robot", "near", target):
+            return True
+        for rel in self._scene.relations:
+            if rel[0] == target and rel[1] == "on":
+                if self._scene.has_relation("robot", "near", rel[2]):
+                    return True
+        return False
+
     def _pick(self, target: str) -> dict[str, Any]:
         scene = self._scene
         if not scene.has_object(target):
             return {"success": False, "error": f"pick target '{target}' not in scene"}
-        if not scene.has_relation("robot", "near", target):
+        if not self._is_reachable(target):
             return {"success": False, "error": f"robot is not near '{target}'"}
         if not scene.gripper_empty:
             return {"success": False, "error": "gripper is already holding an object"}
