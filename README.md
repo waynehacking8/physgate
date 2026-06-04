@@ -1,15 +1,14 @@
 <h1 align="center">physgate</h1>
 
 <p align="center">
-  <b>Your LLM agent plans it. Physics proves the plan is right. Then the robot moves.</b><br>
-  An open framework that validates LLM <i>agent orchestration</i> — task
-  decomposition, preconditions, failure recovery — in GPU physics simulation,
-  with deterministic navigation so feasibility never depends on the LLM
-  guessing geometry.
+  <b>10 tools. 6 task types. Failure diagnosis. Multi-agent handoff. Physics-verified.</b><br>
+  An open framework for LLM <i>agent orchestration</i> of robotic tasks — the agent
+  chooses tools, orders steps, diagnoses failures, and hands off when stuck.
+  A physics-simulation gate validates every plan before the robot moves.
 </p>
 
 <p align="center">
-  <code>LLM decomposes → critic prunes → physics validates the plan logic → deterministic nav executes</code>
+  <code>LLM selects tools &rarr; critic prunes &rarr; physics validates &rarr; failure analyst repairs &rarr; deterministic nav executes</code>
 </p>
 
 ---
@@ -17,22 +16,33 @@
 ## Watch it run
 
 <p align="center">
-  <img src="docs/media/isaac_rollout.gif" alt="Go2 walking a validated fetch-and-place plan in Isaac Sim" width="640">
+  <img src="docs/media/t2_locked_door.gif" alt="T2: Locked-door delivery — key, unlock, open, deliver" width="680">
 </p>
 
 <p align="center">
-  <em>A trained Go2 locomotion policy walks an A*-planned route, picks the fallen box,
-  carries it around the obstacle, and places it on the shelf — validated by the physics
-  gate before execution.</em>
+  <em><b>T2: Locked-door delivery</b> — the agent picks up the key, unlocks the door, opens it,
+  then delivers the box to the shelf behind it. 9 steps, 4 different tools
+  (move_to_pose, execute_skill, unlock_door, open_door).</em>
 </p>
 
 <p align="center">
-  <img src="docs/media/topdown_trajectory.gif" alt="Planned A* route (amber) vs the trail the robot actually walked (teal)" width="680">
+  <img src="docs/media/t3_push_delivery.gif" alt="T3: Blocked-path clearance — push crate aside, then deliver" width="680">
 </p>
 
 <p align="center">
-  <em>Planned route (amber) vs actually-walked trail (teal). The robot follows the
-  A*-planned path around the obstacle and places the box on the shelf.</em>
+  <em><b>T3: Blocked-path clearance</b> — the agent inspects the blocking crate, pushes it
+  aside, then fetches the box and delivers it. Uses inspect_object + push_object
+  before the standard pick-and-place chain.</em>
+</p>
+
+<p align="center">
+  <img src="docs/media/isaac_rollout.gif" alt="T1: Go2 walking a validated fetch-and-place plan in Isaac Sim" width="640">
+</p>
+
+<p align="center">
+  <em><b>T1: Baseline fetch-and-place</b> (Isaac Sim) — a trained Go2 locomotion policy
+  walks an A*-planned route, picks the fallen box, carries it around the obstacle,
+  and places it on the shelf.</em>
 </p>
 
 > [!WARNING]
@@ -47,25 +57,31 @@
 
 LLM agents that drive robots execute hazardous instructions ~95% of the time even
 when capable of refusing (SafeAgentBench). And LLM-generated plans fail in
-characteristic ways: wrong step ordering, violated preconditions, no recovery
+characteristic ways: wrong tool selection, wrong step ordering, no recovery
 after a failed action, and confidently attempting impossible tasks.
 
 physgate is a **dual-system architecture** with a physics-verification gate between
 the LLM agent and the robot:
 
-1. **HIGH level — the LLM agent (Claude)** decomposes a natural-language task into
-   semantic skill plans (`move_to_pose(<object>)` / `pick` / `place`). It does NOT
-   do geometry: no coordinates, no waypoints, no obstacle avoidance.
+1. **HIGH level — the LLM agent (Claude)** selects from **10 scene-conditional tools**
+   (navigate, pick, place, open/unlock doors, call elevators, push obstacles, inspect
+   objects, request assistance) and orders them into multi-step plans across **6 task
+   types**. It does NOT do geometry: no coordinates, no waypoints, no obstacle avoidance.
 2. **A safety-critic agent** adversarially prunes plans that violate safety contracts.
 3. **The Sim-Gate** validates surviving plans in **parallel NVIDIA Isaac Lab physics
-   simulation** — step ordering, preconditions, and physical outcome (does the box
-   actually end up on the shelf?).
-4. **LOW level — deterministic navigation** (A\* occupancy-grid planner behind a
+   simulation** — tool selection, step ordering, preconditions, and physical outcome.
+4. **A failure analyst** diagnoses execution failures with structured root-cause analysis
+   and suggests targeted repairs (keep working prefix, fix only the broken part) —
+   replacing blind regeneration.
+5. **LOW level — deterministic navigation** (A\* occupancy-grid planner behind a
    Nav2-compatible interface) executes the winning plan. Obstacle avoidance is
    GUARANTEED here, never guessed by the LLM.
+6. **Cooperative handoff** — when the agent recognizes a task is infeasible or
+   partially complete, it calls `request_assistance` and a second agent can
+   continue from the handoff context.
 
 The core thesis: **physics simulation is the highest-quality verifier of agent
-orchestration** — it catches wrong decomposition, unmet preconditions, and
+orchestration** — it catches wrong tool selection, unmet preconditions, and
 infeasible requests more reliably than a neural verifier or LLM self-critique.
 What physics does NOT need to do is rescue bad route geometry: with navigation in
 the right layer, any well-formed plan is executable (measured feasibility ~100%,
@@ -84,17 +100,17 @@ see `benchmarks/rebuild/`).
 
 ```mermaid
 flowchart TD
-    task["Natural-language task"]
+    task["Natural-language task<br/><i>6 types: fetch, locked-door, elevator,<br/>blocked-path, sequential, infeasible</i>"]
 
     subgraph orch ["Orchestrator (LangGraph state machine)"]
         direction LR
-        orch_detail["phase routing · retry budget · approval gate"]
+        orch_detail["phase routing · replan budget · approval gate · handoff detection"]
     end
 
-    subgraph high ["HIGH level — semantic planning"]
+    subgraph high ["HIGH level — semantic planning (10 tools)"]
         direction LR
-        planner["Planner (Claude Opus 4.8) → N candidates"]
-        critic["Safety Critic (SAFER) → prune unsafe"]
+        planner["Planner (Claude Opus 4.8)<br/>→ N candidates from 10 tools"]
+        critic["Safety Critic (SAFER)<br/>→ prune unsafe"]
         planner --> critic
     end
 
@@ -116,45 +132,74 @@ flowchart TD
         exec -.-> ros
     end
 
+    subgraph recovery ["Failure recovery"]
+        direction LR
+        analyst["Failure Analyst<br/><i>root cause · affected steps · suggested fix</i>"]
+        strategy{"targeted<br/>repair?"}
+        analyst --> strategy
+        strategy -->|"attempt 1: keep prefix"| targeted["Targeted repair"]
+        strategy -->|"attempt 2: full regen"| regen["Full regeneration"]
+        strategy -->|"attempt 3"| escalate["Escalate / handoff"]
+    end
+
+    handoff["Cooperative Handoff<br/><i>partial_success → Agent 2 continues</i>"]
     audit["Audit: three-stream records + Merkle checkpoint"]
 
     task --> orch
     orch -->|"N candidate plans"| high
     high -->|"surviving candidates"| gate
     gate -->|"verified plan (JSON)"| low
-    low --> audit
+    low -->|"success"| audit
+    low -->|"failure"| recovery
+    recovery -->|"repaired plan"| high
+    recovery -->|"handoff"| handoff
 
     style orch fill:#f0f4ff,stroke:#4e79a7,stroke-width:2px
     style high fill:#fff8f0,stroke:#f28e2b,stroke-width:2px
     style gate fill:#fff0f0,stroke:#e15759,stroke-width:2px
     style low fill:#f0fff0,stroke:#59a14f,stroke-width:2px
+    style recovery fill:#fff5f5,stroke:#e15759,stroke-width:2px,stroke-dasharray: 5 5
+    style handoff fill:#f0f8ff,stroke:#4e79a7,stroke-width:1px
 ```
 
-Full design: [`docs/design/architecture.md`](docs/design/architecture.md) and the
-architecture-correction record [`docs/design/REBUILD.md`](docs/design/REBUILD.md).
+<details>
+<summary><b>Tool inventory (10 scene-conditional tools)</b></summary>
+
+| Tool | Args | Precondition | Layer |
+|---|---|---|---|
+| `query_scene` | — | — | HIGH (perception) |
+| `move_to_pose` | target, standoff, speed | target in scene | LOW (A* nav) |
+| `execute_skill` | skill (pick/place), target | nearness, gripper state | LOW (manipulation) |
+| `open_door` | door_id | near door, door unlocked | HIGH (agent decision) |
+| `unlock_door` | door_id, key_id | near door, holding key | HIGH (agent decision) |
+| `press_button` | button_id | near button | HIGH (agent decision) |
+| `call_elevator` | elevator_id, target_floor | near elevator, same floor | HIGH (agent decision) |
+| `push_object` | object_id, direction | near object, object pushable | HIGH (agent decision) |
+| `inspect_object` | object_id | object in scene | HIGH (perception) |
+| `request_assistance` | message | — | HIGH (meta-cognition) |
+
+Scene-conditional: `query_scene` returns `available_tools` based on what objects are present.
+A scene with no elevator will not list `call_elevator`.
+</details>
+
+Full design: [`docs/design/AGENT_UPGRADE.md`](docs/design/AGENT_UPGRADE.md),
+[`docs/design/architecture.md`](docs/design/architecture.md), and
+[`docs/design/REBUILD.md`](docs/design/REBUILD.md).
 
 ## Status
 
-🚀 **Agent architecture upgraded to industry-standard orchestrator** (2026-06-04).
-The full loop — natural-language task → N=8 candidate plans → safety critic →
-Sim-Gate (L1/L3/L2) → deterministic-navigation execution — now supports
-**10 tools, 6 task types, analytical replanning, and cooperative multi-agent handoff**.
+| Capability | Before (v1) | Current (v2) |
+|---|---|---|
+| Tools | 3 fixed | **10 scene-conditional** |
+| Task types | 1 (fetch & place) | **6** (locked door, elevator, blocked path, sequential, infeasible) |
+| Replanning | Blind regeneration | **Structured failure diagnosis → targeted repair** |
+| Multi-agent | None | **Cooperative handoff** (`request_assistance` → Agent 2) |
+| Eval scenarios | 10 | **18** (target pass rate 60-80%) |
+| Tests | 269 | **352** |
 
-**Agent architecture upgrade** ([`docs/design/AGENT_UPGRADE.md`](docs/design/AGENT_UPGRADE.md)):
-expanded from 3 tools / 1 task type / blind replanning to 10 scene-conditional
-tools / 6 multi-step task types (locked doors, elevators, blocked paths, infeasible
-recognition) / structured failure diagnosis with targeted repair / cooperative
-handoff between agents. 18 evaluation scenarios with target pass rate 60-80%
-(tasks are genuinely hard — agent always succeeds = evaluation is worthless).
-
-Key correction ([`docs/design/REBUILD.md`](docs/design/REBUILD.md)): an earlier
-version pushed obstacle avoidance to the LLM. With deterministic A\* navigation
-in the low level, **feasibility of well-formed plans is ~100%**, and the
-project's evaluation focus is **agent-orchestrator quality**: tool selection,
-step ordering, failure diagnosis, recovery, infeasibility recognition, handoff.
-
-See [`STATUS.md`](STATUS.md) for the component matrix, [`DECISIONS.md`](DECISIONS.md)
-for build decisions, and [`benchmarks/`](benchmarks/) for results and demo transcripts.
+Design: [`docs/design/AGENT_UPGRADE.md`](docs/design/AGENT_UPGRADE.md) |
+Decisions: [`DECISIONS.md`](DECISIONS.md) |
+Results: [`benchmarks/`](benchmarks/)
 
 ## Results
 
@@ -284,9 +329,10 @@ _This section and its charts are generated by `benchmarks/render_readme.py` from
 ```bash
 # Pure-logic pipeline (no GPU, no API key needed)
 pip install -e ".[dev]"
-pytest                                    # pure-logic test suite (~200 tests)
-python examples/fetch_and_place.py        # offline end-to-end demo
-python benchmarks/orchestration/run_eval.py --planner mock   # orchestrator eval
+pytest                                    # 352 tests, all pure-logic
+python examples/fetch_and_place.py        # T1: offline fetch-and-place demo
+python examples/cooperative_delivery.py   # T3→T1: two-agent cooperative handoff
+python benchmarks/orchestration/run_eval.py --planner mock   # 18-scenario eval
 
 # With real LLM planning — either credential works:
 ANTHROPIC_API_KEY=sk-ant-api03-... python examples/fetch_and_place.py    # API key
@@ -353,21 +399,22 @@ infrastructure independent of this software.
 
 ## Current Limitations
 
-- **Single scene type.** All evaluations use one fetch-and-place scenario (box →
-  shelf with one pillar obstacle). Multi-room, multi-object, and outdoor scenes
-  are not tested.
+- **Symbolic-only for new tools.** T2-T6 task types (doors, elevators, pushing) run on
+  the MockWorldBackend. Isaac Sim physics integration for these tools is planned but
+  not yet implemented — T1 (fetch-and-place) is the only task validated in full
+  rigid-body physics.
 - **Single robot.** Validated only on the Unitree Go2 quadruped with the rsl_rl
   flat locomotion policy. Other morphologies (arms, wheels, humanoids) are out of
   scope.
-- **Single task class.** The planner is tested on pick-and-place tasks. Longer
-  horizons (tool use, sequential manipulation, multi-agent coordination) are not
-  covered.
+- **Cooperative handoff, not negotiation.** Multi-agent coordination is a
+  two-orchestrator handoff pattern. Full multi-agent negotiation (bidding, conflict
+  resolution, shared world state) is not implemented.
 - **No real-robot deployment.** All validation is in simulation (Isaac Lab PhysX).
   ROS 2 executor interface is defined but NOT implemented.
 - **Sim-to-real gap.** A simulation PASS reduces risk but does not prove real-world
   safety. Contact dynamics, sensor noise, and communication latency are not modeled.
-- **Sample size.** Current evaluation uses n=50 feasible + n=20 infeasible procedurally
-  generated instances — improved from the initial n=20+8 but still below cited standards
+- **Sample size.** Pipeline ablation uses n=50+20 procedurally generated instances;
+  orchestration eval uses 18 hand-designed scenarios. Both are below cited standards
   (SafeAgentBench 750, PlanBench 600).
 
 ## License
