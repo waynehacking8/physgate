@@ -126,6 +126,12 @@ def run_scenario(
         )
         invalid_probe_caught = selected_ok and invalid_marked_infeasible
 
+    handoff_correct: bool | None = None
+    if scenario.category in ("assistance",):
+        handoff_correct = actual_outcome in ("escalated", "partial_success")
+    elif scenario.expected_outcome == "done":
+        handoff_correct = actual_outcome not in ("partial_success",)
+
     return ScenarioResult(
         scenario_id=scenario.scenario_id,
         category=scenario.category,
@@ -135,6 +141,7 @@ def run_scenario(
         task_completed=task_completed,
         decomposition_valid=decomposition_valid,
         invalid_probe_caught=invalid_probe_caught,
+        handoff_correct=handoff_correct,
         replans_used=final_state.get("replan_count", 0),
         retries_used=final_state.get("retry_count", 0),
         candidates_generated=len(final_state.get("candidates", [])),

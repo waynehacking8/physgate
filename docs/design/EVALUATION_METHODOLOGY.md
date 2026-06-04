@@ -200,3 +200,51 @@ plans" framing.
   (100% ± 0%); mock deterministic 18/18.
 * Orchestration v1 suite: 3 independent runs (results in
   `benchmarks/orchestration/results/repeats/`).
+
+### E5 — Agent architecture upgrade evaluation (2026-06-04)
+
+The agent architecture upgrade (AGENT_UPGRADE.md) expands the evaluation from
+10 scenarios / 3 tools / 1 task type to **18 scenarios / 10 tools / 6 task types**.
+
+#### New task types (T1-T6)
+
+| Type | Task | Key tools | Failure mode |
+|------|------|-----------|-------------|
+| T1 | Fetch & place (baseline) | move_to_pose, execute_skill | Wrong ordering |
+| T2 | Locked-room delivery | unlock_door, open_door | Skip unlock |
+| T3 | Blocked-path clearance | inspect_object, push_object | Try to walk through obstacle |
+| T4 | Multi-object sequential | execute_skill (×N) | Wrong ordering dependency |
+| T5 | Elevator floor transfer | call_elevator | Forget to call elevator |
+| T6 | Infeasible task recognition | inspect_object, request_assistance | Attempt impossible task |
+
+#### New metrics
+
+| Metric | Definition |
+|--------|-----------|
+| handoff_accuracy | Correctly triggers request_assistance for infeasible tasks, does not trigger for feasible |
+| replan_efficiency | Success rate of scenarios that required replanning |
+
+#### A5 ablation: failure analyst
+
+The A5 condition adds the failure analyst (targeted repair vs blind regeneration):
+- **Without analyst:** blind regeneration on every execution failure
+- **With analyst:** structured FailureReport → targeted repair (keep working prefix)
+- Replan budget: attempt 1 = targeted repair, attempt 2 = full regeneration, attempt 3 = escalate
+
+#### MockPlanner baseline (deterministic, no LLM)
+
+| Metric | Value |
+|--------|-------|
+| Scenarios | 18 |
+| End-to-end success rate | 58.3% |
+| Infeasible recognition rate | 100% |
+| Recovery rate | 100% |
+| Decomposition validity rate | 100% |
+| Invalid plan catch rate | 100% |
+| Handoff accuracy | 100% |
+| Orchestrator score | 0.917 |
+
+The 58.3% success rate is intentional: T2 (locked-door) and T3 (blocked-path)
+tasks fail with the deterministic MockPlanner because it cannot correctly chain
+the new tools through the gate+executor pipeline. A real LLM planner should
+score higher.

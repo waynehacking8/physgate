@@ -478,3 +478,49 @@ adds the infrastructure and documents the cost/coverage trade-off honestly.
   The facade (`l2_physics.py` at 81 lines) preserves all existing import paths.
 - D-1: Covered all 75 missing public symbols (100%), exceeding the 80% target.
   One-line docstrings only — no boilerplate paragraphs.
+
+## D-026: Agent architecture upgrade — 5-phase implementation (2026-06-04)
+
+**What:** Full agent architecture upgrade from demo to industry-standard orchestrator,
+implemented in 5 phases per AGENT_UPGRADE.md design document.
+
+**Phase 1 — Tool expansion (3→10):**
+- 7 new tools: open_door, unlock_door, press_button, call_elevator, push_object,
+  inspect_object, request_assistance
+- SceneObject extended: +locked, pushable, weight_kg, floor
+- query_scene returns scene-conditional available_tools
+- Decision: all tools share the same thin-adapter pattern in core.py with
+  MockWorldBackend implementing deterministic symbolic logic
+
+**Phase 2 — Multi-task scenarios (1→6 types):**
+- T1-T6: fetch&place, locked-door, blocked-path, sequential, elevator, infeasible
+- 18 scenarios total (10 original + 8 new)
+- MockPlanner: task-type detection from scene structure (not task string parsing)
+- Decision: request_assistance in executor returns assistance_requested=True,
+  success=False — the executor signals handoff, not task completion
+
+**Phase 3 — Analytical replanning:**
+- failure_analyst.py: FailureReport schema with failure_type, root_cause,
+  affected_steps, suggested_fix, prefix_valid_through
+- Replan budget: attempt 1 = targeted repair, attempt 2 = full regeneration,
+  attempt 3 = escalate
+- Decision: failure_analyst_fn is optional (backward compatible), defaults to
+  blind regeneration when None
+
+**Phase 4 — Multi-agent cooperative handoff:**
+- New outcome: partial_success (distinguished from escalated = budget exhaustion)
+- handoff_request field in OrchestratorState
+- Gate treats assistance_requested plans as feasible (correct agent decision)
+- cooperative_delivery.py demo: two-orchestrator handoff pattern
+- Decision: cooperative handoff is a two-orchestrator pattern (spawn second
+  graph with handoff context), not a negotiation protocol
+
+**Phase 5 — Evaluation upgrade:**
+- New metrics: handoff_accuracy, replan_efficiency
+- 18 scenarios, target pass rate 60-80%
+- MockPlanner results: orchestrator_score=0.917, e2e_success=58.3%,
+  infeasible_recognition=100%, handoff_accuracy=100%
+
+**Revisit:** Isaac Sim integration of new tools (open_door, push_object need
+physics); LLM planner prompt optimization for T2-T6 tasks; negotiation protocol
+for multi-agent coordination beyond cooperative handoff.

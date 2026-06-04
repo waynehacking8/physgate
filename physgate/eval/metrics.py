@@ -33,6 +33,8 @@ class ScenarioResult(BaseModel):
     decomposition_valid: bool | None = None
     #: for gate-probe scenarios: the known-invalid plan was rejected (None otherwise)
     invalid_probe_caught: bool | None = None
+    #: handoff was correctly triggered (True) or correctly not triggered (True)
+    handoff_correct: bool | None = None
     replans_used: int = 0
     retries_used: int = 0
     candidates_generated: int = 0
@@ -119,6 +121,7 @@ def compute_metrics(results: list[ScenarioResult]) -> dict[str, float]:
     recovery = [r for r in results if r.category == "recovery" and r.expected_outcome == "done"]
     completed = [r for r in results if r.task_completed and r.decomposition_valid is not None]
     probes = [r for r in results if r.invalid_probe_caught is not None]
+    handoffs = [r for r in results if r.handoff_correct is not None]
 
     metrics = {
         "end_to_end_success_rate": _rate([r.task_completed for r in feasible]),
@@ -129,5 +132,17 @@ def compute_metrics(results: list[ScenarioResult]) -> dict[str, float]:
         "decomposition_validity_rate": _rate([bool(r.decomposition_valid) for r in completed]),
         "invalid_plan_catch_rate": _rate([bool(r.invalid_probe_caught) for r in probes]),
     }
-    metrics["orchestrator_score"] = round(sum(metrics.values()) / len(metrics), 3)
+    if handoffs:
+        metrics["handoff_accuracy"] = _rate([bool(r.handoff_correct) for r in handoffs])
+    replan_scenarios = [r for r in results if r.replans_used > 0]
+    if replan_scenarios:
+        metrics["replan_efficiency"] = _rate([r.task_completed for r in replan_scenarios])
+
+    core_keys = [
+        "end_to_end_success_rate", "infeasible_recognition_rate",
+        "recovery_rate", "decomposition_validity_rate", "invalid_plan_catch_rate",
+    ]
+    metrics["orchestrator_score"] = round(
+        sum(metrics[k] for k in core_keys) / len(core_keys), 3
+    )
     return metrics
