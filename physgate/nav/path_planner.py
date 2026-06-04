@@ -141,6 +141,7 @@ def _make_clear_fn(
     exempt_radius = tracking_error + 2 * SAFETY_MARGIN
 
     def clear_fn(point: tuple[float, float]) -> bool:
+        """Return True if the point satisfies the two-tier clearance model."""
         required = full
         if tracking_error > 0.0 and (
             math.hypot(point[0] - start[0], point[1] - start[1]) <= exempt_radius
@@ -177,15 +178,18 @@ def _astar_grid(
     rows = int((max_y - min_y) / resolution) + 1
 
     def to_cell(p: tuple[float, float]) -> tuple[int, int]:
+        """Convert a world-space point to its nearest grid cell."""
         return (
             int(round((p[0] - min_x) / resolution)),
             int(round((p[1] - min_y) / resolution)),
         )
 
     def to_point(c: tuple[int, int]) -> tuple[float, float]:
+        """Convert a grid cell back to world-space coordinates."""
         return (min_x + c[0] * resolution, min_y + c[1] * resolution)
 
     def cell_free(c: tuple[int, int]) -> bool:
+        """Return True if the cell is within bounds and traversable."""
         if not (0 <= c[0] < cols and 0 <= c[1] < rows):
             return False
         return clear_fn(to_point(c))
@@ -211,6 +215,7 @@ def _astar_grid(
     ]
 
     def heuristic(c: tuple[int, int]) -> float:
+        """Compute the octile distance heuristic from cell to goal."""
         dx, dy = abs(c[0] - goal_cell[0]), abs(c[1] - goal_cell[1])
         return max(dx, dy) + (math.sqrt(2) - 1) * min(dx, dy)
 

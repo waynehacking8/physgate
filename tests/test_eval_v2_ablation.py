@@ -14,11 +14,81 @@ is impossible) vs pre-execution rejection.
 
 from __future__ import annotations
 
+import math
+
 import pytest
 
+from physgate.eval_v2.ablation import instance_ci, wilson_ci
 from physgate.eval_v2.scenario_gen import generate_instances
 
 TASK = "put the fallen box back on shelf A"
+
+
+# --------------------------------------------------------- wilson_ci tests
+
+
+@pytest.mark.parametrize(
+    "successes, n, expected_lo, expected_hi",
+    [
+        (0, 10, 0.0, 0.2775),
+        (10, 10, 0.7225, 1.0),
+        (5, 10, 0.2366, 0.7634),
+        (50, 100, 0.4038, 0.5962),
+    ],
+    ids=["all_fail", "all_pass", "half", "large_n"],
+)
+def test_wilson_ci_known_values(successes, n, expected_lo, expected_hi):
+    lo, hi = wilson_ci(successes, n)
+    assert lo == pytest.approx(expected_lo, abs=0.001)
+    assert hi == pytest.approx(expected_hi, abs=0.001)
+
+
+def test_wilson_ci_empty_sample():
+    assert wilson_ci(0, 0) == (0.0, 1.0)
+
+
+def test_wilson_ci_bounds():
+    lo, hi = wilson_ci(3, 20)
+    assert 0.0 <= lo <= hi <= 1.0
+
+
+# --------------------------------------------------------- instance_ci tests
+
+
+@pytest.mark.parametrize(
+    "rates, check",
+    [
+        ([1.0, 1.0, 1.0, 1.0, 1.0], lambda lo, hi: lo > 0.5 and hi == 1.0),
+        ([0.0, 0.0, 0.0, 0.0, 0.0], lambda lo, hi: lo == 0.0 and hi < 0.5),
+        ([1.0, 0.0, 1.0, 0.0], lambda lo, hi: 0.0 < lo < 0.5 < hi < 1.0),
+        ([0.8, 0.9, 0.7, 0.85], lambda lo, hi: 0.5 < lo < hi < 1.0),
+    ],
+    ids=["all_pass", "all_fail", "mixed_binary", "fractional"],
+)
+def test_instance_ci_parametrized(rates, check):
+    lo, hi = instance_ci(rates)
+    assert 0.0 <= lo <= hi <= 1.0
+    assert check(lo, hi)
+
+
+def test_instance_ci_empty():
+    assert instance_ci([]) == (0.0, 1.0)
+
+
+def test_instance_ci_single():
+    assert instance_ci([0.75]) == (0.0, 1.0)
+
+
+def test_instance_ci_binary_delegates_to_wilson():
+    rates = [1.0, 1.0, 0.0, 0.0, 1.0]
+    assert instance_ci(rates) == wilson_ci(3, 5)
+
+
+def test_instance_ci_normal_approx_for_fractional():
+    rates = [0.5, 0.6, 0.7, 0.8]
+    lo, hi = instance_ci(rates)
+    mean = sum(rates) / len(rates)
+    assert lo < mean < hi
 
 
 @pytest.fixture(scope="module")

@@ -45,14 +45,17 @@ class MockWorldBackend:
     """
 
     def __init__(self, scene: Scene):
+        """Initialize with a deep copy of the given scene."""
         self._scene = scene.model_copy(deep=True)
 
     # ----- WorldBackend protocol -----
 
     def get_scene(self) -> Scene:
+        """Return the current symbolic scene state."""
         return self._scene
 
     def move_to_pose(self, target: str, standoff_m: float = 0.3, **kwargs: Any) -> dict[str, Any]:
+        """Move the robot near the target by updating the scene graph."""
         if not self._scene.has_object(target):
             return {"success": False, "error": f"move_to_pose target '{target}' not in scene"}
 
@@ -67,6 +70,7 @@ class MockWorldBackend:
         return {"success": True, "target": target, "standoff_m": standoff_m}
 
     def execute_skill(self, skill: str, target: str, **kwargs: Any) -> dict[str, Any]:
+        """Dispatch a pick or place skill against the symbolic scene."""
         if skill == "pick":
             return self._pick(target)
         if skill == "place":

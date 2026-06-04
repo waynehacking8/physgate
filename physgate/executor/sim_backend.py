@@ -58,6 +58,7 @@ class SimBackend:
     """WorldBackend executing against Isaac Sim (env 0), tracking symbolic state."""
 
     def __init__(self, scene: Scene, world: FetchSimWorld | None = None):
+        """Initialize with symbolic state and an Isaac Sim world for env 0."""
         self._symbolic = MockWorldBackend(scene)
         self._world = world or get_shared_world()
         self._device = self._world.device
@@ -72,9 +73,11 @@ class SimBackend:
     # ----- WorldBackend protocol -----
 
     def get_scene(self) -> Scene:
+        """Return the current symbolic scene from the inner backend."""
         return self._symbolic.get_scene()
 
     def move_to_pose(self, target: str, standoff_m: float = 0.3, **kwargs: Any) -> dict[str, Any]:
+        """Drive the robot along an A*-planned route to a standoff pose near the target."""
         symbolic = self._symbolic.move_to_pose(target=target, standoff_m=standoff_m, **kwargs)
         if not symbolic["success"]:
             return symbolic
@@ -135,6 +138,7 @@ class SimBackend:
         }
 
     def execute_skill(self, skill: str, target: str, **kwargs: Any) -> dict[str, Any]:
+        """Execute a pick or place skill physically in Isaac Sim."""
         if skill == "pick":
             return self._pick(target, **kwargs)
         if skill == "place":
@@ -256,10 +260,12 @@ class PolicySimExecutor:
     """
 
     def __init__(self, world: FetchSimWorld, policy_path):
+        """Initialize with a shared sim world and trained policy checkpoint."""
         self._world = world
         self._policy_path = policy_path
 
     def __call__(self, plan, scene: Scene) -> dict[str, Any]:
+        """Execute the plan with the walking policy and return structured results."""
         from physgate.gate.l2_physics import rollout_plans_with_policy
 
         result = rollout_plans_with_policy(self._world, [plan], self._policy_path)[0]

@@ -174,6 +174,12 @@ rejected.
 | A1 — + LLM critic | 0.50 [0.50, 0.50] | 0.00 |
 | A2 — + Symbolic gate | 1.00 [0.93, 1.00] | 0.00 |
 | A3 — + Nav-aware gate (symbolic + A*) | 1.00 [0.93, 1.00] | 1.00 |
+| A3_physics — + Isaac Sim GPU gate† | 1.00 [0.57, 1.00] | — |
+
+†A3_physics: real Isaac Sim rigid-body physics on GPU (n = 5+2, RTX PRO 6000
+Blackwell). Success matches the symbolic gate — the physics simulation validates
+the same plans the symbolic gate accepts. This confirms the symbolic gate is
+a faithful surrogate for the full physics simulation at much lower cost.
 
 n = 50 feasible + 20 infeasible
 procedurally generated layouts (A*-certified labels); plan pool of

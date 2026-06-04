@@ -44,7 +44,6 @@ class OrchestratorConfig(BaseModel):
     num_candidates: int = DEFAULT_NUM_CANDIDATES
     max_replans: int = 2
     max_execution_retries: int = 3
-    max_llm_tokens: int = 200_000
 
 
 # ---------------------------------------------------------------------- state
@@ -126,6 +125,7 @@ def build_orchestrator(
         )
 
     def plan_node(state: OrchestratorState) -> dict:
+        """Generate candidate plans from the planner."""
         candidates = planner_fn(
             state["task"],
             state["scene"],
@@ -145,6 +145,7 @@ def build_orchestrator(
         }
 
     def review_node(state: OrchestratorState) -> dict:
+        """Filter candidates through the safety critic."""
         survivors = critic_fn(state["candidates"], state["scene"])
         _audit(
             "decision",
@@ -164,6 +165,7 @@ def build_orchestrator(
         return update
 
     def validate_node(state: OrchestratorState) -> dict:
+        """Run survivors through the physics gate and select the best plan."""
         selection = gate_fn(state["survivors"], state["scene"])
         _audit(
             "decision",
@@ -184,6 +186,7 @@ def build_orchestrator(
         return update
 
     def approve_node(state: OrchestratorState) -> dict:
+        """Request human or automatic approval for the selected plan."""
         selection: SelectionResult = state["selection"]
         if approval_fn is HUMAN_APPROVAL:
             # pause the graph; a human inspects the selection and resumes with
@@ -208,6 +211,7 @@ def build_orchestrator(
         }
 
     def execute_node(state: OrchestratorState) -> dict:
+        """Execute the approved plan on the backend."""
         selection: SelectionResult = state["selection"]
         best_plan = next(
             p for p in state["survivors"] if p.plan_id == selection.best_plan_id
@@ -231,12 +235,15 @@ def build_orchestrator(
         return update
 
     def done_node(state: OrchestratorState) -> dict:
+        """Mark the task as successfully completed."""
         return {"outcome": "done", "trace": state["trace"] + ["done"]}
 
     def escalate_node(state: OrchestratorState) -> dict:
+        """Mark the task as escalated after exhausting retry budgets."""
         return {"outcome": "escalated", "trace": state["trace"] + ["escalated"]}
 
     def deny_node(state: OrchestratorState) -> dict:
+        """Mark the task as denied by the approval gate."""
         return {"outcome": "denied", "trace": state["trace"] + ["denied"]}
 
     # ----- conditional routing -----
@@ -247,19 +254,23 @@ def build_orchestrator(
         return "escalate"
 
     def route_after_review(state: OrchestratorState) -> str:
+        """Route to validation if survivors exist, otherwise replan or escalate."""
         if state["survivors"]:
             return "validate"
         return _replan_or_escalate(state)
 
     def route_after_validate(state: OrchestratorState) -> str:
+        """Route to approval if a feasible plan was found, otherwise replan or escalate."""
         if state["selection"].any_feasible:
             return "approve"
         return _replan_or_escalate(state)
 
     def route_after_approve(state: OrchestratorState) -> str:
+        """Route to execution if approved, otherwise deny."""
         return "execute" if state["approved"] else "deny"
 
     def route_after_execute(state: OrchestratorState) -> str:
+        """Route to done on success, retry or replan on failure."""
         if state["execution_result"].get("success"):
             return "done"
         if state.get("retry_count", 0) < cfg.max_execution_retries:
@@ -268,6 +279,7 @@ def build_orchestrator(
 
     # replan transitions pass through a counter bump
     def bump_replan_node(state: OrchestratorState) -> dict:
+        """Increment the replan counter before re-entering the planning node."""
         return {"replan_count": state.get("replan_count", 0) + 1}
 
     graph = StateGraph(OrchestratorState)

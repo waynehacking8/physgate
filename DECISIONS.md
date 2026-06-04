@@ -455,3 +455,26 @@ said "Physics gate" but no physics ever ran. This is an overclaim. The fix
 adds the infrastructure and documents the cost/coverage trade-off honestly.
 
 **Run:** `source ~/env_isaaclab/bin/activate && python benchmarks/eval_v2/run_ablation.py --physics --physics-instances 5`
+
+## D-025: Second review round — code quality cleanup (2026-06-04)
+
+**Decision:** Completed 10 items from the second adversarial review:
+
+| ID | Change |
+|----|--------|
+| CC-1 | `AnthropicClientProtocol` applied to all 5 `client:` params (planner + critic) |
+| CC-2 | D5 unreachable-goal unit tests (2 tests) |
+| CC-3 | Stale sample sizes harmonized across 5 files |
+| T-1 | `wilson_ci()` / `instance_ci()` parametrized unit tests (11 tests) |
+| E-1 | README E1 table: A3_physics footnote row with honest n=5+2 |
+| CQ-1 | `l2_physics.py` split: rollout functions → `rollouts.py` (695→81+580) |
+| D-1 | Public API docstring coverage 69.4% → 100% |
+| A-1 | Dead `max_llm_tokens` config field deleted |
+| S-4 | Debug `print()` → `logging.debug()` in l2_physics rollout |
+
+**Trade-offs:**
+- CQ-1: `rollouts.py` is 580 lines (two self-contained rollout functions), still above
+  the 400-line preference but the physics state machines are inherently monolithic.
+  The facade (`l2_physics.py` at 81 lines) preserves all existing import paths.
+- D-1: Covered all 75 missing public symbols (100%), exceeding the 80% target.
+  One-line docstrings only — no boilerplate paragraphs.

@@ -107,6 +107,7 @@ def _vlabel(ax, bar, text, *, fontsize=8.5, y_override=None, color=INK):
 # ── statistics ───────────────────────────────────────────────────────────
 
 def aggregate_metric_repeats(repeats: list[list[dict]]) -> dict[str, dict[str, dict]]:
+    """Compute mean and std per metric across repeated evaluation runs."""
     collected: dict[str, dict[str, list[float]]] = {}
     for run in repeats:
         for report in run:
@@ -133,6 +134,7 @@ def aggregate_metric_repeats(repeats: list[list[dict]]) -> dict[str, dict[str, d
 def feasibility_chart(
     data: dict, output: str | Path, repeats: list[dict] | None = None
 ) -> Path:
+    """Render a pre-vs-post-rebuild plan feasibility bar chart."""
     _setup_style()
     fig, ax = plt.subplots(figsize=(5.2, 3.8), layout="constrained")
 
@@ -176,6 +178,7 @@ def feasibility_chart(
 def orchestrator_chart(
     reports: list[dict], output: str | Path, repeats: list[list[dict]] | None = None
 ) -> Path:
+    """Render a grouped bar chart of orchestrator quality metrics per planner."""
     _setup_style()
     fig, ax = plt.subplots(figsize=(9.5, 4.0), layout="constrained")
 
@@ -235,6 +238,7 @@ ABLATION_COLORS = ["#bab0ac", "#f28e2b", "#4e79a7", "#59a14f"]
 
 
 def ablation_chart(data: dict, output: str | Path) -> Path:
+    """Render a two-panel ablation chart showing success and rejection rates."""
     _setup_style()
     fig, (ax_s, ax_r) = plt.subplots(
         1, 2, figsize=(10.0, 4.0), layout="constrained",
@@ -312,6 +316,7 @@ DEFECT_LABELS = {
 
 
 def gate_classifier_chart(data: dict, output: str | Path) -> Path:
+    """Render a recall bar chart and per-defect correctness heatmap."""
     _setup_style()
     fig, (ax_bar, ax_mat) = plt.subplots(
         1, 2, figsize=(12.5, 5.0), layout="constrained",
@@ -390,6 +395,7 @@ def gate_classifier_chart(data: dict, output: str | Path) -> Path:
 # ── GPU scaling ──────────────────────────────────────────────────────────
 
 def gpu_scaling_chart(data: dict, output: str | Path) -> Path:
+    """Render a log-log throughput and scaling efficiency chart."""
     _setup_style()
     fig, ax = plt.subplots(figsize=(7.0, 4.0), layout="constrained")
 

@@ -17,11 +17,21 @@ from __future__ import annotations
 import json
 import os
 import re
-from typing import Any
+from typing import Any, Protocol, runtime_checkable
 
 from physgate.gate.schemas import Scene
 from physgate.planner.schemas import Plan, PlanStep, RelationChange, ToolName
 from physgate.world.scene_graph import objects_with_affordance, to_query_scene_payload
+
+
+@runtime_checkable
+class AnthropicClientProtocol(Protocol):
+    """Minimal interface matching the Anthropic SDK client (or headless wrapper)."""
+
+    class _Messages(Protocol):
+        def create(self, *, model: str, max_tokens: int, system: str, messages: list) -> Any: ...
+
+    messages: _Messages
 
 _MAX_FEEDBACK_LEN = 2000
 _MAX_TASK_LEN = 1000
@@ -169,9 +179,10 @@ class ClaudePlanner:
         self,
         model: str = DEFAULT_PLANNER_MODEL,
         api_key: str | None = None,
-        client: Any = None,
+        client: AnthropicClientProtocol | None = None,
         max_tokens: int = 16384,
     ):
+        """Initialize with an Anthropic client, model name, and token budget."""
         if client is None:
             if api_key is not None:
                 import anthropic
@@ -184,6 +195,7 @@ class ClaudePlanner:
         self._max_tokens = max_tokens
 
     def __call__(self, task: str, scene: Scene, n: int, feedback: str | None = None) -> list[Plan]:
+        """Generate n candidate plans for the task via the Claude API."""
         safe_task = _sanitize_prompt_input(task, _MAX_TASK_LEN)
         user_prompt = (
             f"Task: {safe_task}\n\n"
@@ -231,6 +243,7 @@ class MockPlanner:
     """
 
     def __call__(self, task: str, scene: Scene, n: int, feedback: str | None = None) -> list[Plan]:
+        """Generate n structurally diverse candidate plans from templates."""
         fetch_target = self._fetch_target(scene)
         place_target = self._place_target(scene)
         rationale_suffix = " (replan after gate feedback)" if feedback else ""
@@ -373,7 +386,7 @@ class MockPlanner:
 
 
 def make_planner(
-    model: str = DEFAULT_PLANNER_MODEL, client: Any = None
+    model: str = DEFAULT_PLANNER_MODEL, client: AnthropicClientProtocol | None = None
 ) -> ClaudePlanner | MockPlanner:
     """Return ClaudePlanner if LLM credentials are available, else MockPlanner."""
     if client is not None or llm_credentials_available():

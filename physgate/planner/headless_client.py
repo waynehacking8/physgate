@@ -68,6 +68,7 @@ class _HeadlessMessages:
     """Mimics ``anthropic.Anthropic().messages``."""
 
     def __init__(self, client: ClaudeCodeHeadlessClient):
+        """Initialize with a reference to the parent headless client."""
         self._client = client
 
     def create(
@@ -79,6 +80,7 @@ class _HeadlessMessages:
         max_tokens: int | None = None,  # noqa: ARG002 — accepted for SDK parity, claude -p manages it
         **_ignored,
     ) -> HeadlessResponse:
+        """Run a prompt through claude -p and return an SDK-compatible response."""
         prompt = "\n\n".join(
             m["content"]
             for m in messages
@@ -105,6 +107,7 @@ class ClaudeCodeHeadlessClient:
         claude_bin: str = "claude",
         timeout_s: float = DEFAULT_TIMEOUT_S,
     ):
+        """Initialize with an OAuth token and claude CLI configuration."""
         token = (
             oauth_token
             or os.environ.get("CLAUDE_CODE_OAUTH_TOKEN")

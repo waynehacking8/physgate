@@ -30,14 +30,17 @@ def create_server(backend: WorldBackend, name: str = "physgate") -> FastMCP:
 
     @server.tool(name="query_scene", description="Get the current scene graph: objects, relations, gripper state, anomalies.")
     def query_scene() -> dict[str, Any]:
+        """Return the current scene graph via the backend."""
         return query_scene_tool(backend)
 
     @server.tool(name="move_to_pose", description="Move the robot base to a standoff pose near a target object.")
     def move_to_pose(target: str, standoff_m: float = 0.3, speed: float = 0.5) -> dict[str, Any]:
+        """Move the robot to a standoff pose near the target object."""
         return move_to_pose_tool(backend, target=target, standoff_m=standoff_m, speed=speed)
 
     @server.tool(name="execute_skill", description="Execute a manipulation skill ('pick' or 'place') on a target object.")
     def execute_skill(skill: str, target: str) -> dict[str, Any]:
+        """Execute a pick or place skill on the target object."""
         return execute_skill_tool(backend, skill=skill, target=target)
 
     return server

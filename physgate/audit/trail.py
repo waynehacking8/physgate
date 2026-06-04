@@ -35,6 +35,7 @@ class AuditTrail:
     """Collects audit records and maintains periodic Merkle checkpoints."""
 
     def __init__(self, checkpoint_every: int = 16):
+        """Initialize with empty record store and checkpoint interval."""
         self.__records: list[AuditRecord] = []
         self.checkpoints: list[MerkleCheckpoint] = []
         self._checkpoint_every = checkpoint_every

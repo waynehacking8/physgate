@@ -37,6 +37,7 @@ class TopDownRenderer:
         y_range: tuple[float, float] = (-2.5, 2.0),
         pixels_per_meter: int = 60,
     ):
+        """Initialize with world coordinate bounds and pixel resolution."""
         self.x_range = x_range
         self.y_range = y_range
         self.ppm = pixels_per_meter

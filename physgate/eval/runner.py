@@ -49,6 +49,7 @@ def run_scenario(
     if scenario.probe_plans:
 
         def effective_planner(task: str, scene: Scene, n: int, feedback: str | None) -> list[Plan]:
+            """Return the scenario's pre-defined probe plans instead of calling the planner."""
             return list(scenario.probe_plans)
 
     else:
@@ -59,12 +60,14 @@ def run_scenario(
     backends: list[WorldBackend] = []
 
     def executor_fn(plan: Plan, scene: Scene) -> dict:
+        """Execute a plan against a fresh backend, optionally with fault injection."""
         factory = injector.backend_factory if injector else MockWorldBackend
         backend = factory(scenario.scene)
         backends.append(backend)
         return execute_plan(plan, backend)
 
     def gate_fn(plans: list[Plan], scene: Scene) -> SelectionResult:
+        """Run the symbolic L2 gate over candidate plans."""
         return run_gate(plans, scene, l2_fn=symbolic_l2)
 
     graph = build_orchestrator(

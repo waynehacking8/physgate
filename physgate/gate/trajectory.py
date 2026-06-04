@@ -81,6 +81,7 @@ class PlanTrajectory:
 
     @property
     def duration_steps(self) -> int:
+        """Return the total number of trajectory steps."""
         return len(self.positions)
 
 
@@ -145,6 +146,7 @@ def synthesize_base_trajectory(
     last_speed = 0.0
 
     def hold(steps: int) -> None:
+        """Append stationary frames at the current position for the given step count."""
         for _ in range(steps):
             positions.append(current.copy())
             yaws.append(yaw)

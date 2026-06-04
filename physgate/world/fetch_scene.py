@@ -106,6 +106,7 @@ class FetchSimWorld:
     ENTITY_TO_OBJECT_ID = {"box": "box_03", "shelf": "shelf_A", "obstacle": "obstacle_P"}
 
     def __init__(self, num_envs: int = 8, device: str = "cuda:0", physics_dt: float = 0.005):
+        """Initialize the Isaac simulation context and N-env fetch scene."""
         # default physics_dt matches the Go2 locomotion policy's training timestep
         # (velocity_env_cfg: sim.dt = 0.005, decimation 4 -> 50 Hz policy)
         self.sim = SimulationContext(sim_utils.SimulationCfg(dt=physics_dt, device=device))
@@ -120,14 +121,17 @@ class FetchSimWorld:
 
     @property
     def robot(self):
+        """Return the robot articulation asset from the scene."""
         return self.scene["robot"]
 
     @property
     def box(self):
+        """Return the box rigid object asset from the scene."""
         return self.scene["box"]
 
     @property
     def env_origins(self) -> torch.Tensor:
+        """Return the per-environment origin positions."""
         return self.scene.env_origins
 
     # ----- stepping -----

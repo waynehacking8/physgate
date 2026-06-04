@@ -16,10 +16,8 @@ from __future__ import annotations
 
 import json
 import re
-from typing import Any
-
 from physgate.gate.schemas import Scene
-from physgate.planner.planner import DEFAULT_PLANNER_MODEL
+from physgate.planner.planner import DEFAULT_PLANNER_MODEL, AnthropicClientProtocol
 from physgate.planner.schemas import Plan, ToolName
 from physgate.world.scene_graph import objects_with_affordance, to_query_scene_payload
 
@@ -54,6 +52,7 @@ class MockCritic:
     """Deterministic structural safety checks (no LLM)."""
 
     def __call__(self, plans: list[Plan], scene: Scene) -> list[Plan]:
+        """Filter plans by deterministic structural safety checks."""
         return [p for p in plans if self._is_safe(p, scene)]
 
     @staticmethod
@@ -85,9 +84,10 @@ class ClaudeCritic:
         self,
         model: str = DEFAULT_PLANNER_MODEL,
         api_key: str | None = None,
-        client: Any = None,
+        client: AnthropicClientProtocol | None = None,
         max_tokens: int = 4096,
     ):
+        """Initialize with an Anthropic client, model name, and token budget."""
         if client is None:
             if api_key is not None:
                 import anthropic
@@ -102,6 +102,7 @@ class ClaudeCritic:
         self._max_tokens = max_tokens
 
     def __call__(self, plans: list[Plan], scene: Scene) -> list[Plan]:
+        """Judge plans against safety contracts via the Claude API."""
         if not plans:
             return []  # nothing to review — skip the LLM round-trip
         contracts = "\n".join(f"{i + 1}. {c}" for i, c in enumerate(SAFETY_CONTRACTS))
@@ -146,7 +147,7 @@ class ClaudeCritic:
 
 
 def make_critic(
-    model: str = DEFAULT_PLANNER_MODEL, client: Any = None
+    model: str = DEFAULT_PLANNER_MODEL, client: AnthropicClientProtocol | None = None
 ) -> ClaudeCritic | MockCritic:
     """Return ClaudeCritic if LLM credentials are available, else MockCritic."""
     from physgate.planner.planner import llm_credentials_available

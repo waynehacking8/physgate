@@ -31,6 +31,8 @@ class FailureCode(str, Enum):
 
 
 class GateLayer(str, Enum):
+    """Validation layer that produced a failure report."""
+
     KINEMATIC_LIMIT = "kinematic_limit"
     PHYSICS = "physics"
     SEMANTIC_PRECONDITION = "semantic_precondition"
@@ -83,7 +85,9 @@ class Scene(BaseModel):
     gripper_empty: bool = True
 
     def has_object(self, object_id: str) -> bool:
+        """Return True if an object with the given id exists in the scene."""
         return any(o.id == object_id for o in self.objects)
 
     def has_relation(self, subject: str, predicate: str, obj: str) -> bool:
+        """Return True if the specified relation triple exists."""
         return (subject, predicate, obj) in self.relations

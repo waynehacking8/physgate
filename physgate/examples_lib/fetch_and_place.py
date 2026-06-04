@@ -162,9 +162,11 @@ def run_fetch_and_place(
     backends: list[WorldBackend] = []
 
     def gate_fn(plans: list[Plan], gate_scene: Scene) -> SelectionResult:
+        """Run the gate with the configured L2 physics function."""
         return run_gate(plans, gate_scene, l2_fn=l2_fn)
 
     def default_executor_fn(plan: Plan, _scene: Scene) -> dict[str, Any]:
+        """Execute a plan on a freshly created backend from the initial scene."""
         execution_backend = backend_factory(initial_scene)
         backends.append(execution_backend)
         return execute_plan(plan, execution_backend)
@@ -179,6 +181,7 @@ def run_fetch_and_place(
     if auto_approve:
 
         def approval_fn(selection: SelectionResult) -> bool:
+            """Auto-approve all gate selections in demo mode."""
             return True
 
         checkpointer = None

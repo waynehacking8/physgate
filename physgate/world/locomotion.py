@@ -62,6 +62,7 @@ class Go2PolicyController:
     NUM_ACTIONS = 12
 
     def __init__(self, policy_path: str | Path, num_envs: int, device: str = "cuda:0"):
+        """Initialize with a TorchScript policy, env count, and device."""
         self.policy = torch.jit.load(str(policy_path), map_location=device)
         self.policy.eval()
         self.device = device
@@ -118,6 +119,7 @@ class WaypointNavigator:
         heading_gain: float = 1.5,
         heading_deadband: float = 0.6,
     ):
+        """Initialize with env count, device, and navigation controller gains."""
         self.num_envs = num_envs
         self.device = device
         self.arrival_tolerance = arrival_tolerance
