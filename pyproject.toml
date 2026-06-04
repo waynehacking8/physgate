@@ -33,7 +33,7 @@ dependencies = [
 [project.optional-dependencies]
 # dev includes everything the test suite imports, so that
 # `pip install -e ".[dev]" && pytest` passes from a fresh clone (REBUILD.md Phase 4)
-dev = ["pytest>=8.0", "pytest-cov>=5.0", "ruff>=0.6", "mcp>=1.2", "anthropic>=0.40", "matplotlib>=3.8", "Pillow>=10.0"]
+dev = ["pytest>=8.0", "pytest-cov>=5.0", "ruff>=0.6", "mcp>=1.2", "anthropic>=0.40", "matplotlib>=3.8", "Pillow>=10.0", "rich>=13.0"]
 # Claude API planner/critic (optional: mock fallback used when absent)
 llm = ["anthropic>=0.40"]
 # MCP server tools

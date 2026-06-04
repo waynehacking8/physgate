@@ -14,6 +14,27 @@
 
 ---
 
+## Watch it run
+
+<p align="center">
+  <img src="docs/media/isaac_rollout.gif" alt="Go2 walking a validated fetch-and-place plan in Isaac Sim" width="640">
+</p>
+
+<p align="center">
+  <em>A trained Go2 locomotion policy walks an A*-planned route, picks the fallen box,
+  carries it around the obstacle, and places it on the shelf — validated by the physics
+  gate before execution.</em>
+</p>
+
+<p align="center">
+  <img src="docs/media/topdown_trajectory.gif" alt="Planned A* route (amber) vs the trail the robot actually walked (teal)" width="680">
+</p>
+
+<p align="center">
+  <em>Planned route (amber) vs actually-walked trail (teal). The robot follows the
+  A*-planned path around the obstacle and places the box on the shelf.</em>
+</p>
+
 > [!WARNING]
 > **Research software — NOT a certified safety system.** physgate is a research
 > prototype. It does **not** implement or replace any safety function under
@@ -111,37 +132,6 @@ flowchart TD
 
 Full design: [`docs/design/architecture.md`](docs/design/architecture.md) and the
 architecture-correction record [`docs/design/REBUILD.md`](docs/design/REBUILD.md).
-
-## Watch it run — real robotic control in Isaac Sim
-
-**Isaac Sim camera — policy-validation rollout** (Go2 rsl_rl walking policy, PhysX):
-
-<p align="center">
-  <img src="docs/media/isaac_rollout.gif" alt="Go2 walking a validated fetch-and-place plan in Isaac Sim" width="640">
-</p>
-
-A trained Go2 locomotion policy (rsl_rl) walks the A\*-planned route around the
-pillar (red), picks the fallen box, carries it, and places it on the shelf — captured
-live from the **same code path the Sim-Gate uses for validation**
-(`rollout_plans_with_policy` + recording hook, [`benchmarks/rebuild/record_rollout.py`](benchmarks/rebuild/record_rollout.py)).
-The carried box rides overhead because the MVP carry is explicit bookkeeping, not
-gripper physics (see `DECISIONS.md` D-018); what *is* physics: walking, obstacle
-clearance, and the momentum-carrying release at placement.
-
-**Top-down trajectory — planned A\* route vs the trail the robot actually walked:**
-
-<p align="center">
-  <img src="docs/media/topdown_trajectory.gif" alt="Planned A* route (amber) vs the trail the robot actually walked (teal)" width="680">
-</p>
-
-The planned route (amber dashed) and the robot's actually-walked trail (teal) —
-recorded from simulation state, with automated plausibility checks (trail never
-enters the obstacle footprint; box ends at shelf height; speed stays in the
-locomotion envelope). Raw data: [`docs/media/rollout_trajectory.json`](docs/media/rollout_trajectory.json).
-
-> Both clips are committed under [`docs/media/`](docs/media/) (`isaac_rollout.gif`,
-> `topdown_trajectory.gif`) and also available as MP4 (`isaac_rollout.mp4`).
-> If a GIF does not animate in your viewer, open it directly from the repo.
 
 ## Status
 
