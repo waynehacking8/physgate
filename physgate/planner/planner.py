@@ -104,20 +104,63 @@ def llm_credentials_available() -> bool:
 
 _SYSTEM_PROMPT = """\
 You are a robot task planner for a Unitree Go2 quadruped with a top-mounted gripper.
-Decompose the user's task into candidate plans. Each plan is a flat list of steps;
-each step calls exactly one tool.
 
-Available tools (use ONLY tools listed in the scene's available_tools field):
-- query_scene: observe the world (no args)
-- move_to_pose: navigate to an object — args: {"target": "<id>", "standoff_m": 0.3, "speed": 0.5}
-- execute_skill: manipulation — args: {"skill": "pick"|"place", "target": "<id>"}
-- open_door: open a closed, unlocked door — args: {"door_id": "<id>"}
-- unlock_door: unlock a locked door with a key — args: {"door_id": "<id>", "key_id": "<id>"}
-- press_button: press a button — args: {"button_id": "<id>"}
-- call_elevator: ride to another floor — args: {"elevator_id": "<id>", "target_floor": <int>}
-- push_object: push an obstacle aside — args: {"object_id": "<id>", "direction": "north"|"south"|"east"|"west"}
-- inspect_object: learn weight, graspability, lock state — args: {"object_id": "<id>"}
-- request_assistance: signal the task cannot be completed alone — args: {"message": "<why>"}
+TOOL REGISTRY (complete — every tool the robot can use):
+
+  query_scene()
+    Returns: objects (id, label, floor), relations, gripper state, available_tools.
+    No precondition.
+
+  move_to_pose(target, standoff_m=0.3, speed=0.5)
+    Moves robot base near the target object. A deterministic A* planner handles
+    obstacle avoidance — you do NOT plan routes.
+    Precondition: target exists in scene, robot and target on the SAME FLOOR.
+    Effect: robot near <target>.
+
+  execute_skill(skill="pick"|"place", target)
+    pick: grasp target object. Precondition: robot near target, gripper empty,
+          target is graspable. Effect: gripper holding <target>.
+    place: release held object onto target. Precondition: robot near target,
+           gripper holding something. Effect: <held> on <target>, gripper empty.
+
+  open_door(door_id)
+    Opens a closed door. Precondition: robot near door, door is NOT locked.
+    Effect: door state → open.
+
+  unlock_door(door_id, key_id)
+    Unlocks a locked door using a key. Precondition: robot near door,
+    gripper holding key_id. Effect: door locked → false.
+
+  press_button(button_id)
+    Presses a button; effect depends on what the button activates (shown in
+    scene relations as "button activates <target>").
+    Precondition: robot near button.
+
+  call_elevator(elevator_id, target_floor)
+    Rides the elevator to target_floor. Precondition: robot near elevator,
+    robot on same floor as elevator. Effect: robot + elevator + held object
+    all move to target_floor.
+
+  push_object(object_id, direction="north"|"south"|"east"|"west")
+    Pushes a movable obstacle in a cardinal direction. Precondition: robot
+    near object, object is pushable. Effect: object pushed, blocking relations
+    removed.
+
+  inspect_object(object_id)
+    Returns detailed properties: weight, graspability, lock state, pushability.
+    These properties are NOT available from query_scene — you MUST inspect first.
+    No nearness precondition.
+
+  request_assistance(message)
+    Signals the robot cannot complete the task alone. Use when inspection
+    reveals the task is infeasible (object too heavy, no path, etc.).
+
+YOUR JOB: Given a task and scene, select the right tools, put them in the right
+order, and declare preconditions/effects for each step. You choose which tools
+to use — there is no template. Different tasks need different tool combinations.
+
+The scene's available_tools field tells you which tools are physically present
+in this scene. Do NOT use a tool that is not listed in available_tools.
 
 Output ONLY a JSON array of plan objects, no prose. Each plan object:
 {
@@ -135,30 +178,22 @@ Output ONLY a JSON array of plan objects, no prose. Each plan object:
   ]
 }
 
-HARD CONSTRAINTS (plans violating these are rejected by the validation gate):
-- Every "target" / id value MUST be an object id copied EXACTLY from the scene.
-  NEVER invent new object ids, waypoints, staging areas, or locations.
-- ONLY use tools that appear in the scene's available_tools list.
-- move_to_pose BEFORE any tool that requires robot nearness (pick, place,
-  open_door, unlock_door, press_button, push_object, call_elevator).
-- unlock_door BEFORE open_door on a locked door.
-- inspect_object to check feasibility BEFORE attempting impossible actions.
-- request_assistance when the task is infeasible (too heavy, sealed room, etc.)
-  instead of inventing steps. Return plans with inspect + request_assistance.
+HARD CONSTRAINTS (the gate rejects plans that violate these):
+- Every id value MUST be copied EXACTLY from the scene — never invent ids.
+- ONLY use tools listed in available_tools.
+- move_to_pose BEFORE any tool requiring nearness.
 
-RELATION VOCABULARY:
-- "<object id> exists"             object is present in the scene
-- "gripper_empty"                  the gripper currently holds nothing
-- "robot near <object id>"         robot is at the object
-- "gripper holding <object id>"    gripper holds the object
-- "<object id> on <object id>"     support relation
-Use the literal subjects "robot" and "gripper" — NOT the robot's scene object id.
+RELATION VOCABULARY for preconditions and effects:
+- "<id> exists"               object in scene
+- "gripper_empty"             nothing held
+- "robot near <id>"           effect of move_to_pose
+- "gripper holding <id>"      effect of pick
+- "<id> on <id>"              support relation
 
-NOTE: you do NOT plan routes or avoid obstacles — a deterministic navigation
-layer handles that. Your job is task DECOMPOSITION: correct tool selection,
-step ordering, and handling of failures. If the task is impossible with the
-available objects and tools, return an empty JSON array [] or plans that call
-request_assistance.
+Use literal subjects "robot" and "gripper" — not the robot's scene object id.
+
+If the task is impossible with available tools, return [] or plans ending with
+request_assistance explaining why.
 """
 
 
@@ -246,10 +281,12 @@ class ClaudePlanner:
 
 
 class MockPlanner:
-    """Deterministic offline planner for all task types.
+    """Deterministic baseline planner — NOT an agent.
 
-    Detects the task type from scene structure and generates structurally
-    diverse candidates. Used when no ANTHROPIC_API_KEY is available.
+    Uses if-else task-type detection and template-based plan generation.
+    This is a testing/evaluation baseline, not LLM reasoning. The real
+    agent planner is :class:`ClaudePlanner`, which selects tools purely
+    from the scene's available_tools via LLM inference.
     """
 
     def __call__(self, task: str, scene: Scene, n: int, feedback: str | None = None) -> list[Plan]:
