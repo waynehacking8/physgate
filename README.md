@@ -16,24 +16,23 @@
 ## Watch it run
 
 <p align="center">
-  <img src="docs/media/t2_locked_door.gif" alt="T2: Locked-door delivery — key, unlock, open, deliver" width="680">
+  <img src="docs/media/t2_isaac_door.gif" alt="T2: Locked-door delivery in Isaac Sim — key, unlock, open, deliver" width="680">
 </p>
 
 <p align="center">
-  <em><b>T2: Locked-door delivery</b> (top-down plan visualization) — the agent picks up
-  the key, unlocks the door, opens it, then delivers the box. 9 steps, 4 tools
-  (move_to_pose, execute_skill, unlock_door, open_door). Tool selection shown
-  in the red badge per frame.</em>
+  <em><b>T2: Locked-door delivery</b> (Isaac Sim 3D) — the Go2 picks up the key (gold),
+  navigates to the locked door (brown panel), unlocks and opens it (door disappears),
+  then fetches the box and delivers it to the shelf. 4 different tools used.</em>
 </p>
 
 <p align="center">
-  <img src="docs/media/t3_push_delivery.gif" alt="T3: Blocked-path clearance — top-down plan visualization" width="680">
+  <img src="docs/media/t3_isaac_push.gif" alt="T3: Blocked-path clearance in Isaac Sim — push crate then deliver" width="680">
 </p>
 
 <p align="center">
-  <em><b>T3: Blocked-path clearance</b> (top-down plan visualization) — the agent
-  inspects the crate, pushes it east, then fetches the box and delivers it.
-  Uses inspect_object + push_object before the standard pick-and-place chain.</em>
+  <em><b>T3: Blocked-path clearance</b> (Isaac Sim 3D) — the Go2 pushes the blocking
+  crate (brown) aside via physics collision, then fetches the box and delivers
+  it to the shelf past the obstacle (red pillar).</em>
 </p>
 
 <p align="center">
@@ -41,10 +40,9 @@
 </p>
 
 <p align="center">
-  <em><b>T1: Baseline fetch-and-place</b> (Isaac Sim 3D physics) — a trained Go2
-  locomotion policy walks an A*-planned route, picks the fallen box, carries it
-  around the obstacle, and places it on the shelf — validated by the Sim-Gate
-  before execution.</em>
+  <em><b>T1: Baseline fetch-and-place</b> (Isaac Sim 3D) — a trained Go2 locomotion
+  policy walks an A*-planned route, picks the fallen box, carries it around
+  the obstacle, and places it on the shelf.</em>
 </p>
 
 > [!WARNING]
