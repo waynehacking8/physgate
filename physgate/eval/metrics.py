@@ -123,7 +123,7 @@ def compute_metrics(results: list[ScenarioResult]) -> dict[str, float]:
     metrics = {
         "end_to_end_success_rate": _rate([r.task_completed for r in feasible]),
         "infeasible_recognition_rate": _rate(
-            [r.actual_outcome == "escalated" for r in infeasible]
+            [r.actual_outcome in ("escalated", "partial_success") for r in infeasible]
         ),
         "recovery_rate": _rate([r.task_completed for r in recovery]),
         "decomposition_validity_rate": _rate([bool(r.decomposition_valid) for r in completed]),

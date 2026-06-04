@@ -65,6 +65,7 @@ class OrchestratorState(TypedDict, total=False):
     failure_feedback: str | None
     failure_report: dict[str, Any] | None
     replan_strategy: str
+    handoff_request: str | None
     outcome: str
     trace: list[str]
 
@@ -231,7 +232,9 @@ def build_orchestrator(
             "execution_result": result,
             "trace": state["trace"] + ["executing"],
         }
-        if not result.get("success"):
+        if result.get("assistance_requested"):
+            update["handoff_request"] = result.get("message", "assistance needed")
+        elif not result.get("success"):
             update["retry_count"] = state.get("retry_count", 0) + 1
             update["failure_feedback"] = (
                 f"execution failed after validation: {result.get('error', 'unknown error')}"
@@ -245,6 +248,10 @@ def build_orchestrator(
     def escalate_node(state: OrchestratorState) -> dict:
         """Mark the task as escalated after exhausting retry budgets."""
         return {"outcome": "escalated", "trace": state["trace"] + ["escalated"]}
+
+    def partial_success_node(state: OrchestratorState) -> dict:
+        """Mark the task as partially completed with a handoff request."""
+        return {"outcome": "partial_success", "trace": state["trace"] + ["partial_success"]}
 
     def deny_node(state: OrchestratorState) -> dict:
         """Mark the task as denied by the approval gate."""
@@ -274,9 +281,12 @@ def build_orchestrator(
         return "execute" if state["approved"] else "deny"
 
     def route_after_execute(state: OrchestratorState) -> str:
-        """Route to done on success, analyze failure or retry on failure."""
-        if state["execution_result"].get("success"):
+        """Route to done on success, partial_success on handoff, analyze or retry on failure."""
+        result = state["execution_result"]
+        if result.get("success"):
             return "done"
+        if result.get("assistance_requested"):
+            return "partial_success"
         if state.get("retry_count", 0) < cfg.max_execution_retries:
             return "retry"
         if failure_analyst_fn is not None:
@@ -350,6 +360,7 @@ def build_orchestrator(
     graph.add_node("bump_replan", bump_replan_node)
     graph.add_node("finish_done", done_node)
     graph.add_node("finish_escalated", escalate_node)
+    graph.add_node("finish_partial", partial_success_node)
     graph.add_node("finish_denied", deny_node)
 
     if failure_analyst_fn is not None:
@@ -375,6 +386,7 @@ def build_orchestrator(
 
     execute_edges = {
         "done": "finish_done",
+        "partial_success": "finish_partial",
         "retry": "execute",
     }
     if failure_analyst_fn is not None:
@@ -397,6 +409,7 @@ def build_orchestrator(
     graph.add_edge("bump_replan", "plan")
     graph.add_edge("finish_done", END)
     graph.add_edge("finish_escalated", END)
+    graph.add_edge("finish_partial", END)
     graph.add_edge("finish_denied", END)
 
     return graph.compile(checkpointer=checkpointer)
@@ -424,6 +437,7 @@ def run_task(
         "failure_feedback": None,
         "failure_report": None,
         "replan_strategy": "",
+        "handoff_request": None,
         "outcome": "",
         "trace": [],
     }

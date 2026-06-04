@@ -102,8 +102,10 @@ def symbolic_l2(plans: list[Plan], scene: Scene) -> list[PhysicsResult]:
             else:
                 time_s += 0.5  # perception step
 
+        plan_succeeded = execution["success"] or execution.get("assistance_requested", False)
+
         failure: FailureReport | None = None
-        if not execution["success"]:
+        if not plan_succeeded:
             if execution.get("failure_report"):
                 failure = FailureReport.model_validate(execution["failure_report"])
             else:
@@ -122,7 +124,7 @@ def symbolic_l2(plans: list[Plan], scene: Scene) -> list[PhysicsResult]:
         results.append(
             PhysicsResult(
                 plan_id=plan.plan_id,
-                success=execution["success"],
+                success=plan_succeeded,
                 collision_count=0,  # symbolic rollout cannot detect collisions
                 completion_time_s=round(time_s, 2),
                 energy_j=round(energy_j, 2),

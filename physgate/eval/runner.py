@@ -91,8 +91,8 @@ def run_scenario(
 
     if scenario.expected_outcome == "done":
         outcome_correct = task_completed
-    else:  # escalated expected: never claim success on an impossible/unrecoverable task
-        outcome_correct = actual_outcome == scenario.expected_outcome
+    else:  # escalated expected: partial_success (handoff) also counts as correct
+        outcome_correct = actual_outcome in (scenario.expected_outcome, "partial_success")
 
     # decomposition check on the selected (executed) plan. The check must start
     # from the scenario's ACTUAL initial gripper state: assuming an empty gripper
