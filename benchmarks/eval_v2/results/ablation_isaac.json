@@ -1,0 +1,72 @@
+{
+  "config": {
+    "n_feasible_instances": 5,
+    "n_infeasible_instances": 2,
+    "seed": 2026,
+    "plan_pool_size": 21,
+    "includes_isaac_physics": true
+  },
+  "conditions": {
+    "A0_no_validation": {
+      "success_rate": 0.4286,
+      "success_ci_95": [
+        0.4286,
+        0.4286
+      ],
+      "n_plan_trials": 105,
+      "plan_level_success_rate": 0.4286,
+      "false_execution_rate": 1.0,
+      "rejection_rate": 0.0,
+      "n_instances": 7
+    },
+    "A1_critic_only": {
+      "success_rate": 0.5,
+      "success_ci_95": [
+        0.5,
+        0.5
+      ],
+      "n_plan_trials": 90,
+      "plan_level_success_rate": 0.5,
+      "false_execution_rate": 1.0,
+      "rejection_rate": 0.0,
+      "n_instances": 7
+    },
+    "A2_symbolic_gate": {
+      "success_rate": 1.0,
+      "success_ci_95": [
+        0.5655,
+        1.0
+      ],
+      "n_plan_trials": 5,
+      "plan_level_success_rate": 1.0,
+      "false_execution_rate": 1.0,
+      "rejection_rate": 0.0,
+      "n_instances": 7
+    },
+    "A3_nav_aware_gate": {
+      "success_rate": 1.0,
+      "success_ci_95": [
+        0.5655,
+        1.0
+      ],
+      "n_plan_trials": 5,
+      "plan_level_success_rate": 1.0,
+      "false_execution_rate": 0.0,
+      "rejection_rate": 1.0,
+      "n_instances": 7
+    },
+    "A3_physics": {
+      "success_rate": 1.0,
+      "success_ci_95": [
+        0.5655,
+        1.0
+      ],
+      "n_plan_trials": 5,
+      "plan_level_success_rate": 1.0,
+      "false_execution_rate": 1.0,
+      "rejection_rate": 0.0,
+      "n_instances": 7
+    }
+  },
+  "wall_s": 170.6
+}

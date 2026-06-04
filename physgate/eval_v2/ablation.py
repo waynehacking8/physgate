@@ -241,7 +241,11 @@ _SELECTORS = {
 
 
 def run_condition(
-    condition: str, instances: list[TaskInstance], pool: list[PooledPlan]
+    condition: str,
+    instances: list[TaskInstance],
+    pool: list[PooledPlan],
+    *,
+    isaac_gate_fn=None,
 ) -> ConditionOutcome:
     """Run one pipeline condition over the instances."""
     selector = _SELECTORS[condition]
@@ -254,7 +258,10 @@ def run_condition(
     details: list[dict] = []
 
     for instance in instances:
-        selected = selector(pool, instance)
+        if condition == "A3_physics" and isaac_gate_fn is not None:
+            selected = selector(pool, instance, isaac_gate_fn=isaac_gate_fn)
+        else:
+            selected = selector(pool, instance)
 
         if instance.feasible:
             if not selected:
@@ -314,7 +321,12 @@ def run_ablation(
     instances: list[TaskInstance],
     pool: list[PooledPlan],
     conditions: list[str] | None = None,
+    *,
+    isaac_gate_fn=None,
 ) -> dict[str, ConditionOutcome]:
     """Run specified conditions (default: all four symbolic) over the instance set."""
     conds = conditions or CONDITIONS
-    return {condition: run_condition(condition, instances, pool) for condition in conds}
+    return {
+        condition: run_condition(condition, instances, pool, isaac_gate_fn=isaac_gate_fn)
+        for condition in conds
+    }
