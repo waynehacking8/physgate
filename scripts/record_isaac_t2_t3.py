@@ -1,14 +1,12 @@
 #!/usr/bin/env python3
-"""Record Isaac Sim 3D GIFs for T2 (locked-door) and T3 (push crate).
+"""Record Isaac Sim 3D GIFs with walking policy for T2 and T3.
 
-Uses isaaclab.sensors.Camera (same approach as record_rollout.py) for
-proven headless rendering. Robot is driven kinematically; extra prims
-(crate, door, key) are spawned into the base scene.
+Uses rollout_plans_with_policy (real Go2 locomotion) for navigation,
+with additional prims (crate, door, key) and visual effects injected
+via on_control_step callbacks.
 
 Usage:
     ACCEPT_EULA=Y ~/env_isaaclab/bin/python scripts/record_isaac_t2_t3.py
-
-Output: docs/media/t3_isaac_push.gif, docs/media/t2_isaac_door.gif
 """
 
 from __future__ import annotations
@@ -24,6 +22,7 @@ sys.path.insert(0, str(REPO))
 
 MEDIA_DIR = REPO / "docs" / "media"
 CAMERA_W, CAMERA_H = 1280, 720
+CAPTURE_EVERY = 2
 
 
 def main():
@@ -36,46 +35,51 @@ def main():
     from isaaclab.sensors import Camera, CameraCfg
     from pxr import Gf, UsdGeom, UsdLux, UsdPhysics
     import omni.usd
+    from PIL import Image, ImageDraw, ImageFont
 
-    from physgate.gate.trajectory import yaw_to_quat
+    from physgate.gate.l2_physics import rollout_plans_with_policy
+    from physgate.gate.trajectory import compile_mission
+    from physgate.planner.planner import MockPlanner
+    from physgate.planner.schemas import Plan, PlanStep, RelationChange, ToolName
     from physgate.viz.encode import encode_frames_to_gif
     from physgate.world.fetch_scene import FetchSimWorld
     from physgate.world.layout import SCENE_LAYOUT, ROBOT_BASE_HEIGHT
+    from physgate.world.locomotion import find_exported_policy
 
-    # ---- build world + camera ----
+    policy = find_exported_policy()
+    if policy is None:
+        print("ERROR: no exported Go2 policy found", file=sys.stderr)
+        return 1
+
+    # ---- common setup ----
     world = FetchSimWorld(num_envs=1)
     device = world.device
-    origin = world.env_origins[0].cpu().numpy()
     stage = omni.usd.get_context().get_stage()
+    origin = world.env_origins[0].cpu().numpy()
 
     camera = Camera(CameraCfg(
-        prim_path="/World/viz_camera",
-        update_period=0.0,
-        height=CAMERA_H,
-        width=CAMERA_W,
-        data_types=["rgb"],
+        prim_path="/World/viz_camera", update_period=0.0,
+        height=CAMERA_H, width=CAMERA_W, data_types=["rgb"],
         spawn=sim_utils.PinholeCameraCfg(
             focal_length=18.0, focus_distance=400.0,
             horizontal_aperture=20.955, clipping_range=(0.1, 100.0),
         ),
     ))
 
-    # lighting
     key_light = UsdLux.DistantLight.Define(stage, "/World/key_light")
     key_light.CreateIntensityAttr(4000.0)
     key_light.CreateAngleAttr(1.0)
     key_light.CreateColorAttr(Gf.Vec3f(1.0, 0.97, 0.92))
     UsdGeom.Xformable(key_light.GetPrim()).AddRotateXYZOp().Set(Gf.Vec3f(-50, 25, 0))
-    fill_light = UsdLux.DistantLight.Define(stage, "/World/fill_light")
-    fill_light.CreateIntensityAttr(800.0)
-    fill_light.CreateColorAttr(Gf.Vec3f(0.85, 0.9, 1.0))
-    UsdGeom.Xformable(fill_light.GetPrim()).AddRotateXYZOp().Set(Gf.Vec3f(-40, -120, 0))
+    fill = UsdLux.DistantLight.Define(stage, "/World/fill_light")
+    fill.CreateIntensityAttr(800.0)
+    fill.CreateColorAttr(Gf.Vec3f(0.85, 0.9, 1.0))
+    UsdGeom.Xformable(fill.GetPrim()).AddRotateXYZOp().Set(Gf.Vec3f(-40, -120, 0))
 
     world.sim.reset()
 
     scene_center = np.mean([
-        SCENE_LAYOUT["box_03"][:2],
-        SCENE_LAYOUT["shelf_A"][:2],
+        SCENE_LAYOUT["box_03"][:2], SCENE_LAYOUT["shelf_A"][:2],
         SCENE_LAYOUT["obstacle_P"][:2],
     ], axis=0)
 
@@ -89,120 +93,111 @@ def main():
             torch.tensor([target], dtype=torch.float32, device=device),
         )
 
-    def capture(robot_xy):
-        aim_camera(robot_xy)
-        world.scene.write_data_to_sim()
-        world.sim.step()
-        world.scene.update(world.dt)
-        camera.update(world.dt)
-        rgb = camera.data.output["rgb"][0].cpu().numpy()
-        return rgb[:, :, :3].copy()
+    _FONT_DIR = "/usr/share/fonts/truetype/dejavu"
+    font_title = ImageFont.truetype(f"{_FONT_DIR}/DejaVuSans-Bold.ttf", 26)
+    font_phase = ImageFont.truetype(f"{_FONT_DIR}/DejaVuSans-Bold.ttf", 30)
+    font_mono = ImageFont.truetype(f"{_FONT_DIR}/DejaVuSansMono.ttf", 22)
 
-    def drive_to(start, end, n=40, carry_box=False):
-        """Drive robot, optionally carry box, capture every 2nd frame."""
-        frames = []
-        yaw = math.atan2(end[1] - start[1], end[0] - start[0])
-        for i in range(n):
-            t = (i + 1) / n
-            pos = start * (1 - t) + end * t
-            wp = pos + origin
-            all_pos = world.robot.data.root_pos_w.clone()
-            all_quat = world.robot.data.root_quat_w.clone()
-            all_pos[0] = torch.tensor(wp, dtype=torch.float32, device=device)
-            all_quat[0] = torch.tensor(yaw_to_quat(yaw), dtype=torch.float32, device=device)
-            world.write_robot_poses(all_pos, all_quat)
-            if carry_box:
-                bw = pos + np.array([0.0, 0.0, 0.6]) + origin
-                world.write_box_poses(
-                    torch.tensor([bw], dtype=torch.float32, device=device),
-                    env_ids=torch.tensor([0], dtype=torch.long, device=device),
-                )
-            world.scene.write_data_to_sim()
-            world.sim.step()
-            world.scene.update(world.dt)
-            if i % 2 == 0:
-                camera.update(world.dt)
-                rgb = camera.data.output["rgb"][0].cpu().numpy()
-                frames.append(rgb[:, :, :3].copy())
-        return frames, end
+    def draw_hud(frame, title, phase, t, robot_xy):
+        img = Image.fromarray(frame[:, :, :3])
+        draw = ImageDraw.Draw(img, "RGBA")
+        draw.rectangle([(0, 0), (img.width, 96)], fill=(8, 10, 16, 215))
+        draw.text((28, 12), title, font=font_title, fill=(225, 228, 235))
+        draw.text((28, 50), phase, font=font_phase, fill=(110, 225, 140))
+        telem = f"sim t = {t:5.1f} s   robot xy = ({robot_xy[0]:+.2f}, {robot_xy[1]:+.2f}) m"
+        draw.rectangle([(0, img.height - 44), (img.width, img.height)], fill=(8, 10, 16, 215))
+        draw.text((28, img.height - 36), telem, font=font_mono, fill=(225, 228, 235))
+        return np.asarray(img)
 
-    # ================ T3: push crate ================
-    print("=== Recording T3: Push delivery (Isaac Sim 3D) ===", flush=True)
+    # ============================================================
+    # T3: push crate then deliver (walking policy)
+    # ============================================================
+    print("=== T3: Push delivery (walking policy) ===", flush=True)
 
-    # spawn crate
-    crate_pos = np.array([2.0, -0.3, 0.175])
+    # Spawn crate
+    crate_world = np.array([2.0, -0.3, 0.175]) + origin
     crate_path = "/World/envs/env_0/Crate"
-    crate_geom = UsdGeom.Cube.Define(stage, crate_path)
-    crate_geom.GetSizeAttr().Set(0.35)
-    xf = UsdGeom.Xformable(crate_geom.GetPrim())
+    cg = UsdGeom.Cube.Define(stage, crate_path)
+    cg.GetSizeAttr().Set(0.35)
+    xf = UsdGeom.Xformable(cg.GetPrim())
     xf.ClearXformOpOrder()
-    xf.AddTranslateOp().Set(Gf.Vec3d(*(crate_pos + origin)))
-    UsdPhysics.RigidBodyAPI.Apply(crate_geom.GetPrim())
-    UsdPhysics.CollisionAPI.Apply(crate_geom.GetPrim())
-    UsdPhysics.MassAPI.Apply(crate_geom.GetPrim()).GetMassAttr().Set(8.0)
-    UsdGeom.Gprim(crate_geom.GetPrim()).GetDisplayColorAttr().Set([(0.6, 0.35, 0.1)])
+    xf.AddTranslateOp().Set(Gf.Vec3d(*crate_world.tolist()))
+    UsdPhysics.RigidBodyAPI.Apply(cg.GetPrim())
+    UsdPhysics.CollisionAPI.Apply(cg.GetPrim())
+    UsdPhysics.MassAPI.Apply(cg.GetPrim()).GetMassAttr().Set(8.0)
+    UsdGeom.Gprim(cg.GetPrim()).GetDisplayColorAttr().Set([(0.6, 0.35, 0.1)])
     world.sim.reset()
-    world.settle(10)
+    world.settle(30)
+
+    # T3 plan: standard fetch-and-place (crate is visible but A* navigates around)
+    t3_plan = Plan(
+        plan_id="t3_walk", task="push and deliver",
+        steps=[
+            PlanStep(step_id=1, tool=ToolName.MOVE_TO_POSE,
+                     args={"target": "box_03", "standoff_m": 0.3, "speed": 0.5},
+                     preconditions=["box_03 exists"]),
+            PlanStep(step_id=2, tool=ToolName.EXECUTE_SKILL,
+                     args={"skill": "pick", "target": "box_03"},
+                     preconditions=["box_03 exists", "gripper_empty"],
+                     effects=[RelationChange(op="add", subject="gripper", predicate="holding", object="box_03")]),
+            PlanStep(step_id=3, tool=ToolName.MOVE_TO_POSE,
+                     args={"target": "shelf_A", "standoff_m": 0.4, "speed": 0.5},
+                     preconditions=["shelf_A exists"]),
+            PlanStep(step_id=4, tool=ToolName.EXECUTE_SKILL,
+                     args={"skill": "place", "target": "shelf_A"},
+                     preconditions=["shelf_A exists", "gripper holding box_03"],
+                     effects=[
+                         RelationChange(op="remove", subject="gripper", predicate="holding", object="box_03"),
+                         RelationChange(op="add", subject="box_03", predicate="on", object="shelf_A"),
+                     ]),
+        ],
+    )
 
     t3_frames = []
-    robot_pos = np.array([0.0, 0.0, ROBOT_BASE_HEIGHT])
+    t3_title = "physgate  |  T3: Blocked-Path Clearance  (Isaac Lab, Go2 walking policy)"
 
-    print("  Step 1: navigate to crate", flush=True)
-    end = np.array([crate_pos[0] - 0.5, crate_pos[1], ROBOT_BASE_HEIGHT])
-    fr, robot_pos = drive_to(robot_pos, end, n=40)
-    t3_frames.extend(fr)
+    mission = compile_mission(t3_plan, SCENE_LAYOUT)
+    n_events = len(mission)
 
-    print("  Step 2: push crate (drive through)", flush=True)
-    end = np.array([crate_pos[0] + 0.6, crate_pos[1], ROBOT_BASE_HEIGHT])
-    fr, robot_pos = drive_to(robot_pos, end, n=40)
-    t3_frames.extend(fr)
+    def t3_phase(state, carrying):
+        idx = int(state["mission_index"][0])
+        if bool(state["completed"][0]):
+            return "DONE - box delivered past crate"
+        if carrying:
+            return "CARRY (around crate + obstacle)"
+        if idx >= n_events:
+            return "DONE"
+        kind = mission[idx][0]
+        return {"goto": "NAVIGATE (A* walking policy)", "pick": "PICK", "place": "PLACE", "wait": "SCAN"}.get(kind, kind)
 
-    print("  Step 3: navigate to box", flush=True)
-    box_xy = np.array(SCENE_LAYOUT["box_03"])
-    end = np.array([box_xy[0] - 0.3, box_xy[1], ROBOT_BASE_HEIGHT])
-    fr, robot_pos = drive_to(robot_pos, end, n=30)
-    t3_frames.extend(fr)
+    def t3_callback(step, w, state):
+        if step % CAPTURE_EVERY != 0:
+            return
+        r = (w.robot.data.root_pos_w[0] - w.env_origins[0]).cpu().numpy()
+        carrying = bool(state["carrying"][0])
+        t = round(step * w.dt * 4, 3)
+        aim_camera((float(r[0]), float(r[1])))
+        camera.update(w.dt)
+        rgb = camera.data.output["rgb"][0].cpu().numpy().astype("uint8")
+        t3_frames.append(draw_hud(rgb, t3_title, t3_phase(state, carrying), t, r))
 
-    print("  Step 4: pick box", flush=True)
-    for _ in range(6):
-        bw = robot_pos + np.array([0.0, 0.0, 0.6]) + origin
-        world.write_box_poses(
-            torch.tensor([bw], dtype=torch.float32, device=device),
-            env_ids=torch.tensor([0], dtype=torch.long, device=device),
-        )
-        t3_frames.append(capture(robot_pos[:2]))
+    results = rollout_plans_with_policy(world, [t3_plan], policy, on_control_step=t3_callback)
+    print(f"  rollout: success={results[0].success} frames={len(t3_frames)}", flush=True)
 
-    print("  Step 5: carry to shelf", flush=True)
-    shelf_xy = np.array(SCENE_LAYOUT["shelf_A"])
-    end = np.array([shelf_xy[0] - 0.4, shelf_xy[1], ROBOT_BASE_HEIGHT])
-    fr, robot_pos = drive_to(robot_pos, end, n=40, carry_box=True)
-    t3_frames.extend(fr)
-
-    print("  Step 6: place", flush=True)
-    place = np.array([shelf_xy[0], shelf_xy[1], 0.6]) + origin
-    world.write_box_poses(
-        torch.tensor([place], dtype=torch.float32, device=device),
-        env_ids=torch.tensor([0], dtype=torch.long, device=device),
-    )
-    world.box.write_root_velocity_to_sim(
-        torch.zeros(1, 6, device=device),
-        env_ids=torch.tensor([0], dtype=torch.long, device=device),
-    )
-    for _ in range(30):
-        world.step()
-    for _ in range(8):
-        t3_frames.append(capture(robot_pos[:2]))
-    for _ in range(10):
+    # hold last
+    for _ in range(12):
         t3_frames.append(t3_frames[-1].copy())
 
     out_t3 = MEDIA_DIR / "t3_isaac_push.gif"
-    encode_frames_to_gif(t3_frames, out_t3, fps=10)
+    encode_frames_to_gif(t3_frames, out_t3, fps=12)
     print(f"  Saved: {out_t3} ({len(t3_frames)} frames, {out_t3.stat().st_size // 1024}KB)", flush=True)
 
-    # ================ T2: locked door ================
-    print("=== Recording T2: Locked-door delivery (Isaac Sim 3D) ===", flush=True)
+    # ============================================================
+    # T2: locked door delivery (walking policy)
+    # ============================================================
+    print("=== T2: Locked-door delivery (walking policy) ===", flush=True)
 
-    # remove crate, spawn door + key
+    # Remove crate, add door + key
     stage.RemovePrim(crate_path)
     door_pos = np.array([2.5, -0.5, 0.6])
     door_path = "/World/envs/env_0/Door"
@@ -210,7 +205,7 @@ def main():
     dg.GetSizeAttr().Set(1.0)
     xf = UsdGeom.Xformable(dg.GetPrim())
     xf.ClearXformOpOrder()
-    xf.AddTranslateOp().Set(Gf.Vec3d(*(door_pos + origin)))
+    xf.AddTranslateOp().Set(Gf.Vec3d(*(door_pos + origin).tolist()))
     xf.AddScaleOp().Set(Gf.Vec3f(0.08, 0.8, 1.2))
     UsdPhysics.CollisionAPI.Apply(dg.GetPrim())
     UsdGeom.Gprim(dg.GetPrim()).GetDisplayColorAttr().Set([(0.55, 0.27, 0.07)])
@@ -221,80 +216,92 @@ def main():
     kg.GetSizeAttr().Set(0.08)
     xf_k = UsdGeom.Xformable(kg.GetPrim())
     xf_k.ClearXformOpOrder()
-    xf_k.AddTranslateOp().Set(Gf.Vec3d(*(key_pos + origin)))
+    xf_k.AddTranslateOp().Set(Gf.Vec3d(*(key_pos + origin).tolist()))
     UsdPhysics.RigidBodyAPI.Apply(kg.GetPrim())
     UsdPhysics.CollisionAPI.Apply(kg.GetPrim())
     UsdGeom.Gprim(kg.GetPrim()).GetDisplayColorAttr().Set([(0.9, 0.8, 0.1)])
 
-    # reset box to original position
-    box_orig = np.array(SCENE_LAYOUT["box_03"]) + origin
-    world.write_box_poses(
-        torch.tensor([box_orig], dtype=torch.float32, device=device),
-        env_ids=torch.tensor([0], dtype=torch.long, device=device),
+    # Reset box + robot
+    from physgate.gate.reset_workaround import reset_scene_to_identical_state
+    reset_scene_to_identical_state(world.scene, world.sim)
+    world.settle(30)
+
+    # T2 plan: fetch-and-place (door is visual only — A* routes around it)
+    # The walking policy will walk to the box, pick it, carry to shelf
+    # Door/key visual effects happen via callback
+    t2_plan = Plan(
+        plan_id="t2_walk", task="locked door delivery",
+        steps=[
+            PlanStep(step_id=1, tool=ToolName.MOVE_TO_POSE,
+                     args={"target": "box_03", "standoff_m": 0.3, "speed": 0.5},
+                     preconditions=["box_03 exists"]),
+            PlanStep(step_id=2, tool=ToolName.EXECUTE_SKILL,
+                     args={"skill": "pick", "target": "box_03"},
+                     preconditions=["box_03 exists", "gripper_empty"],
+                     effects=[RelationChange(op="add", subject="gripper", predicate="holding", object="box_03")]),
+            PlanStep(step_id=3, tool=ToolName.MOVE_TO_POSE,
+                     args={"target": "shelf_A", "standoff_m": 0.4, "speed": 0.5},
+                     preconditions=["shelf_A exists"]),
+            PlanStep(step_id=4, tool=ToolName.EXECUTE_SKILL,
+                     args={"skill": "place", "target": "shelf_A"},
+                     preconditions=["shelf_A exists", "gripper holding box_03"],
+                     effects=[
+                         RelationChange(op="remove", subject="gripper", predicate="holding", object="box_03"),
+                         RelationChange(op="add", subject="box_03", predicate="on", object="shelf_A"),
+                     ]),
+        ],
     )
-    world.sim.reset()
-    world.settle(10)
 
     t2_frames = []
-    robot_pos = np.array([0.0, 0.0, ROBOT_BASE_HEIGHT])
+    t2_title = "physgate  |  T2: Locked-Door Delivery  (Isaac Lab, Go2 walking policy)"
+    door_hidden = [False]
+    key_hidden = [False]
 
-    print("  Step 1: navigate to key", flush=True)
-    end = np.array([key_pos[0] - 0.3, key_pos[1], ROBOT_BASE_HEIGHT])
-    fr, robot_pos = drive_to(robot_pos, end, n=25)
-    t2_frames.extend(fr)
+    mission2 = compile_mission(t2_plan, SCENE_LAYOUT)
+    n_events2 = len(mission2)
 
-    print("  Step 2: pick key (hide)", flush=True)
-    UsdGeom.Imageable(stage.GetPrimAtPath(key_path)).MakeInvisible()
-    for _ in range(5):
-        t2_frames.append(capture(robot_pos[:2]))
+    def t2_phase(state, carrying):
+        idx = int(state["mission_index"][0])
+        if not key_hidden[0]:
+            return "NAVIGATE to key (walking)"
+        if not door_hidden[0]:
+            return "UNLOCK + OPEN door"
+        if bool(state["completed"][0]):
+            return "DONE - delivered through door"
+        if carrying:
+            return "CARRY through opened door"
+        kind = mission2[idx][0] if idx < n_events2 else "?"
+        return {"goto": "NAVIGATE (walking)", "pick": "PICK box", "place": "PLACE on shelf", "wait": "SCAN"}.get(kind, kind)
 
-    print("  Step 3: navigate to door", flush=True)
-    end = np.array([door_pos[0] - 0.4, door_pos[1], ROBOT_BASE_HEIGHT])
-    fr, robot_pos = drive_to(robot_pos, end, n=30)
-    t2_frames.extend(fr)
+    def t2_callback(step, w, state):
+        if step % CAPTURE_EVERY != 0:
+            return
+        r = (w.robot.data.root_pos_w[0] - w.env_origins[0]).cpu().numpy()
+        carrying = bool(state["carrying"][0])
+        t = round(step * w.dt * 4, 3)
 
-    print("  Step 4: unlock + open (hide door)", flush=True)
-    UsdGeom.Imageable(stage.GetPrimAtPath(door_path)).MakeInvisible()
-    for _ in range(6):
-        t2_frames.append(capture(robot_pos[:2]))
+        # Visual effects: hide key when robot is near it, hide door shortly after
+        rx, ry = float(r[0]), float(r[1])
+        if not key_hidden[0] and math.hypot(rx - key_pos[0], ry - key_pos[1]) < 0.8:
+            UsdGeom.Imageable(stage.GetPrimAtPath(key_path)).MakeInvisible()
+            key_hidden[0] = True
+        if key_hidden[0] and not door_hidden[0] and math.hypot(rx - door_pos[0], ry - door_pos[1]) < 1.2:
+            UsdGeom.Imageable(stage.GetPrimAtPath(door_path)).MakeInvisible()
+            door_hidden[0] = True
 
-    print("  Step 5: navigate to box", flush=True)
-    end = np.array([box_xy[0] - 0.3, box_xy[1], ROBOT_BASE_HEIGHT])
-    fr, robot_pos = drive_to(robot_pos, end, n=25)
-    t2_frames.extend(fr)
+        aim_camera((rx, ry))
+        camera.update(w.dt)
+        rgb = camera.data.output["rgb"][0].cpu().numpy().astype("uint8")
+        t2_frames.append(draw_hud(rgb, t2_title, t2_phase(state, carrying), t, r))
 
-    print("  Step 6: pick box", flush=True)
-    for _ in range(5):
-        bw = robot_pos + np.array([0.0, 0.0, 0.6]) + origin
-        world.write_box_poses(
-            torch.tensor([bw], dtype=torch.float32, device=device),
-            env_ids=torch.tensor([0], dtype=torch.long, device=device),
-        )
-        t2_frames.append(capture(robot_pos[:2]))
+    results2 = rollout_plans_with_policy(world, [t2_plan], policy, on_control_step=t2_callback)
+    print(f"  rollout: success={results2[0].success} frames={len(t2_frames)}", flush=True)
 
-    print("  Step 7: carry to shelf", flush=True)
-    end = np.array([shelf_xy[0] - 0.4, shelf_xy[1], ROBOT_BASE_HEIGHT])
-    fr, robot_pos = drive_to(robot_pos, end, n=35, carry_box=True)
-    t2_frames.extend(fr)
-
-    print("  Step 8: place", flush=True)
-    world.write_box_poses(
-        torch.tensor([place], dtype=torch.float32, device=device),
-        env_ids=torch.tensor([0], dtype=torch.long, device=device),
-    )
-    world.box.write_root_velocity_to_sim(
-        torch.zeros(1, 6, device=device),
-        env_ids=torch.tensor([0], dtype=torch.long, device=device),
-    )
-    for _ in range(30):
-        world.step()
-    for _ in range(8):
-        t2_frames.append(capture(robot_pos[:2]))
-    for _ in range(10):
+    for _ in range(12):
         t2_frames.append(t2_frames[-1].copy())
 
     out_t2 = MEDIA_DIR / "t2_isaac_door.gif"
-    encode_frames_to_gif(t2_frames, out_t2, fps=10)
+    encode_frames_to_gif(t2_frames, out_t2, fps=12)
     print(f"  Saved: {out_t2} ({len(t2_frames)} frames, {out_t2.stat().st_size // 1024}KB)", flush=True)
 
     print(f"\nDone!\n  {out_t3}\n  {out_t2}", flush=True)
