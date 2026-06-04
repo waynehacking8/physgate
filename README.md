@@ -344,8 +344,9 @@ infrastructure independent of this software.
   ROS 2 executor interface is defined but NOT implemented.
 - **Sim-to-real gap.** A simulation PASS reduces risk but does not prove real-world
   safety. Contact dynamics, sensor noise, and communication latency are not modeled.
-- **Sample size.** Current evaluation uses n=20 feasible + n=8 infeasible procedurally
-  generated instances — far below cited standards (SafeAgentBench 750, PlanBench 600).
+- **Sample size.** Current evaluation uses n=50 feasible + n=20 infeasible procedurally
+  generated instances — improved from the initial n=20+8 but still below cited standards
+  (SafeAgentBench 750, PlanBench 600).
 
 ## License
 

@@ -96,18 +96,18 @@ def results_dirs(tmp_path):
                 "conditions": {
                     "A0_no_validation": {
                         "success_rate": 0.43,
-                        "success_ci_95": [0.38, 0.48],
+                        "success_ci_95": [0.43, 0.43],
                         "false_execution_rate": 1.0,
                         "rejection_rate": 0.0,
                     },
                     "A3_nav_aware_gate": {
                         "success_rate": 1.0,
-                        "success_ci_95": [0.84, 1.0],
+                        "success_ci_95": [0.93, 1.0],
                         "false_execution_rate": 0.0,
                         "rejection_rate": 1.0,
                     },
                 },
-                "config": {"n_feasible_instances": 20, "n_infeasible_instances": 8},
+                "config": {"n_feasible_instances": 50, "n_infeasible_instances": 20},
             }
         )
     )

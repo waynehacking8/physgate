@@ -303,15 +303,16 @@ name the hand-placed rescue waypoint. This milestone rebuilt the layering per
 
 ### E1 — pipeline ablation (the value-of-the-gate experiment)
 
-n = 20 feasible + 8 infeasible procedurally generated layouts (A*-certified
-labels); contaminated plan pool (9 valid + 12 defect-injected):
+n = 50 feasible + 20 infeasible procedurally generated layouts (A*-certified
+labels); contaminated plan pool (21 plans: 9 valid + 12 defect-injected).
+CIs are instance-level (not plan×instance).
 
 | Pipeline | Success (feasible), 95% CI | Rejection (infeasible) |
 |---|---|---|
-| A0 no validation | 0.43 [0.38, 0.48] | 0.00 |
-| A1 + LLM critic | 0.50 [0.45, 0.55] | 0.00 |
-| A2 + symbolic gate | 1.00 [0.84, 1.00] | 0.00 |
-| A3 + physics gate (nav + goal) | **1.00 [0.84, 1.00]** | **1.00** |
+| A0 no validation | 0.43 [0.43, 0.43] | 0.00 |
+| A1 + LLM critic | 0.50 [0.50, 0.50] | 0.00 |
+| A2 + symbolic gate | 1.00 [0.93, 1.00] | 0.00 |
+| A3 + nav-aware gate (symbolic + A*) | **1.00 [0.93, 1.00]** | **1.00** |
 
 Each validation layer adds measurable success on feasible tasks; **only
 world-level (physics/navigation) validation rejects impossible tasks** — every

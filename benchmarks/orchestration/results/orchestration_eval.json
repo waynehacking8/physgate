@@ -1,6 +1,6 @@
 {
   "benchmark": "orchestration evaluation - agent orchestrator quality",
-  "timestamp": "2026-06-03 23:17:30",
+  "timestamp": "2026-06-04 08:55:54",
   "what_this_measures": "Whether the agent orchestrator (planner + critic + gate + recovery loop) decomposes tasks correctly, respects preconditions, recovers from failures, and recognizes infeasible requests. Navigation/obstacle avoidance is NOT measured \u2014 the deterministic nav layer guarantees it for every plan (REBUILD.md Phase 1), so it cannot differentiate orchestrators.",
   "metrics_legend": {
     "end_to_end_success_rate": "feasible tasks completed (final relations verified)",
@@ -13,7 +13,7 @@
   "reports": [
     {
       "planner_name": "mock",
-      "timestamp": "2026-06-03 23:17:30",
+      "timestamp": "2026-06-04 08:55:54",
       "results": [
         {
           "scenario_id": "fetch_and_place_basic",

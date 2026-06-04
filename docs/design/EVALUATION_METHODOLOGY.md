@@ -109,9 +109,10 @@ box→shelf); infeasible instances are *constructed* by enclosing the target.
 Every instance carries its ground-truth label by construction — no manual
 annotation (PlanBench's approach).
 
-* N ≥ 20 feasible + N ≥ 5 infeasible layouts
+* N ≥ 50 feasible + N ≥ 20 infeasible layouts (expanded from initial n=20+8)
 * Run E1 conditions over the generated set
-* Report success/rejection rates with 95% Wilson confidence intervals
+* Report success/rejection rates with 95% CIs (Wilson CI for binary
+  per-instance outcomes; normal-approximation CI for fractional rates)
 
 ### E4 — Statistical repeats of stochastic components
 
@@ -152,14 +153,19 @@ regression continuity).
 
 ### E1 — Pipeline ablation
 
-n = 20 feasible + 8 infeasible generated layouts; plan pool = 21 plans (9 valid, 12 defect-injected).
+n = 50 feasible + 20 infeasible procedurally generated layouts; plan pool = 21 plans
+(9 valid, 12 defect-injected). CIs are instance-level (not plan×instance).
 
 | Pipeline | Success (feasible), 95% CI | Rejection (infeasible) |
 |---|---|---|
-| A0 no validation | 0.43 [0.38, 0.48] | 0.00 |
-| A1 + LLM critic | 0.50 [0.45, 0.55] | 0.00 |
-| A2 + symbolic gate | 1.00 [0.84, 1.00] | 0.00 |
-| A3 + physics gate (nav + goal) | **1.00 [0.84, 1.00]** | **1.00** |
+| A0 no validation | 0.43 [0.43, 0.43] | 0.00 |
+| A1 + LLM critic | 0.50 [0.50, 0.50] | 0.00 |
+| A2 + symbolic gate | 1.00 [0.93, 1.00] | 0.00 |
+| A3 + nav-aware gate (symbolic + A*) | **1.00 [0.93, 1.00]** | **1.00** |
+
+† Isaac physics L2 equivalence validated on n=5+2 subset (see `ablation_isaac.json`).
+A0/A1 CIs are zero-width because every feasible instance produces the same expected rate
+(deterministic pool × execution); real variance requires stochastic planners.
 
 Findings: (1) each validation layer adds measurable success-rate value on
 feasible tasks; (2) **only world-level (physics/navigation) validation can

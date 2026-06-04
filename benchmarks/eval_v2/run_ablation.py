@@ -12,7 +12,7 @@ defect-injected plans).
 Output: benchmarks/eval_v2/results/ablation.json
 
 Run (pure venv, no GPU needed):
-    python benchmarks/eval_v2/run_ablation.py --feasible 20 --infeasible 8 --seed 2026
+    python benchmarks/eval_v2/run_ablation.py --feasible 50 --infeasible 20 --seed 2026
 """
 
 from __future__ import annotations

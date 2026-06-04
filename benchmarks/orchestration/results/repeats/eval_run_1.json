@@ -1,6 +1,6 @@
 {
   "benchmark": "orchestration evaluation - agent orchestrator quality",
-  "timestamp": "2026-06-03 20:30:22",
+  "timestamp": "2026-06-04 08:55:53",
   "what_this_measures": "Whether the agent orchestrator (planner + critic + gate + recovery loop) decomposes tasks correctly, respects preconditions, recovers from failures, and recognizes infeasible requests. Navigation/obstacle avoidance is NOT measured \u2014 the deterministic nav layer guarantees it for every plan (REBUILD.md Phase 1), so it cannot differentiate orchestrators.",
   "metrics_legend": {
     "end_to_end_success_rate": "feasible tasks completed (final relations verified)",
@@ -13,7 +13,7 @@
   "reports": [
     {
       "planner_name": "mock",
-      "timestamp": "2026-06-03 20:15:58",
+      "timestamp": "2026-06-04 08:55:53",
       "results": [
         {
           "scenario_id": "fetch_and_place_basic",
@@ -92,7 +92,7 @@
           "retries_used": 3,
           "candidates_generated": 8,
           "survivors_after_critic": 6,
-          "wall_s": 0.02,
+          "wall_s": 0.01,
           "detail": ""
         },
         {
@@ -126,56 +126,26 @@
           "survivors_after_critic": 0,
           "wall_s": 0.01,
           "detail": ""
-        }
-      ],
-      "metrics": {
-        "end_to_end_success_rate": 0.6,
-        "infeasible_recognition_rate": 1.0,
-        "recovery_rate": 1.0,
-        "decomposition_validity_rate": 1.0,
-        "invalid_plan_catch_rate": 1.0,
-        "orchestrator_score": 0.92
-      }
-    },
-    {
-      "planner_name": "llm",
-      "timestamp": "2026-06-03 20:30:22",
-      "results": [
+        },
         {
-          "scenario_id": "fetch_and_place_basic",
-          "category": "ordering",
+          "scenario_id": "ambiguous_multi_shelf",
+          "category": "multi_step",
           "expected_outcome": "done",
           "actual_outcome": "done",
-          "outcome_correct": true,
-          "task_completed": true,
+          "outcome_correct": false,
+          "task_completed": false,
           "decomposition_valid": true,
           "invalid_probe_caught": null,
           "replans_used": 0,
           "retries_used": 0,
           "candidates_generated": 8,
-          "survivors_after_critic": 8,
-          "wall_s": 73.73,
-          "detail": "('box_03', 'on', 'shelf_A'): ok"
+          "survivors_after_critic": 6,
+          "wall_s": 0.01,
+          "detail": "('box_03', 'on', 'shelf_B'): MISSING"
         },
         {
-          "scenario_id": "gate_catches_place_before_pick",
-          "category": "ordering",
-          "expected_outcome": "done",
-          "actual_outcome": "done",
-          "outcome_correct": true,
-          "task_completed": true,
-          "decomposition_valid": true,
-          "invalid_probe_caught": true,
-          "replans_used": 0,
-          "retries_used": 0,
-          "candidates_generated": 2,
-          "survivors_after_critic": 1,
-          "wall_s": 9.62,
-          "detail": "('box_03', 'on', 'shelf_A'): ok"
-        },
-        {
-          "scenario_id": "precondition_occupied_gripper",
-          "category": "preconditions",
+          "scenario_id": "partial_infeasible_two_tasks",
+          "category": "infeasible",
           "expected_outcome": "done",
           "actual_outcome": "done",
           "outcome_correct": true,
@@ -186,11 +156,11 @@
           "retries_used": 0,
           "candidates_generated": 8,
           "survivors_after_critic": 6,
-          "wall_s": 179.08,
+          "wall_s": 0.01,
           "detail": "('box_03', 'on', 'shelf_A'): ok"
         },
         {
-          "scenario_id": "recovery_transient_pick_failure",
+          "scenario_id": "recovery_place_failure_replan",
           "category": "recovery",
           "expected_outcome": "done",
           "actual_outcome": "done",
@@ -199,68 +169,20 @@
           "decomposition_valid": true,
           "invalid_probe_caught": null,
           "replans_used": 0,
-          "retries_used": 1,
+          "retries_used": 2,
           "candidates_generated": 8,
-          "survivors_after_critic": 8,
-          "wall_s": 88.91,
+          "survivors_after_critic": 6,
+          "wall_s": 0.01,
           "detail": "('box_03', 'on', 'shelf_A'): ok"
-        },
-        {
-          "scenario_id": "recovery_persistent_failure_escalates",
-          "category": "recovery",
-          "expected_outcome": "escalated",
-          "actual_outcome": "escalated",
-          "outcome_correct": true,
-          "task_completed": false,
-          "decomposition_valid": true,
-          "invalid_probe_caught": null,
-          "replans_used": 2,
-          "retries_used": 3,
-          "candidates_generated": 8,
-          "survivors_after_critic": 5,
-          "wall_s": 212.63,
-          "detail": ""
-        },
-        {
-          "scenario_id": "multi_step_two_boxes",
-          "category": "multi_step",
-          "expected_outcome": "done",
-          "actual_outcome": "done",
-          "outcome_correct": true,
-          "task_completed": true,
-          "decomposition_valid": true,
-          "invalid_probe_caught": null,
-          "replans_used": 0,
-          "retries_used": 0,
-          "candidates_generated": 8,
-          "survivors_after_critic": 5,
-          "wall_s": 134.2,
-          "detail": "('box_03', 'on', 'shelf_A'): ok; ('box_04', 'on', 'shelf_A'): ok"
-        },
-        {
-          "scenario_id": "infeasible_ungraspable_object",
-          "category": "infeasible",
-          "expected_outcome": "escalated",
-          "actual_outcome": "escalated",
-          "outcome_correct": true,
-          "task_completed": false,
-          "decomposition_valid": null,
-          "invalid_probe_caught": null,
-          "replans_used": 2,
-          "retries_used": 0,
-          "candidates_generated": 8,
-          "survivors_after_critic": 0,
-          "wall_s": 166.1,
-          "detail": ""
         }
       ],
       "metrics": {
-        "end_to_end_success_rate": 1.0,
+        "end_to_end_success_rate": 0.625,
         "infeasible_recognition_rate": 1.0,
         "recovery_rate": 1.0,
         "decomposition_validity_rate": 1.0,
         "invalid_plan_catch_rate": 1.0,
-        "orchestrator_score": 1.0
+        "orchestrator_score": 0.925
       }
     }
   ]
