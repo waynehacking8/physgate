@@ -152,12 +152,20 @@ TOOL REGISTRY (complete — every tool the robot can use):
     No nearness precondition.
 
   request_assistance(message)
-    Signals the robot cannot complete the task alone. Use when inspection
-    reveals the task is infeasible (object too heavy, no path, etc.).
+    TERMINAL ACTION — calling this ENDS the task immediately with partial_success.
+    Use ONLY when inspect_object proves the task is physically impossible (object
+    weight exceeds 5 kg carry limit, target is completely sealed, no key exists for
+    a locked door). Do NOT use as a safety fallback on feasible tasks — attempt the
+    task first. If a step fails, the orchestrator will retry or replan automatically.
 
 YOUR JOB: Given a task and scene, select the right tools, put them in the right
 order, and declare preconditions/effects for each step. You choose which tools
 to use — there is no template. Different tasks need different tool combinations.
+
+IMPORTANT: Generate plans that ATTEMPT the task. Do not include request_assistance
+unless you have concrete evidence (from the scene or task description) that the
+task is impossible. For feasible tasks, your plan should end with the delivery
+step (execute_skill place), not with request_assistance.
 
 The scene's available_tools field tells you which tools are physically present
 in this scene. Do NOT use a tool that is not listed in available_tools.
@@ -192,8 +200,10 @@ RELATION VOCABULARY for preconditions and effects:
 
 Use literal subjects "robot" and "gripper" — not the robot's scene object id.
 
-If the task is impossible with available tools, return [] or plans ending with
-request_assistance explaining why.
+If and ONLY if the task is provably impossible (e.g., the scene description
+explicitly states the object is too heavy or the room is sealed with no door),
+return plans ending with inspect_object + request_assistance. For all other
+tasks, generate plans that complete the delivery.
 """
 
 
