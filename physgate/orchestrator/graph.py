@@ -281,16 +281,21 @@ def build_orchestrator(
         return "execute" if state["approved"] else "deny"
 
     def route_after_execute(state: OrchestratorState) -> str:
-        """Route to done on success, partial_success on handoff, analyze or retry on failure."""
+        """Route to done on success, partial_success on handoff, analyze on first failure.
+
+        Flow with analyst: execute fail → analyze_failure → targeted replan →
+        execute → (fail again) → analyze_failure → full regen → execute → escalate.
+        Flow without analyst: execute fail → retry → ... → replan → escalate.
+        """
         result = state["execution_result"]
         if result.get("success"):
             return "done"
         if result.get("assistance_requested"):
             return "partial_success"
-        if state.get("retry_count", 0) < cfg.max_execution_retries:
-            return "retry"
         if failure_analyst_fn is not None:
             return "analyze_failure"
+        if state.get("retry_count", 0) < cfg.max_execution_retries:
+            return "retry"
         return _replan_or_escalate(state)
 
     def analyze_failure_node(state: OrchestratorState) -> dict:

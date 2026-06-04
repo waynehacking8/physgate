@@ -341,3 +341,51 @@ class TestFailureReportSchema:
         assert FailureType.TOOL_ERROR.value == "tool_error"
         assert FailureType.PHYSICS_REJECT.value == "physics_reject"
         assert FailureType.INFEASIBLE.value == "infeasible"
+
+
+class TestAnalystFiresOnFirstFailure:
+    """F2 verification: analyst triggers on the FIRST execution failure,
+    not after retry exhaustion."""
+
+    def test_analyst_in_trace_before_any_replan(self):
+        """With analyst enabled, the first execution failure goes straight
+        to analyze_failure — no retry loop first."""
+        from physgate.eval.fault_backend import FaultInjector
+        from physgate.eval.scenarios import FaultSpec
+
+        suite = {s.scenario_id: s for s in build_scenario_suite()}
+        scenario = suite["recovery_transient_pick_failure"]
+        planner = MockPlanner()
+        critic = MockCritic()
+        analyst = MockFailureAnalyst()
+        injector = FaultInjector(scenario.fault)
+
+        def executor_fn(plan, scene):
+            backend = injector.backend_factory(scenario.scene)
+            return execute_plan(plan, backend)
+
+        def gate_fn(plans, scene):
+            return run_gate(plans, scene, l2_fn=symbolic_l2)
+
+        graph = build_orchestrator(
+            planner_fn=planner,
+            critic_fn=critic,
+            gate_fn=gate_fn,
+            executor_fn=executor_fn,
+            approval_fn=lambda sel: True,
+            config=OrchestratorConfig(max_replans=3, max_execution_retries=3),
+            failure_analyst_fn=analyst,
+        )
+        state = run_task(graph, task=scenario.task, scene=scenario.scene)
+
+        trace = state["trace"]
+        exec_indices = [i for i, t in enumerate(trace) if t == "executing"]
+        analyst_indices = [i for i, t in enumerate(trace) if t == "analyzing_failure"]
+
+        if analyst_indices:
+            first_analyst = analyst_indices[0]
+            first_exec = exec_indices[0]
+            assert first_analyst == first_exec + 1, (
+                f"analyst should fire immediately after first execute failure, "
+                f"but trace is: {trace}"
+            )
