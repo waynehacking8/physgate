@@ -114,14 +114,29 @@ def _compute_available_tools(scene: Scene) -> list[str]:
     return tools
 
 
+def _public_object_fields(obj: SceneObject) -> dict[str, Any]:
+    """Object fields visible in query_scene (H3: hide weight/locked/pushable).
+
+    Detailed properties (weight_kg, graspable, locked, pushable) are only
+    available via inspect_object — the agent must inspect before deciding.
+    """
+    return {
+        "id": obj.id,
+        "label": obj.label,
+        "affordances": obj.affordances,
+        "is_anomaly": obj.is_anomaly,
+        "floor": obj.floor,
+    }
+
+
 def to_query_scene_payload(scene: Scene) -> dict[str, Any]:
     """Serialize a Scene into the ``query_scene`` MCP tool response payload.
 
-    JSON-safe dict with the object list, relation triples, gripper state,
-    the ids of anomalous objects, and the available tools for this scene.
+    Returns only public object fields (id, label, affordances, floor).
+    Weight, lock state, and pushability require inspect_object.
     """
     return {
-        "objects": [o.model_dump() for o in scene.objects],
+        "objects": [_public_object_fields(o) for o in scene.objects],
         "relations": [list(r) for r in scene.relations],
         "gripper_empty": scene.gripper_empty,
         "anomalies": [o.id for o in scene.objects if o.is_anomaly],

@@ -63,3 +63,26 @@ class FaultInjectionBackend:
                 ),
             }
         return self._inner.execute_skill(skill=skill, target=target, **kwargs)
+
+    # ----- new tools: forward to inner backend (H2) -----
+
+    def open_door(self, door_id: str, **kwargs: Any) -> dict[str, Any]:
+        return self._inner.open_door(door_id=door_id, **kwargs)
+
+    def unlock_door(self, door_id: str, key_id: str, **kwargs: Any) -> dict[str, Any]:
+        return self._inner.unlock_door(door_id=door_id, key_id=key_id, **kwargs)
+
+    def press_button(self, button_id: str, **kwargs: Any) -> dict[str, Any]:
+        return self._inner.press_button(button_id=button_id, **kwargs)
+
+    def call_elevator(self, elevator_id: str, target_floor: int, **kwargs: Any) -> dict[str, Any]:
+        return self._inner.call_elevator(elevator_id=elevator_id, target_floor=target_floor, **kwargs)
+
+    def push_object(self, object_id: str, direction: str, **kwargs: Any) -> dict[str, Any]:
+        return self._inner.push_object(object_id=object_id, direction=direction, **kwargs)
+
+    def inspect_object(self, object_id: str, **kwargs: Any) -> dict[str, Any]:
+        return self._inner.inspect_object(object_id=object_id, **kwargs)
+
+    def request_assistance(self, message: str, **kwargs: Any) -> dict[str, Any]:
+        return self._inner.request_assistance(message=message, **kwargs)

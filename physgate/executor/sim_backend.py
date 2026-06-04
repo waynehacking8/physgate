@@ -232,6 +232,31 @@ class SimBackend:
         )
         self._world.write_robot_poses(all_pos, all_quat)
 
+    # ----- new tools: symbolic fallback in Isaac env (H1) -----
+
+    def open_door(self, door_id: str, **kwargs: Any) -> dict[str, Any]:
+        return self._symbolic.open_door(door_id=door_id, **kwargs)
+
+    def unlock_door(self, door_id: str, key_id: str, **kwargs: Any) -> dict[str, Any]:
+        return self._symbolic.unlock_door(door_id=door_id, key_id=key_id, **kwargs)
+
+    def press_button(self, button_id: str, **kwargs: Any) -> dict[str, Any]:
+        return self._symbolic.press_button(button_id=button_id, **kwargs)
+
+    def call_elevator(self, elevator_id: str, target_floor: int, **kwargs: Any) -> dict[str, Any]:
+        return self._symbolic.call_elevator(elevator_id=elevator_id, target_floor=target_floor, **kwargs)
+
+    def push_object(self, object_id: str, direction: str, **kwargs: Any) -> dict[str, Any]:
+        return self._symbolic.push_object(object_id=object_id, direction=direction, **kwargs)
+
+    def inspect_object(self, object_id: str, **kwargs: Any) -> dict[str, Any]:
+        return self._symbolic.inspect_object(object_id=object_id, **kwargs)
+
+    def request_assistance(self, message: str, **kwargs: Any) -> dict[str, Any]:
+        return self._symbolic.request_assistance(message=message, **kwargs)
+
+    # ----- sim helpers -----
+
     def _write_carried_box(self, robot_position: np.ndarray) -> None:
         forward = np.array([math.cos(self._yaw), math.sin(self._yaw), 0.0])
         carry_pos = (
