@@ -1,0 +1,21 @@
+{
+  "planner": "ClaudePlanner",
+  "condition_blind": {
+    "end_to_end_success_rate": 0.917,
+    "infeasible_recognition_rate": 1.0,
+    "recovery_rate": 1.0,
+    "decomposition_validity_rate": 0.0,
+    "invalid_plan_catch_rate": 0.0,
+    "replan_efficiency": 0.571,
+    "orchestrator_score": 0.583
+  },
+  "condition_targeted": {
+    "end_to_end_success_rate": 1.0,
+    "infeasible_recognition_rate": 1.0,
+    "recovery_rate": 1.0,
+    "decomposition_validity_rate": 0.0,
+    "invalid_plan_catch_rate": 0.0,
+    "replan_efficiency": 0.857,
+    "orchestrator_score": 0.6
+  }
+}

@@ -312,7 +312,8 @@ handoff. **Tested with real Claude Opus 4.8 (not mock).**
 | | Mock baseline | Claude (blind) | Claude (+ failure analyst) |
 |---|---|---|---|
 | **Scenarios correct** | 13/18 (72%) | 17/18 (94%) | **18/18 (100%)** |
-| **End-to-end success** | 0.583 | 0.833 | **0.917** |
+| **End-to-end success** | 0.583 | 0.917 | **1.00** |
+| **Replan efficiency** | 0.0 | 0.571 | **0.857** |
 | **Tool selection accuracy** | 0.714 | 1.00 | **1.00** |
 
 Infeasible recognition, recovery, and handoff accuracy are 1.00 across all
@@ -342,28 +343,29 @@ and tool selection, where real LLM reasoning dominates the template baseline.
 <details>
 <summary><b>Per-scenario results (Claude Opus 4.8, full confirmed run)</b></summary>
 
-| # | Scenario | Category | Expected | Blind | Targeted | Time |
-|---|---|---|---|---|---|---|
-| 1 | fetch_and_place_basic | ordering | done | done ✓ | done ✓ | 91s |
-| 2 | gate_catches_place_before_pick | ordering | done | done ✓ | done ✓ | 13s |
-| 3 | precondition_occupied_gripper | preconditions | done | **escalated ✗** | **done ✓** | 595/145s |
-| 4 | recovery_transient_pick_failure | recovery | done | done ✓ | done ✓ | 176s |
-| 5 | recovery_persistent_failure_escalates | recovery | escalated | escalated ✓ | escalated ✓ | 315s |
-| 6 | multi_step_two_boxes | multi_step | done | done ✓ | done ✓ | 238s |
-| 7 | infeasible_ungraspable_object | infeasible | escalated | partial_success ✓ | partial_success ✓ | 64s |
-| 8 | ambiguous_multi_shelf | multi_step | done | done ✓ | done ✓ | 82s |
-| 9 | partial_infeasible_two_tasks | infeasible | escalated | partial_success ✓ | partial_success ✓ | 98s |
-| 10 | recovery_place_failure_replan | recovery | done | done ✓ | done ✓ | 331s |
-| 11 | **t2_locked_door_delivery** | locked_door | done | done ✓ | done ✓ | 156s |
-| 12 | t2_locked_door_no_key_escalate | locked_door | escalated | partial_success ✓ | partial_success ✓ | 191s |
-| 13 | **t3_blocked_path_push** | blocked_path | done | done ✓ | done ✓ | 136s |
-| 14 | t3_blocked_path_immovable | blocked_path | done | done ✓ | done ✓ | 445s |
-| 15 | **t4_sequential_delivery** | sequential | done | done ✓ | done ✓ | 167s |
-| 16 | **t5_elevator_delivery** | elevator | done | done ✓ | done ✓ | 99s |
-| 17 | **t6_too_heavy** | assistance | escalated | partial_success ✓ | partial_success ✓ | 68s |
-| 18 | **t6_sealed_room** | assistance | escalated | partial_success ✓ | partial_success ✓ | 70s |
+| # | Scenario | Category | Blind | Targeted |
+|---|---|---|---|---|
+| 1 | fetch_and_place_basic | ordering | done ✓ (91s) | done ✓ (167s) |
+| 2 | gate_catches_place_before_pick | ordering | done ✓ (13s) | done ✓ (14s) |
+| 3 | **precondition_occupied_gripper** | preconditions | **escalated ✗ (595s)** | **done ✓ (145s)** |
+| 4 | recovery_transient_pick_failure | recovery | done ✓ (176s) | done ✓ (171s) |
+| 5 | recovery_persistent_failure_escalates | recovery | escalated ✓ (315s) | escalated ✓ (254s) |
+| 6 | multi_step_two_boxes | multi_step | done ✓ (238s) | done ✓ (201s) |
+| 7 | infeasible_ungraspable_object | infeasible | partial_success ✓ (64s) | partial_success ✓ (68s) |
+| 8 | ambiguous_multi_shelf | multi_step | done ✓ (82s) | done ✓ (66s) |
+| 9 | partial_infeasible_two_tasks | infeasible | partial_success ✓ (98s) | partial_success ✓ (86s) |
+| 10 | recovery_place_failure_replan | recovery | done ✓ (331s) | done ✓ (240s) |
+| 11 | **t2_locked_door_delivery** | locked_door | done ✓ (156s) | done ✓ (311s) |
+| 12 | t2_locked_door_no_key_escalate | locked_door | partial_success ✓ (191s) | partial_success ✓ (161s) |
+| 13 | **t3_blocked_path_push** | blocked_path | done ✓ (136s) | done ✓ (137s) |
+| 14 | t3_blocked_path_immovable | blocked_path | done ✓ (445s) | done ✓ (221s) |
+| 15 | **t4_sequential_delivery** | sequential | done ✓ (167s) | done ✓ (151s) |
+| 16 | **t5_elevator_delivery** | elevator | done ✓ (99s) | done ✓ (94s) |
+| 17 | **t6_too_heavy** | assistance | partial_success ✓ (68s) | partial_success ✓ (67s) |
+| 18 | **t6_sealed_room** | assistance | partial_success ✓ (70s) | partial_success ✓ (59s) |
 
-Scene 3 is the A5 differentiator: blind replan fails, targeted repair succeeds.
+Scene 3 is the A5 differentiator: blind escalated in 595s, targeted repair succeeded in 145s.
+Total wall time: blind 56 min, targeted 44 min (structured repair avoids wasted retries).
 </details>
 
 ### GPU parallel-validation scaling (RTX PRO 6000 Blackwell, 300 W)
