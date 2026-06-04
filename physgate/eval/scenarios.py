@@ -428,6 +428,7 @@ def _locked_door_scene() -> Scene:
             ("box_03", "on", "floor_01"),
             ("key_01", "on", "table_01"),
             ("door_01", "state", "closed"),
+            ("door_01", "state", "locked"),
             ("shelf_B", "behind", "door_01"),
         ],
         gripper_empty=True,
@@ -602,6 +603,7 @@ def _t2_t6_scenarios() -> list[OrchestrationScenario]:
                 relations=[
                     ("box_03", "on", "floor_01"),
                     ("door_01", "state", "closed"),
+                    ("door_01", "state", "locked"),
                     ("shelf_B", "behind", "door_01"),
                 ],
                 gripper_empty=True,

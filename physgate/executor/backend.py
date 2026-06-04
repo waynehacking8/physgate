@@ -190,9 +190,13 @@ class MockWorldBackend:
             o.model_copy(update={"locked": False}) if o.id == door_id else o
             for o in self._scene.objects
         ]
+        updated_relations = [
+            r for r in self._scene.relations
+            if not (r[0] == door_id and r[1] == "state" and r[2] == "locked")
+        ]
         self._scene = Scene(
             objects=updated_objects,
-            relations=list(self._scene.relations),
+            relations=updated_relations,
             gripper_empty=self._scene.gripper_empty,
         )
         return {"success": True, "door_id": door_id, "key_id": key_id}
