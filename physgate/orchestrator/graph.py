@@ -63,6 +63,8 @@ class OrchestratorState(TypedDict, total=False):
     replan_count: int
     retry_count: int
     failure_feedback: str | None
+    failure_report: dict[str, Any] | None
+    replan_strategy: str
     outcome: str
     trace: list[str]
 
@@ -73,6 +75,7 @@ CriticFn = Callable[[list[Plan], Scene], list[Plan]]
 GateFn = Callable[[list[Plan], Scene], SelectionResult]
 ExecutorFn = Callable[[Plan, Scene], dict[str, Any]]
 ApprovalFn = Callable[[SelectionResult], bool]
+FailureAnalystFn = Callable[[Plan, dict[str, Any], Scene], Any]
 
 
 @runtime_checkable
@@ -102,6 +105,7 @@ def build_orchestrator(
     config: OrchestratorConfig | None = None,
     checkpointer: Checkpointer | None = None,
     audit_trail: AuditTrailProtocol | None = None,
+    failure_analyst_fn: FailureAnalystFn | None = None,
 ):
     """Build and compile the orchestrator graph with injected components.
 
@@ -270,12 +274,67 @@ def build_orchestrator(
         return "execute" if state["approved"] else "deny"
 
     def route_after_execute(state: OrchestratorState) -> str:
-        """Route to done on success, retry or replan on failure."""
+        """Route to done on success, analyze failure or retry on failure."""
         if state["execution_result"].get("success"):
             return "done"
         if state.get("retry_count", 0) < cfg.max_execution_retries:
             return "retry"
+        if failure_analyst_fn is not None:
+            return "analyze_failure"
         return _replan_or_escalate(state)
+
+    def analyze_failure_node(state: OrchestratorState) -> dict:
+        """Run the failure analyst on the failed execution."""
+        selection: SelectionResult = state["selection"]
+        best_plan = next(
+            p for p in state["survivors"] if p.plan_id == selection.best_plan_id
+        )
+        report = failure_analyst_fn(best_plan, state["execution_result"], state["scene"])
+        report_dict = report.model_dump(mode="json") if hasattr(report, "model_dump") else {}
+
+        replan_count = state.get("replan_count", 0)
+        if replan_count == 0:
+            strategy = "targeted_repair"
+        elif replan_count == 1:
+            strategy = "full_regeneration"
+        else:
+            strategy = "escalate"
+
+        if strategy == "targeted_repair":
+            feedback = (
+                f"TARGETED REPAIR (keep working prefix through step "
+                f"{report_dict.get('prefix_valid_through', 0)}).\n"
+                f"Root cause: {report_dict.get('root_cause', 'unknown')}\n"
+                f"Suggested fix: {report_dict.get('suggested_fix', 'unknown')}\n"
+                f"Affected steps: {report_dict.get('affected_steps', [])}\n"
+                f"KEEP the prefix. Only fix the broken part."
+            )
+        else:
+            feedback = (
+                f"FULL REGENERATION (targeted repair failed).\n"
+                f"Previous failure: {report_dict.get('root_cause', 'unknown')}\n"
+                f"Generate entirely new plans avoiding this failure mode."
+            )
+
+        _audit("decision", "failure_analysis", state, {
+            "strategy": strategy,
+            "failure_type": report_dict.get("failure_type", "unknown"),
+            "root_cause": report_dict.get("root_cause", "unknown"),
+        })
+
+        return {
+            "failure_report": report_dict,
+            "failure_feedback": feedback,
+            "replan_strategy": strategy,
+            "trace": state["trace"] + ["analyzing_failure"],
+        }
+
+    def route_after_analysis(state: OrchestratorState) -> str:
+        """Route based on replan strategy: targeted/full → replan, escalate → end."""
+        strategy = state.get("replan_strategy", "escalate")
+        if strategy in ("targeted_repair", "full_regeneration"):
+            return "replan"
+        return "escalate"
 
     # replan transitions pass through a counter bump
     def bump_replan_node(state: OrchestratorState) -> dict:
@@ -292,6 +351,9 @@ def build_orchestrator(
     graph.add_node("finish_done", done_node)
     graph.add_node("finish_escalated", escalate_node)
     graph.add_node("finish_denied", deny_node)
+
+    if failure_analyst_fn is not None:
+        graph.add_node("analyze_failure", analyze_failure_node)
 
     graph.add_edge(START, "plan")
     graph.add_edge("plan", "review")
@@ -310,16 +372,28 @@ def build_orchestrator(
         route_after_approve,
         {"execute": "execute", "deny": "finish_denied"},
     )
-    graph.add_conditional_edges(
-        "execute",
-        route_after_execute,
-        {
-            "done": "finish_done",
-            "retry": "execute",
-            "replan": "bump_replan",
-            "escalate": "finish_escalated",
-        },
-    )
+
+    execute_edges = {
+        "done": "finish_done",
+        "retry": "execute",
+    }
+    if failure_analyst_fn is not None:
+        execute_edges["analyze_failure"] = "analyze_failure"
+        execute_edges["replan"] = "bump_replan"
+        execute_edges["escalate"] = "finish_escalated"
+    else:
+        execute_edges["replan"] = "bump_replan"
+        execute_edges["escalate"] = "finish_escalated"
+
+    graph.add_conditional_edges("execute", route_after_execute, execute_edges)
+
+    if failure_analyst_fn is not None:
+        graph.add_conditional_edges(
+            "analyze_failure",
+            route_after_analysis,
+            {"replan": "bump_replan", "escalate": "finish_escalated"},
+        )
+
     graph.add_edge("bump_replan", "plan")
     graph.add_edge("finish_done", END)
     graph.add_edge("finish_escalated", END)
@@ -348,6 +422,8 @@ def run_task(
         "replan_count": 0,
         "retry_count": 0,
         "failure_feedback": None,
+        "failure_report": None,
+        "replan_strategy": "",
         "outcome": "",
         "trace": [],
     }
