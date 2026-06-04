@@ -37,7 +37,7 @@ class AuditTrail:
     def __init__(self, checkpoint_every: int = 16):
         """Initialize with empty record store and checkpoint interval."""
         self.__records: list[AuditRecord] = []
-        self.checkpoints: list[MerkleCheckpoint] = []
+        self.__checkpoints: list[MerkleCheckpoint] = []
         self._checkpoint_every = checkpoint_every
         self._next_checkpoint_start = 0
 
@@ -45,6 +45,11 @@ class AuditTrail:
     def records(self) -> tuple[AuditRecord, ...]:
         """Read-only view of all collected records."""
         return tuple(self.__records)
+
+    @property
+    def checkpoints(self) -> tuple[MerkleCheckpoint, ...]:
+        """Read-only view of all Merkle checkpoints."""
+        return tuple(self.__checkpoints)
 
     # ----- recording -----
 
@@ -76,7 +81,7 @@ class AuditTrail:
             return None
         hashes = [hash_record(r.model_dump(mode="json")) for r in self.__records[start:end]]
         checkpoint = MerkleCheckpoint(start_index=start, end_index=end, root=merkle_root(hashes))
-        self.checkpoints.append(checkpoint)
+        self.__checkpoints.append(checkpoint)
         self._next_checkpoint_start = end
         return checkpoint
 
@@ -85,7 +90,7 @@ class AuditTrail:
         self._checkpoint()
         if not self.verify_integrity():
             raise RuntimeError("audit trail integrity check failed at close()")
-        return self.checkpoints[-1].root if self.checkpoints else None
+        return self.__checkpoints[-1].root if self.__checkpoints else None
 
     # ----- queries -----
 
@@ -101,17 +106,16 @@ class AuditTrail:
         Also verifies contiguous coverage: checkpoints must span [0, len(records))
         with no gaps and no overlaps.
         """
-        if not self.checkpoints:
+        if not self.__checkpoints:
             return len(self.__records) == 0
 
-        # coverage check: checkpoints must start at 0 and tile the record space
-        if self.checkpoints[0].start_index != 0:
+        if self.__checkpoints[0].start_index != 0:
             return False
-        for i in range(1, len(self.checkpoints)):
-            if self.checkpoints[i].start_index != self.checkpoints[i - 1].end_index:
+        for i in range(1, len(self.__checkpoints)):
+            if self.__checkpoints[i].start_index != self.__checkpoints[i - 1].end_index:
                 return False
 
-        for checkpoint in self.checkpoints:
+        for checkpoint in self.__checkpoints:
             window = self.__records[checkpoint.start_index : checkpoint.end_index]
             hashes = [hash_record(r.model_dump(mode="json")) for r in window]
             try:
@@ -127,7 +131,7 @@ class AuditTrail:
         """Export records + checkpoints as JSON Lines (one object per line)."""
         path = Path(path)
         lines = [r.model_dump_json() for r in self.__records]
-        for checkpoint in self.checkpoints:
+        for checkpoint in self.__checkpoints:
             obj = {"type": "merkle_checkpoint", **checkpoint.model_dump()}
             lines.append(json.dumps(obj))
         path.write_text("\n".join(lines) + "\n")

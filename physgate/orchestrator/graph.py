@@ -241,20 +241,28 @@ def build_orchestrator(
             )
         return update
 
+    def _close_audit() -> None:
+        if audit_trail is not None and hasattr(audit_trail, "close"):
+            audit_trail.close()
+
     def done_node(state: OrchestratorState) -> dict:
         """Mark the task as successfully completed."""
+        _close_audit()
         return {"outcome": "done", "trace": state["trace"] + ["done"]}
 
     def escalate_node(state: OrchestratorState) -> dict:
         """Mark the task as escalated after exhausting retry budgets."""
+        _close_audit()
         return {"outcome": "escalated", "trace": state["trace"] + ["escalated"]}
 
     def partial_success_node(state: OrchestratorState) -> dict:
         """Mark the task as partially completed with a handoff request."""
+        _close_audit()
         return {"outcome": "partial_success", "trace": state["trace"] + ["partial_success"]}
 
     def deny_node(state: OrchestratorState) -> dict:
         """Mark the task as denied by the approval gate."""
+        _close_audit()
         return {"outcome": "denied", "trace": state["trace"] + ["denied"]}
 
     # ----- conditional routing -----
