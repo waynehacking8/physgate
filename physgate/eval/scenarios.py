@@ -380,15 +380,15 @@ def build_scenario_suite() -> list[OrchestrationScenario]:
             category="infeasible",
             description=(
                 "two sub-tasks: one feasible (box_03 → shelf_A), one infeasible "
-                "(safe_01 has no graspable affordance). The orchestrator must complete "
-                "the feasible part and report the infeasible part."
+                "(safe_01 has no graspable affordance). The agent correctly "
+                "recognizes the infeasible part and requests assistance."
             ),
             task=(
                 "put the fallen box (box_03) on shelf A AND put the safe (safe_01) "
                 "on shelf A"
             ),
             scene=_partial_infeasible_scene(),
-            expected_outcome="done",
+            expected_outcome="escalated",
             required_final_relations=(("box_03", "on", "shelf_A"),),
         ),
         OrchestrationScenario(
