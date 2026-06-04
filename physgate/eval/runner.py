@@ -25,7 +25,34 @@ from physgate.gate.parallel import run_gate, symbolic_l2
 from physgate.gate.schemas import Scene
 from physgate.gate.scoring import SelectionResult
 from physgate.orchestrator.graph import OrchestratorConfig, build_orchestrator, run_task
-from physgate.planner.schemas import Plan
+from physgate.planner.schemas import Plan, ToolName
+
+_CATEGORY_REQUIRED_TOOLS: dict[str, set[str]] = {
+    "locked_door": {ToolName.UNLOCK_DOOR, ToolName.OPEN_DOOR},
+    "blocked_path": {ToolName.PUSH_OBJECT},
+    "elevator": {ToolName.CALL_ELEVATOR},
+    "assistance": {ToolName.REQUEST_ASSISTANCE},
+}
+
+
+def _check_tool_selection(scenario: OrchestrationScenario, state: dict) -> bool | None:
+    """Check if the selected plan used category-appropriate tools."""
+    required = _CATEGORY_REQUIRED_TOOLS.get(scenario.category)
+    if required is None:
+        return None
+    selection = state.get("selection")
+    if selection is None or selection.best_plan_id is None:
+        if scenario.expected_outcome == "escalated":
+            return True
+        return False
+    best = next(
+        (p for p in state.get("survivors", []) if p.plan_id == selection.best_plan_id),
+        None,
+    )
+    if best is None:
+        return scenario.expected_outcome == "escalated"
+    tools_used = {step.tool for step in best.steps}
+    return bool(required & tools_used) or scenario.expected_outcome == "escalated"
 
 
 def run_scenario(
@@ -132,6 +159,23 @@ def run_scenario(
     elif scenario.expected_outcome == "done":
         handoff_correct = actual_outcome not in ("partial_success",)
 
+    tool_selection_correct = _check_tool_selection(scenario, final_state)
+    failure_recognized: bool | None = None
+    if scenario.expected_outcome == "escalated":
+        failure_recognized = actual_outcome in ("escalated", "partial_success")
+    elif scenario.expected_outcome == "done":
+        failure_recognized = actual_outcome != "escalated"
+
+    prefix_preservation: float | None = None
+    replan_count = final_state.get("replan_count", 0)
+    if replan_count > 0 and final_state.get("failure_report"):
+        report = final_state["failure_report"]
+        prefix = report.get("prefix_valid_through", 0)
+        total = len(final_state.get("candidates", [[]])[0].steps) if final_state.get("candidates") else 1
+        if hasattr(final_state.get("candidates", [None])[0], "steps"):
+            total = len(final_state["candidates"][0].steps)
+        prefix_preservation = min(1.0, prefix / max(total, 1))
+
     return ScenarioResult(
         scenario_id=scenario.scenario_id,
         category=scenario.category,
@@ -142,6 +186,9 @@ def run_scenario(
         decomposition_valid=decomposition_valid,
         invalid_probe_caught=invalid_probe_caught,
         handoff_correct=handoff_correct,
+        tool_selection_correct=tool_selection_correct,
+        failure_recognized=failure_recognized,
+        prefix_preservation=prefix_preservation,
         replans_used=final_state.get("replan_count", 0),
         retries_used=final_state.get("retry_count", 0),
         candidates_generated=len(final_state.get("candidates", [])),

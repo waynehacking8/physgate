@@ -35,6 +35,12 @@ class ScenarioResult(BaseModel):
     invalid_probe_caught: bool | None = None
     #: handoff was correctly triggered (True) or correctly not triggered (True)
     handoff_correct: bool | None = None
+    #: fraction of steps using the correct tool for the scenario category
+    tool_selection_correct: bool | None = None
+    #: for infeasible scenarios: True if agent recognized infeasibility
+    failure_recognized: bool | None = None
+    #: fraction of prefix steps preserved during replan (0-1, None if no replan)
+    prefix_preservation: float | None = None
     replans_used: int = 0
     retries_used: int = 0
     candidates_generated: int = 0
@@ -123,6 +129,10 @@ def compute_metrics(results: list[ScenarioResult]) -> dict[str, float]:
     probes = [r for r in results if r.invalid_probe_caught is not None]
     handoffs = [r for r in results if r.handoff_correct is not None]
 
+    tool_sel = [r for r in results if r.tool_selection_correct is not None]
+    fail_rec = [r for r in results if r.failure_recognized is not None]
+    prefix = [r for r in results if r.prefix_preservation is not None]
+
     metrics = {
         "end_to_end_success_rate": _rate([r.task_completed for r in feasible]),
         "infeasible_recognition_rate": _rate(
@@ -134,6 +144,20 @@ def compute_metrics(results: list[ScenarioResult]) -> dict[str, float]:
     }
     if handoffs:
         metrics["handoff_accuracy"] = _rate([bool(r.handoff_correct) for r in handoffs])
+    if tool_sel:
+        metrics["tool_selection_accuracy"] = _rate([bool(r.tool_selection_correct) for r in tool_sel])
+    if fail_rec:
+        tp = sum(1 for r in fail_rec if r.failure_recognized and r.expected_outcome == "escalated")
+        fp = sum(1 for r in fail_rec if r.failure_recognized and r.expected_outcome == "done")
+        fn = sum(1 for r in fail_rec if not r.failure_recognized and r.expected_outcome == "escalated")
+        precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
+        recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
+        metrics["failure_recognition_precision"] = round(precision, 3)
+        metrics["failure_recognition_recall"] = round(recall, 3)
+    if prefix:
+        metrics["plan_prefix_preservation"] = round(
+            sum(r.prefix_preservation for r in prefix) / len(prefix), 3
+        )
     replan_scenarios = [r for r in results if r.replans_used > 0]
     if replan_scenarios:
         metrics["replan_efficiency"] = _rate([r.task_completed for r in replan_scenarios])
