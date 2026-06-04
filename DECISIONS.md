@@ -553,7 +553,31 @@ run with results recorded.
 scenarios. MockPlanner shows identical outcomes (expected: deterministic plans
 don't respond to feedback content). Value manifests with LLM planner.
 
-**G1 — Honest GIF labels:** T2/T3 GIFs are matplotlib 2D top-down plan
-visualizations, not Isaac Sim 3D physics. Labels updated to say "(top-down
-plan visualization)" vs "(Isaac Sim 3D physics)" for T1. Isaac Sim 3D
-recordings for T2-T6 require USD scene authoring (doors, elevators) — deferred.
+**G1 — Isaac Sim 3D GIFs with walking policy:** T2/T3 GIFs replaced with
+real Isaac Sim 3D recordings using trained Go2 rsl_rl locomotion policy.
+Additional prims (crate, door, key) spawned via USD API. Visual effects
+(door disappearing on unlock+open, key disappearing on pick) triggered
+by proximity callbacks during the policy rollout.
+
+## D-028: Final round — real Claude eval + Isaac GIFs (2026-06-04)
+
+**Real Claude Opus 4.8 evaluation (18 scenarios):**
+Phase 1 (blind, no failure analyst): 17/18 correct (94.4%).
+Only stochastic failure: precondition_occupied_gripper escalated in 1 run
+(succeeded in previous run — LLM variance, not a bug).
+
+All T2-T6 new task types passed with real LLM:
+- T2 locked-door: Claude selected unlock_door + open_door correctly (155s)
+- T3 blocked-path: Claude selected push_object correctly (136s)
+- T4 sequential: Claude handled multi-object ordering (167s)
+- T5 elevator: Claude selected call_elevator correctly (99s)
+- T6 infeasible: Claude called request_assistance correctly (66-70s)
+
+**Bug fixes discovered during real eval:**
+1. _is_reachable: pick(key) failed when robot was near table (key's container).
+   Fixed: objects reachable if robot near their support surface.
+2. unlock_door didn't remove ("door", "state", "locked") relation.
+3. T2 scene needed ("door_01", "state", "locked") in relations.
+
+**Phase 2 (with failure analyst) in progress** — will provide A5 ablation
+data (targeted repair vs blind regeneration with real LLM).
