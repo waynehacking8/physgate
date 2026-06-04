@@ -68,10 +68,24 @@ class MockWorldBackend:
         """Return the current symbolic scene state."""
         return self._scene
 
+    def _robot_floor(self) -> int:
+        robot = self._get_object("go2")
+        return robot.floor if robot else 1
+
     def move_to_pose(self, target: str, standoff_m: float = 0.3, **kwargs: Any) -> dict[str, Any]:
         """Move the robot near the target by updating the scene graph."""
         if not self._scene.has_object(target):
             return {"success": False, "error": f"move_to_pose target '{target}' not in scene"}
+
+        target_obj = self._get_object(target)
+        if target_obj is not None and target_obj.floor != self._robot_floor():
+            return {
+                "success": False,
+                "error": (
+                    f"cannot move to '{target}' on floor {target_obj.floor} — "
+                    f"robot is on floor {self._robot_floor()}; use call_elevator first"
+                ),
+            }
 
         # drop any previous nearness, then add the new one
         effects = [

@@ -280,6 +280,7 @@ class TestCallElevator:
         assert "not an elevator" in result["error"]
 
     def test_call_elevator_wrong_floor_fails(self):
+        """Robot on floor 1 cannot even reach elevator on floor 2 (F3 floor check)."""
         scene = Scene(
             objects=[
                 SceneObject(id="go2", label="robot", floor=1),
@@ -290,10 +291,9 @@ class TestCallElevator:
             gripper_empty=True,
         )
         backend = MockWorldBackend(scene)
-        backend.move_to_pose(target="elevator_01")
-        result = backend.call_elevator(elevator_id="elevator_01", target_floor=3)
-        assert result["success"] is False
-        assert "floor" in result["error"]
+        move_result = backend.move_to_pose(target="elevator_01")
+        assert move_result["success"] is False
+        assert "floor" in move_result["error"]
 
 
 # ============================================================== push_object
@@ -519,3 +519,26 @@ class TestElevatorFloorTransfer:
         backend.move_to_pose(target="shelf_A")
         assert backend.execute_skill(skill="place", target="shelf_A")["success"]
         assert backend.get_scene().has_relation("box_03", "on", "shelf_A")
+
+
+class TestFloorAwareness:
+    """F3 verification: move_to_pose rejects cross-floor movement."""
+
+    def test_cross_floor_move_rejected(self):
+        backend = MockWorldBackend(_elevator_scene())
+        result = backend.move_to_pose(target="shelf_A")
+        assert result["success"] is False
+        assert "floor" in result["error"]
+        assert "elevator" in result["error"]
+
+    def test_same_floor_move_allowed(self):
+        backend = MockWorldBackend(_elevator_scene())
+        result = backend.move_to_pose(target="box_03")
+        assert result["success"] is True
+
+    def test_after_elevator_cross_floor_allowed(self):
+        backend = MockWorldBackend(_elevator_scene())
+        backend.move_to_pose(target="elevator_01")
+        backend.call_elevator(elevator_id="elevator_01", target_floor=2)
+        result = backend.move_to_pose(target="shelf_A")
+        assert result["success"] is True
