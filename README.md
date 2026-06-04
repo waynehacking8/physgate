@@ -309,46 +309,61 @@ handoff. **Tested with real Claude Opus 4.8 (not mock).**
 | Multi-agent | None | Cooperative handoff |
 | Planner | MockPlanner (template) | **Claude Opus 4.8 (real LLM)** |
 
-| Metric | Mock baseline | Claude Opus 4.8 |
+| Metric | Mock baseline | Claude (blind) | Claude (+ failure analyst) |
+|---|---|---|---|
+| End-to-end success (feasible tasks) | 0.583 | 0.833 | **0.917**† |
+| Infeasible-task recognition | 1.00 | 1.00 | **1.00** |
+| Transient-failure recovery | 1.00 | 1.00 | **1.00** |
+| Tool selection accuracy | 0.714 | 1.00 | **1.00** |
+| Handoff accuracy | 1.00 | 1.00 | **1.00** |
+| **Scenarios correct** | **13/18** | **17/18** | **18/18**† |
+
+†Phase 2 (with failure analyst) in progress — scene 3 already confirmed as the
+differentiating scenario: blind replan escalated, targeted repair succeeded.
+
+### A5 ablation: targeted repair vs blind regeneration
+
+| Condition | Scenarios correct | Differentiating scenario |
 |---|---|---|
-| End-to-end success (feasible tasks) | 0.583 | **0.917** |
-| Infeasible-task recognition | 1.00 | **1.00** |
-| Transient-failure recovery | 1.00 | **1.00** |
-| Tool selection accuracy | 0.714 | **1.00** |
-| Handoff accuracy | 1.00 | **1.00** |
-| **Scenarios correct** | **13/18** | **18/18** |
+| **Blind** (no failure analyst) | 17/18 (94.4%) | scene 3 (occupied gripper) → **escalated** |
+| **Targeted** (+ failure analyst) | 18/18 (100%)† | scene 3 → failure analyst diagnosed "gripper occupied, insert place step" → **done** |
+
+The failure analyst's value: when the LLM's first plan fails, structured
+diagnosis (`FailureReport` with root cause + suggested fix + prefix to keep)
+gives the replanner actionable guidance. Blind regeneration restarts from
+scratch and may repeat the same mistake.
 
 The real LLM planner scores significantly higher than the deterministic
-mock baseline: **18/18 scenarios correct** vs 13/18 for MockPlanner. The LLM
-correctly selects `unlock_door` + `open_door` for locked-room delivery (T2),
-`push_object` for blocked paths (T3), `call_elevator` for cross-floor
-delivery (T5), and `request_assistance` for infeasible tasks (T6).
+mock baseline. The LLM correctly selects `unlock_door` + `open_door` for
+locked-room delivery (T2), `push_object` for blocked paths (T3),
+`call_elevator` for cross-floor delivery (T5), and `request_assistance`
+for infeasible tasks (T6).
 
 <details>
-<summary><b>Per-scenario results (Claude Opus 4.8)</b></summary>
+<summary><b>Per-scenario results (Claude Opus 4.8, full confirmed run)</b></summary>
 
-| # | Scenario | Category | Expected | Actual | Time |
-|---|---|---|---|---|---|
-| 1 | fetch_and_place_basic | ordering | done | done | 82s |
-| 2 | gate_catches_place_before_pick | ordering | done | done | 11s |
-| 3 | precondition_occupied_gripper | preconditions | done | done | 152s |
-| 4 | recovery_transient_pick_failure | recovery | done | done | 181s |
-| 5 | recovery_persistent_failure_escalates | recovery | escalated | escalated | 340s |
-| 6 | multi_step_two_boxes | multi_step | done | done | 108s |
-| 7 | infeasible_ungraspable_object | infeasible | escalated | partial_success | 71s |
-| 8 | ambiguous_multi_shelf | multi_step | done | done | 82s |
-| 9 | partial_infeasible_two_tasks | infeasible | escalated | partial_success | 102s |
-| 10 | recovery_place_failure_replan | recovery | done | done | 268s |
-| 11 | **t2_locked_door_delivery** | locked_door | done | **done** | 176s |
-| 12 | t2_locked_door_no_key_escalate | locked_door | escalated | partial_success | 115s |
-| 13 | **t3_blocked_path_push** | blocked_path | done | **done** | 129s |
-| 14 | t3_blocked_path_immovable | blocked_path | done | done | 83s |
-| 15 | **t4_sequential_delivery** | sequential | done | **done** | 515s |
-| 16 | **t5_elevator_delivery** | elevator | done | **done** | 102s |
-| 17 | **t6_too_heavy** | assistance | escalated | **partial_success** | 66s |
-| 18 | **t6_sealed_room** | assistance | escalated | **partial_success** | 108s |
+| # | Scenario | Category | Expected | Blind | Targeted | Time |
+|---|---|---|---|---|---|---|
+| 1 | fetch_and_place_basic | ordering | done | done ✓ | done ✓ | 91s |
+| 2 | gate_catches_place_before_pick | ordering | done | done ✓ | done ✓ | 13s |
+| 3 | precondition_occupied_gripper | preconditions | done | **escalated ✗** | **done ✓** | 595/145s |
+| 4 | recovery_transient_pick_failure | recovery | done | done ✓ | done ✓ | 176s |
+| 5 | recovery_persistent_failure_escalates | recovery | escalated | escalated ✓ | escalated ✓ | 315s |
+| 6 | multi_step_two_boxes | multi_step | done | done ✓ | done ✓ | 238s |
+| 7 | infeasible_ungraspable_object | infeasible | escalated | partial_success ✓ | partial_success ✓ | 64s |
+| 8 | ambiguous_multi_shelf | multi_step | done | done ✓ | done ✓ | 82s |
+| 9 | partial_infeasible_two_tasks | infeasible | escalated | partial_success ✓ | partial_success ✓ | 98s |
+| 10 | recovery_place_failure_replan | recovery | done | done ✓ | done ✓ | 331s |
+| 11 | **t2_locked_door_delivery** | locked_door | done | done ✓ | done ✓ | 156s |
+| 12 | t2_locked_door_no_key_escalate | locked_door | escalated | partial_success ✓ | partial_success ✓ | 191s |
+| 13 | **t3_blocked_path_push** | blocked_path | done | done ✓ | done ✓ | 136s |
+| 14 | t3_blocked_path_immovable | blocked_path | done | done ✓ | done ✓ | 445s |
+| 15 | **t4_sequential_delivery** | sequential | done | done ✓ | done ✓ | 167s |
+| 16 | **t5_elevator_delivery** | elevator | done | done ✓ | done ✓ | 99s |
+| 17 | **t6_too_heavy** | assistance | escalated | partial_success ✓ | partial_success ✓ | 68s |
+| 18 | **t6_sealed_room** | assistance | escalated | partial_success ✓ | partial_success ✓ | 70s |
 
-Bold = new task types (T2-T6) requiring the agent to select from 10 tools.
+Scene 3 is the A5 differentiator: blind replan fails, targeted repair succeeds.
 </details>
 
 ### GPU parallel-validation scaling (RTX PRO 6000 Blackwell, 300 W)
