@@ -1,0 +1,208 @@
+{
+  "condition_blind": {
+    "metrics": {
+      "end_to_end_success_rate": 0.667,
+      "infeasible_recognition_rate": 1.0,
+      "recovery_rate": 1.0,
+      "decomposition_validity_rate": 0.0,
+      "invalid_plan_catch_rate": 0.0,
+      "replan_efficiency": 0.222,
+      "orchestrator_score": 0.533
+    },
+    "per_scenario": [
+      {
+        "id": "fetch_and_place_basic",
+        "outcome": "done",
+        "replans": 0
+      },
+      {
+        "id": "gate_catches_place_before_pick",
+        "outcome": "done",
+        "replans": 0
+      },
+      {
+        "id": "precondition_occupied_gripper",
+        "outcome": "escalated",
+        "replans": 3
+      },
+      {
+        "id": "recovery_transient_pick_failure",
+        "outcome": "done",
+        "replans": 1
+      },
+      {
+        "id": "recovery_persistent_failure_escalates",
+        "outcome": "escalated",
+        "replans": 3
+      },
+      {
+        "id": "multi_step_two_boxes",
+        "outcome": "done",
+        "replans": 0
+      },
+      {
+        "id": "infeasible_ungraspable_object",
+        "outcome": "escalated",
+        "replans": 3
+      },
+      {
+        "id": "ambiguous_multi_shelf",
+        "outcome": "done",
+        "replans": 0
+      },
+      {
+        "id": "partial_infeasible_two_tasks",
+        "outcome": "escalated",
+        "replans": 3
+      },
+      {
+        "id": "recovery_place_failure_replan",
+        "outcome": "done",
+        "replans": 2
+      },
+      {
+        "id": "t2_locked_door_delivery",
+        "outcome": "escalated",
+        "replans": 3
+      },
+      {
+        "id": "t2_locked_door_no_key_escalate",
+        "outcome": "escalated",
+        "replans": 3
+      },
+      {
+        "id": "t3_blocked_path_push",
+        "outcome": "escalated",
+        "replans": 3
+      },
+      {
+        "id": "t3_blocked_path_immovable",
+        "outcome": "partial_success",
+        "replans": 0
+      },
+      {
+        "id": "t4_sequential_delivery",
+        "outcome": "done",
+        "replans": 0
+      },
+      {
+        "id": "t5_elevator_delivery",
+        "outcome": "done",
+        "replans": 0
+      },
+      {
+        "id": "t6_too_heavy",
+        "outcome": "partial_success",
+        "replans": 0
+      },
+      {
+        "id": "t6_sealed_room",
+        "outcome": "partial_success",
+        "replans": 0
+      }
+    ]
+  },
+  "condition_targeted": {
+    "metrics": {
+      "end_to_end_success_rate": 0.667,
+      "infeasible_recognition_rate": 1.0,
+      "recovery_rate": 1.0,
+      "decomposition_validity_rate": 0.0,
+      "invalid_plan_catch_rate": 0.0,
+      "replan_efficiency": 0.222,
+      "orchestrator_score": 0.533
+    },
+    "per_scenario": [
+      {
+        "id": "fetch_and_place_basic",
+        "outcome": "done",
+        "replans": 0
+      },
+      {
+        "id": "gate_catches_place_before_pick",
+        "outcome": "done",
+        "replans": 0
+      },
+      {
+        "id": "precondition_occupied_gripper",
+        "outcome": "escalated",
+        "replans": 3
+      },
+      {
+        "id": "recovery_transient_pick_failure",
+        "outcome": "done",
+        "replans": 1
+      },
+      {
+        "id": "recovery_persistent_failure_escalates",
+        "outcome": "escalated",
+        "replans": 2
+      },
+      {
+        "id": "multi_step_two_boxes",
+        "outcome": "done",
+        "replans": 0
+      },
+      {
+        "id": "infeasible_ungraspable_object",
+        "outcome": "escalated",
+        "replans": 3
+      },
+      {
+        "id": "ambiguous_multi_shelf",
+        "outcome": "done",
+        "replans": 0
+      },
+      {
+        "id": "partial_infeasible_two_tasks",
+        "outcome": "escalated",
+        "replans": 3
+      },
+      {
+        "id": "recovery_place_failure_replan",
+        "outcome": "done",
+        "replans": 2
+      },
+      {
+        "id": "t2_locked_door_delivery",
+        "outcome": "escalated",
+        "replans": 3
+      },
+      {
+        "id": "t2_locked_door_no_key_escalate",
+        "outcome": "escalated",
+        "replans": 3
+      },
+      {
+        "id": "t3_blocked_path_push",
+        "outcome": "escalated",
+        "replans": 3
+      },
+      {
+        "id": "t3_blocked_path_immovable",
+        "outcome": "partial_success",
+        "replans": 0
+      },
+      {
+        "id": "t4_sequential_delivery",
+        "outcome": "done",
+        "replans": 0
+      },
+      {
+        "id": "t5_elevator_delivery",
+        "outcome": "done",
+        "replans": 0
+      },
+      {
+        "id": "t6_too_heavy",
+        "outcome": "partial_success",
+        "replans": 0
+      },
+      {
+        "id": "t6_sealed_room",
+        "outcome": "partial_success",
+        "replans": 0
+      }
+    ]
+  }
+}
