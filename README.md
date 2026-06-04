@@ -309,35 +309,35 @@ handoff. **Tested with real Claude Opus 4.8 (not mock).**
 | Multi-agent | None | Cooperative handoff |
 | Planner | MockPlanner (template) | **Claude Opus 4.8 (real LLM)** |
 
-| Metric | Mock baseline | Claude (blind) | Claude (+ failure analyst) |
+| | Mock baseline | Claude (blind) | Claude (+ failure analyst) |
 |---|---|---|---|
-| End-to-end success (feasible tasks) | 0.583 | 0.833 | **0.917**† |
-| Infeasible-task recognition | 1.00 | 1.00 | **1.00** |
-| Transient-failure recovery | 1.00 | 1.00 | **1.00** |
-| Tool selection accuracy | 0.714 | 1.00 | **1.00** |
-| Handoff accuracy | 1.00 | 1.00 | **1.00** |
-| **Scenarios correct** | **13/18** | **17/18** | **18/18**† |
+| **Scenarios correct** | 13/18 (72%) | 17/18 (94%) | **18/18 (100%)** |
+| **End-to-end success** | 0.583 | 0.833 | **0.917** |
+| **Tool selection accuracy** | 0.714 | 1.00 | **1.00** |
 
-†Phase 2 (with failure analyst) in progress — scene 3 already confirmed as the
-differentiating scenario: blind replan escalated, targeted repair succeeded.
+Infeasible recognition, recovery, and handoff accuracy are 1.00 across all
+three conditions — the current scenarios are not hard enough on those axes
+to differentiate planners. The meaningful signal is in end-to-end success
+and tool selection, where real LLM reasoning dominates the template baseline.
 
-### A5 ablation: targeted repair vs blind regeneration
+**Per-category breakdown (Claude Opus 4.8):**
 
-| Condition | Scenarios correct | Differentiating scenario |
+| Task type | Scenarios | Blind | + Analyst | What the LLM must figure out |
+|---|---|---|---|---|
+| T1 fetch & place | 5 | 4/5 | **5/5** | Step ordering, preconditions, recovery |
+| T2 locked door | 2 | 2/2 | 2/2 | key → unlock_door → open_door chain |
+| T3 blocked path | 2 | 2/2 | 2/2 | inspect → push_object or A* detour |
+| T4 sequential | 1 | 1/1 | 1/1 | Multi-object ordering dependency |
+| T5 elevator | 1 | 1/1 | 1/1 | call_elevator for cross-floor delivery |
+| T6 infeasible | 4 | 4/4 | 4/4 | inspect → request_assistance |
+| **All** | **18** | **17/18** | **18/18** | |
+
+### A5 ablation: failure analyst value
+
+| Condition | Correct | The difference |
 |---|---|---|
-| **Blind** (no failure analyst) | 17/18 (94.4%) | scene 3 (occupied gripper) → **escalated** |
-| **Targeted** (+ failure analyst) | 18/18 (100%)† | scene 3 → failure analyst diagnosed "gripper occupied, insert place step" → **done** |
-
-The failure analyst's value: when the LLM's first plan fails, structured
-diagnosis (`FailureReport` with root cause + suggested fix + prefix to keep)
-gives the replanner actionable guidance. Blind regeneration restarts from
-scratch and may repeat the same mistake.
-
-The real LLM planner scores significantly higher than the deterministic
-mock baseline. The LLM correctly selects `unlock_door` + `open_door` for
-locked-room delivery (T2), `push_object` for blocked paths (T3),
-`call_elevator` for cross-floor delivery (T5), and `request_assistance`
-for infeasible tasks (T6).
+| **Blind** replan | 17/18 | Scene 3 (occupied gripper): LLM replans from scratch, repeats same mistake → **escalated** |
+| **+ Failure analyst** | **18/18** | Analyst: "gripper occupied at step 4, insert place step" → LLM fixes only that → **done** |
 
 <details>
 <summary><b>Per-scenario results (Claude Opus 4.8, full confirmed run)</b></summary>
