@@ -81,6 +81,46 @@ def test_wrong_placement_targets_floor_not_shelf(base_plans):
     assert all(s.args.get("target") != "shelf_A" for s in place_steps)
 
 
+def test_unreachable_goal_creates_wall_layout(base_plans):
+    """D5: obstacles enclose the target, making navigation impossible."""
+    from physgate.eval_v2.defects import inject_unreachable_goal
+    from physgate.world.layout import SCENE_LAYOUT
+
+    plan = base_plans[0]
+    d5_plan, layout = inject_unreachable_goal(plan)
+
+    # (a) returned layout contains 4 wall_ keys
+    walls = {k: v for k, v in layout.items() if k.startswith("wall_")}
+    assert len(walls) == 4, f"expected 4 walls, got {len(walls)}: {list(walls)}"
+
+    # (b) walls are at box_03 ±0.4m offset
+    bx, by = SCENE_LAYOUT["box_03"][:2]
+    for wk, wv in walls.items():
+        dx, dy = abs(wv[0] - bx), abs(wv[1] - by)
+        assert dx <= 0.41 or dy <= 0.41, f"{wk} too far from box: dx={dx}, dy={dy}"
+
+    # (c) plan itself unchanged except plan_id suffix
+    assert d5_plan.plan_id.endswith("__D5")
+    assert len(d5_plan.steps) == len(plan.steps)
+    for orig, d5 in zip(plan.steps, d5_plan.steps):
+        assert orig.tool == d5.tool
+        assert orig.args == d5.args
+
+    # (d) original plan object not mutated
+    assert not plan.plan_id.endswith("__D5")
+
+
+def test_unreachable_goal_blocks_navigation(base_plans):
+    """D5 layout makes A* pathfinding fail."""
+    from physgate.eval_v2.defects import inject_unreachable_goal
+    from physgate.gate.trajectory import synthesize_base_trajectory
+    from physgate.nav.path_planner import PathPlannerError
+
+    d5_plan, layout = inject_unreachable_goal(base_plans[0])
+    with pytest.raises(PathPlannerError):
+        synthesize_base_trajectory(d5_plan, 0.02, layout=layout)
+
+
 def test_speed_violation_is_marked_valid_ground_truth(base_plans):
     """Out-of-envelope speed is NOT an invalid plan: the gate clamps it (D-018).
     A gate that rejects it has a false positive."""
