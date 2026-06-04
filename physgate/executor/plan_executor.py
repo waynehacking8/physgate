@@ -111,6 +111,19 @@ def execute_plan(plan: Plan, backend: WorldBackend) -> dict[str, Any]:
         outcome = _dispatch_step(step, backend)
         step_results.append({"step_id": step.step_id, **outcome})
 
+        if outcome.get("assistance_requested"):
+            return {
+                "success": False,
+                "assistance_requested": True,
+                "message": outcome.get("message", ""),
+                "steps_completed": len(step_results),
+                "steps_total": len(plan.steps),
+                "step_results": step_results,
+                "failed_step_id": None,
+                "error": f"task requires assistance: {outcome.get('message', '')}",
+                "failure_report": None,
+            }
+
         if not outcome.get("success"):
             return {
                 "success": False,

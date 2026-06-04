@@ -22,8 +22,11 @@ from physgate.planner.schemas import Plan, PlanStep, ToolName
 def test_suite_covers_all_orchestration_categories():
     suite = build_scenario_suite()
     categories = {s.category for s in suite}
-    assert categories == {"ordering", "preconditions", "recovery", "multi_step", "infeasible"}
-    # at least one feasible and one infeasible scenario
+    expected = {
+        "ordering", "preconditions", "recovery", "multi_step", "infeasible",
+        "locked_door", "blocked_path", "sequential", "elevator", "assistance",
+    }
+    assert categories == expected
     assert any(s.expected_outcome == "done" for s in suite)
     assert any(s.expected_outcome == "escalated" for s in suite)
 
@@ -213,14 +216,13 @@ def test_infeasible_task_escalates_with_mock_planner():
     assert result.outcome_correct is True
 
 
-def test_multi_step_scenario_detects_incomplete_decomposition():
-    """MockPlanner only handles one box — the two-box scenario must be scored as
-    NOT completed (this is exactly the decomposition-quality signal the eval
-    exists to measure; a real LLM orchestrator should do better)."""
+def test_multi_step_scenario_completes_with_upgraded_planner():
+    """The upgraded MockPlanner detects multi-object scenes and generates
+    sequential plans that handle both boxes."""
     suite = {s.scenario_id: s for s in build_scenario_suite()}
     planner, critic = _mock_components()
     result = run_scenario(suite["multi_step_two_boxes"], planner, critic)
-    assert result.task_completed is False
+    assert result.task_completed is True
 
 
 # ------------------------------------------------------------------ full suite

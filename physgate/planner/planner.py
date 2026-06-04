@@ -105,9 +105,19 @@ def llm_credentials_available() -> bool:
 _SYSTEM_PROMPT = """\
 You are a robot task planner for a Unitree Go2 quadruped with a top-mounted gripper.
 Decompose the user's task into candidate plans. Each plan is a flat list of steps;
-each step calls exactly one tool: query_scene, move_to_pose, or execute_skill.
+each step calls exactly one tool.
 
-Available skills for execute_skill: pick, place.
+Available tools (use ONLY tools listed in the scene's available_tools field):
+- query_scene: observe the world (no args)
+- move_to_pose: navigate to an object — args: {"target": "<id>", "standoff_m": 0.3, "speed": 0.5}
+- execute_skill: manipulation — args: {"skill": "pick"|"place", "target": "<id>"}
+- open_door: open a closed, unlocked door — args: {"door_id": "<id>"}
+- unlock_door: unlock a locked door with a key — args: {"door_id": "<id>", "key_id": "<id>"}
+- press_button: press a button — args: {"button_id": "<id>"}
+- call_elevator: ride to another floor — args: {"elevator_id": "<id>", "target_floor": <int>}
+- push_object: push an obstacle aside — args: {"object_id": "<id>", "direction": "north"|"south"|"east"|"west"}
+- inspect_object: learn weight, graspability, lock state — args: {"object_id": "<id>"}
+- request_assistance: signal the task cannot be completed alone — args: {"message": "<why>"}
 
 Output ONLY a JSON array of plan objects, no prose. Each plan object:
 {
@@ -117,38 +127,38 @@ Output ONLY a JSON array of plan objects, no prose. Each plan object:
   "steps": [
     {
       "step_id": <int>,
-      "tool": "move_to_pose" | "execute_skill" | "query_scene",
-      "args": {"target": "<object id>", ...},
-      "preconditions": ["<object id> exists", "gripper_empty", "<subj> <pred> <obj>"],
+      "tool": "<tool name>",
+      "args": {<tool-specific args>},
+      "preconditions": ["<condition>", ...],
       "effects": [{"op": "add"|"remove", "subject": "...", "predicate": "...", "object": "..."}]
     }
   ]
 }
 
 HARD CONSTRAINTS (plans violating these are rejected by the validation gate):
-- Every "target" value MUST be an object id copied EXACTLY from the provided
-  scene. NEVER invent new object ids, waypoints, staging areas, or locations —
-  the physics gate has no coordinates for ids that are not in the scene.
-- move_to_pose args: {"target": "<scene object id>"} plus optional
-  "standoff_m" (0.2-0.5) and "speed" (0.4-0.6, m/s).
-- execute_skill args: {"skill": "pick" | "place", "target": "<scene object id>"}.
+- Every "target" / id value MUST be an object id copied EXACTLY from the scene.
+  NEVER invent new object ids, waypoints, staging areas, or locations.
+- ONLY use tools that appear in the scene's available_tools list.
+- move_to_pose BEFORE any tool that requires robot nearness (pick, place,
+  open_door, unlock_door, press_button, push_object, call_elevator).
+- unlock_door BEFORE open_door on a locked door.
+- inspect_object to check feasibility BEFORE attempting impossible actions.
+- request_assistance when the task is infeasible (too heavy, sealed room, etc.)
+  instead of inventing steps. Return plans with inspect + request_assistance.
 
-RELATION VOCABULARY — preconditions and effect subjects/predicates MUST use
-exactly these forms (the gate and executor check them literally):
+RELATION VOCABULARY:
 - "<object id> exists"             object is present in the scene
 - "gripper_empty"                  the gripper currently holds nothing
-- "robot near <object id>"         robot is at the object (the effect of move_to_pose)
-- "gripper holding <object id>"    gripper holds the object (added by pick, removed by place)
-- "<object id> on <object id>"     support relation, e.g. "box_03 on shelf_A"
+- "robot near <object id>"         robot is at the object
+- "gripper holding <object id>"    gripper holds the object
+- "<object id> on <object id>"     support relation
 Use the literal subjects "robot" and "gripper" — NOT the robot's scene object id.
 
 NOTE: you do NOT plan routes or avoid obstacles — a deterministic navigation
-layer handles "how to get there". Your job is task DECOMPOSITION: correct step
-ordering, satisfied preconditions, and handling of failures. Generate plans that
-differ in decomposition (orderings, intermediate checks, recovery steps), and
-every manipulation step must declare its preconditions. If the task is
-impossible with the available objects and skills, return an empty JSON array []
-instead of inventing steps.
+layer handles that. Your job is task DECOMPOSITION: correct tool selection,
+step ordering, and handling of failures. If the task is impossible with the
+available objects and tools, return an empty JSON array [] or plans that call
+request_assistance.
 """
 
 
@@ -236,30 +246,67 @@ class ClaudePlanner:
 
 
 class MockPlanner:
-    """Deterministic offline planner for the fetch-and-place MVP task.
+    """Deterministic offline planner for all task types.
 
-    Generates ``n`` structurally diverse candidates so the critic and gate have
-    real selection work to do. Used when no ANTHROPIC_API_KEY is available.
+    Detects the task type from scene structure and generates structurally
+    diverse candidates. Used when no ANTHROPIC_API_KEY is available.
     """
 
     def __call__(self, task: str, scene: Scene, n: int, feedback: str | None = None) -> list[Plan]:
-        """Generate n structurally diverse candidate plans from templates."""
-        fetch_target = self._fetch_target(scene)
-        place_target = self._place_target(scene)
-        rationale_suffix = " (replan after gate feedback)" if feedback else ""
+        """Generate n candidate plans, detecting task type from scene."""
+        task_type = self._detect_task_type(scene, task)
+        generator = {
+            "locked_door": self._locked_door_plans,
+            "blocked_path": self._blocked_path_plans,
+            "elevator": self._elevator_plans,
+            "sequential": self._sequential_plans,
+            "infeasible_heavy": self._infeasible_plans,
+            "infeasible_sealed": self._infeasible_plans,
+            "infeasible_blocked": self._infeasible_plans,
+            "fetch_and_place": self._fetch_and_place_plans,
+        }.get(task_type, self._fetch_and_place_plans)
+        return generator(task, scene, n, feedback)
 
-        variants = [
-            self._direct_plan,
-            self._scan_first_plan,
-            self._cautious_plan,
-            self._no_precondition_plan,  # deliberately unsafe → critic should prune
-        ]
-        plans = []
-        for i in range(n):
-            variant = variants[i % len(variants)]
-            plan = variant(i, task, fetch_target, place_target, rationale_suffix)
-            plans.append(plan)
-        return plans
+    # ----- task type detection -----
+
+    @staticmethod
+    def _detect_task_type(scene: Scene, task: str) -> str:
+        obj_map = {o.id: o for o in scene.objects}
+        has_locked_door = any(
+            "door" in o.affordances and o.locked for o in scene.objects
+        )
+        has_elevator = any("elevator" in o.affordances for o in scene.objects)
+        blocking_rels = [r for r in scene.relations if r[1] == "blocking"]
+        has_pushable_blocking = any(
+            r[0] in obj_map and obj_map[r[0]].pushable for r in blocking_rels
+        )
+        has_immovable_blocking = any(
+            r[0] in obj_map and not obj_map[r[0]].pushable for r in blocking_rels
+        ) and not has_pushable_blocking
+        has_sealed = any(r[1] == "enclosed_by" for r in scene.relations)
+        has_heavy = any(
+            o.weight_kg > 5.0 and not o.pushable and "graspable" not in o.affordances
+            for o in scene.objects
+            if o.is_anomaly
+        )
+        anomalies = [o for o in scene.objects if o.is_anomaly]
+        multiple_anomalies = len(anomalies) >= 2
+
+        if has_locked_door:
+            return "locked_door"
+        if has_sealed:
+            return "infeasible_sealed"
+        if has_heavy:
+            return "infeasible_heavy"
+        if has_immovable_blocking:
+            return "infeasible_blocked"
+        if has_elevator:
+            return "elevator"
+        if has_pushable_blocking:
+            return "blocked_path"
+        if multiple_anomalies:
+            return "sequential"
+        return "fetch_and_place"
 
     # ----- scene introspection -----
 
@@ -279,7 +326,7 @@ class MockPlanner:
         non_anomalies = [o for o in scene.objects if not o.is_anomaly]
         return non_anomalies[0].id if non_anomalies else scene.objects[-1].id
 
-    # ----- plan variants -----
+    # ----- step builders -----
 
     @staticmethod
     def _pick_step(step_id: int, target: str) -> PlanStep:
@@ -316,6 +363,214 @@ class MockPlanner:
             effects=[RelationChange(op="add", subject="robot", predicate="near", object=target)],
         )
 
+    # ----- T1: fetch and place (original) -----
+
+    def _fetch_and_place_plans(
+        self, task: str, scene: Scene, n: int, feedback: str | None
+    ) -> list[Plan]:
+        fetch = self._fetch_target(scene)
+        place = self._place_target(scene)
+        suffix = " (replan)" if feedback else ""
+        variants = [
+            self._direct_plan,
+            self._scan_first_plan,
+            self._cautious_plan,
+            self._no_precondition_plan,
+        ]
+        return [
+            variants[i % len(variants)](i, task, fetch, place, suffix)
+            for i in range(n)
+        ]
+
+    # ----- T2: locked door delivery -----
+
+    def _locked_door_plans(
+        self, task: str, scene: Scene, n: int, feedback: str | None
+    ) -> list[Plan]:
+        fetch = self._fetch_target(scene)
+        place = self._place_target(scene)
+        door = next((o.id for o in scene.objects if "door" in o.affordances), "door_01")
+        key = next(
+            (o.id for o in scene.objects if o.label == "key" and "graspable" in o.affordances),
+            None,
+        )
+        if key is None:
+            return []
+
+        plans: list[Plan] = []
+        for i in range(n):
+            sid = 1
+            steps: list[PlanStep] = []
+            if i % 2 == 0:
+                steps.append(PlanStep(step_id=sid, tool=ToolName.QUERY_SCENE, args={}))
+                sid += 1
+            steps.append(self._move_step(sid, key, standoff=0.3)); sid += 1
+            steps.append(self._pick_step(sid, key)); sid += 1
+            steps.append(self._move_step(sid, door, standoff=0.3)); sid += 1
+            steps.append(PlanStep(
+                step_id=sid, tool=ToolName.UNLOCK_DOOR,
+                args={"door_id": door, "key_id": key},
+                preconditions=[f"robot near {door}", f"gripper holding {key}"],
+            )); sid += 1
+            steps.append(PlanStep(
+                step_id=sid, tool=ToolName.OPEN_DOOR,
+                args={"door_id": door},
+                preconditions=[f"robot near {door}", f"{door} unlocked"],
+            )); sid += 1
+            # put key down, pick box, deliver
+            floor = next((o.id for o in scene.objects if o.label == "floor"), "floor_01")
+            steps.append(self._move_step(sid, floor, standoff=0.3)); sid += 1
+            steps.append(self._place_step(sid, key, floor)); sid += 1
+            steps.append(self._move_step(sid, fetch, standoff=0.3)); sid += 1
+            steps.append(self._pick_step(sid, fetch)); sid += 1
+            steps.append(self._move_step(sid, place, standoff=0.4)); sid += 1
+            steps.append(self._place_step(sid, fetch, place)); sid += 1
+            plans.append(Plan(
+                plan_id=f"mock_{i}_locked_door", task=task,
+                rationale=f"key→unlock→open→deliver chain (variant {i})",
+                steps=steps,
+            ))
+        return plans
+
+    # ----- T3: blocked path -----
+
+    def _blocked_path_plans(
+        self, task: str, scene: Scene, n: int, feedback: str | None
+    ) -> list[Plan]:
+        fetch = self._fetch_target(scene)
+        place = self._place_target(scene)
+        blocker = next((o.id for o in scene.objects if o.pushable), None)
+
+        plans: list[Plan] = []
+        for i in range(n):
+            sid = 1
+            steps: list[PlanStep] = []
+            if blocker:
+                steps.append(PlanStep(
+                    step_id=sid, tool=ToolName.INSPECT_OBJECT,
+                    args={"object_id": blocker},
+                )); sid += 1
+                steps.append(self._move_step(sid, blocker, standoff=0.3)); sid += 1
+                steps.append(PlanStep(
+                    step_id=sid, tool=ToolName.PUSH_OBJECT,
+                    args={"object_id": blocker, "direction": "east"},
+                    preconditions=[f"robot near {blocker}", f"{blocker} pushable"],
+                )); sid += 1
+            steps.append(self._move_step(sid, fetch, standoff=0.3)); sid += 1
+            steps.append(self._pick_step(sid, fetch)); sid += 1
+            steps.append(self._move_step(sid, place, standoff=0.4)); sid += 1
+            steps.append(self._place_step(sid, fetch, place)); sid += 1
+            plans.append(Plan(
+                plan_id=f"mock_{i}_blocked_path", task=task,
+                rationale=f"push blocker aside then deliver (variant {i})",
+                steps=steps,
+            ))
+        return plans
+
+    # ----- T4: sequential multi-object -----
+
+    def _sequential_plans(
+        self, task: str, scene: Scene, n: int, feedback: str | None
+    ) -> list[Plan]:
+        anomalies = [o for o in scene.objects if o.is_anomaly]
+        placeable = [o for o in scene.objects if "placeable" in o.affordances]
+
+        plans: list[Plan] = []
+        for i in range(n):
+            sid = 1
+            steps: list[PlanStep] = []
+            # clear occupied shelves first
+            for shelf in placeable:
+                occupants = [
+                    r[0] for r in scene.relations
+                    if r[1] == "on" and r[2] == shelf.id
+                    and r[0] not in [a.id for a in anomalies]
+                ]
+                for occ in occupants:
+                    floor = next((o.id for o in scene.objects if o.label == "floor"), "floor_01")
+                    steps.append(self._move_step(sid, occ, standoff=0.3)); sid += 1
+                    steps.append(self._pick_step(sid, occ)); sid += 1
+                    steps.append(self._move_step(sid, floor, standoff=0.3)); sid += 1
+                    steps.append(self._place_step(sid, occ, floor)); sid += 1
+
+            # deliver each anomaly to a placeable target
+            for j, anomaly in enumerate(anomalies):
+                target = placeable[j % len(placeable)].id if placeable else "floor_01"
+                steps.append(self._move_step(sid, anomaly.id, standoff=0.3)); sid += 1
+                steps.append(self._pick_step(sid, anomaly.id)); sid += 1
+                steps.append(self._move_step(sid, target, standoff=0.4)); sid += 1
+                steps.append(self._place_step(sid, anomaly.id, target)); sid += 1
+
+            plans.append(Plan(
+                plan_id=f"mock_{i}_sequential", task=task,
+                rationale=f"clear then deliver in sequence (variant {i})",
+                steps=steps,
+            ))
+        return plans
+
+    # ----- T5: elevator -----
+
+    def _elevator_plans(
+        self, task: str, scene: Scene, n: int, feedback: str | None
+    ) -> list[Plan]:
+        fetch = self._fetch_target(scene)
+        place = self._place_target(scene)
+        elevator = next((o.id for o in scene.objects if "elevator" in o.affordances), "elevator_01")
+        target_floor = next(
+            (o.floor for o in scene.objects if o.id == place), 2
+        )
+
+        plans: list[Plan] = []
+        for i in range(n):
+            sid = 1
+            steps: list[PlanStep] = [
+                self._move_step(sid, fetch, standoff=0.3),
+            ]; sid += 1
+            steps.append(self._pick_step(sid, fetch)); sid += 1
+            steps.append(self._move_step(sid, elevator, standoff=0.3)); sid += 1
+            steps.append(PlanStep(
+                step_id=sid, tool=ToolName.CALL_ELEVATOR,
+                args={"elevator_id": elevator, "target_floor": target_floor},
+                preconditions=[f"robot near {elevator}"],
+            )); sid += 1
+            steps.append(self._move_step(sid, place, standoff=0.4)); sid += 1
+            steps.append(self._place_step(sid, fetch, place)); sid += 1
+            plans.append(Plan(
+                plan_id=f"mock_{i}_elevator", task=task,
+                rationale=f"pick→elevator→deliver across floors (variant {i})",
+                steps=steps,
+            ))
+        return plans
+
+    # ----- T6: infeasible -----
+
+    def _infeasible_plans(
+        self, task: str, scene: Scene, n: int, feedback: str | None
+    ) -> list[Plan]:
+        anomaly = next((o for o in scene.objects if o.is_anomaly), None)
+        if anomaly is None:
+            return []
+        plans: list[Plan] = []
+        for i in range(n):
+            steps = [
+                PlanStep(
+                    step_id=1, tool=ToolName.INSPECT_OBJECT,
+                    args={"object_id": anomaly.id},
+                ),
+                PlanStep(
+                    step_id=2, tool=ToolName.REQUEST_ASSISTANCE,
+                    args={"message": f"cannot handle {anomaly.id}: task infeasible"},
+                ),
+            ]
+            plans.append(Plan(
+                plan_id=f"mock_{i}_infeasible", task=task,
+                rationale=f"inspect then request assistance (variant {i})",
+                steps=steps,
+            ))
+        return plans
+
+    # ----- T1 plan variants (original) -----
+
     def _direct_plan(self, i, task, fetch, place, suffix) -> Plan:
         return Plan(
             plan_id=f"mock_{i}_direct",
@@ -344,11 +599,6 @@ class MockPlanner:
         )
 
     def _cautious_plan(self, i, task, fetch, place, suffix) -> Plan:
-        """Slow, wide-standoff variant: trades time for approach clearance.
-
-        Navigation (obstacle avoidance) is handled by the deterministic low
-        level for every plan — "caution" here means approach speed and standoff
-        choices, not route geometry."""
         steps = [
             self._move_step(1, fetch, standoff=0.5, speed=0.25),
             self._pick_step(2, fetch),
@@ -363,7 +613,6 @@ class MockPlanner:
         )
 
     def _no_precondition_plan(self, i, task, fetch, place, suffix) -> Plan:
-        """Deliberately reckless candidate (no preconditions) — critic prunes it."""
         return Plan(
             plan_id=f"mock_{i}_reckless",
             task=task,

@@ -59,7 +59,10 @@ def check_decomposition(plan: Plan, initially_held: str | None = None) -> bool:
     Rules:
         * pick(X) requires the robot to have moved to X first,
         * pick(X) requires an empty gripper (no double-pick),
-        * place(Y) requires holding something and having moved to Y.
+        * place(Y) requires holding something and having moved to Y,
+        * open_door / unlock_door / press_button / push_object require nearness,
+        * unlock_door requires holding a key,
+        * call_elevator requires nearness to the elevator.
 
     Args:
         plan: the plan to check.
@@ -84,6 +87,21 @@ def check_decomposition(plan: Plan, initially_held: str | None = None) -> bool:
                 if held is None or near != target:
                     return False
                 held = None
+        elif step.tool == ToolName.OPEN_DOOR:
+            if near != step.args.get("door_id"):
+                return False
+        elif step.tool == ToolName.UNLOCK_DOOR:
+            if near != step.args.get("door_id") or held is None:
+                return False
+        elif step.tool == ToolName.PRESS_BUTTON:
+            if near != step.args.get("button_id"):
+                return False
+        elif step.tool == ToolName.CALL_ELEVATOR:
+            if near != step.args.get("elevator_id"):
+                return False
+        elif step.tool == ToolName.PUSH_OBJECT:
+            if near != step.args.get("object_id"):
+                return False
     return True
 
 

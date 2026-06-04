@@ -1,12 +1,17 @@
 """Orchestration-evaluation scenarios: failure modes that are about ORCHESTRATION.
 
-Each scenario isolates one agent-orchestrator capability (REBUILD.md Phase 3):
+Each scenario isolates one agent-orchestrator capability:
 
     ordering        — does the system order steps correctly / catch inverted plans?
     preconditions   — does it handle unmet preconditions (occupied gripper)?
     recovery        — does it retry transient failures and give up on persistent ones?
     multi_step      — does decomposition cover ALL required objects?
     infeasible      — does it recognize impossible tasks instead of pretending?
+    locked_door     — T2: key→unlock→open→deliver chain
+    blocked_path    — T3: inspect→push or A* detour
+    sequential      — T4: multi-object ordering dependency
+    elevator        — T5: cross-floor delivery
+    assistance      — T6: infeasible task → request_assistance
 
 Navigation geometry is deliberately ABSENT from every scenario — the
 deterministic nav layer guarantees it, so it cannot differentiate orchestrators.
@@ -398,5 +403,288 @@ def build_scenario_suite() -> list[OrchestrationScenario]:
             expected_outcome="done",
             required_final_relations=(("box_03", "on", "shelf_A"),),
             fault=FaultSpec(skill="place", fail_count=2),
+        ),
+    ] + _t2_t6_scenarios()
+
+
+# ============================================= T2-T6 scene constructors
+
+
+def _locked_door_scene() -> Scene:
+    """T2: a locked room with the delivery target behind the door."""
+    return Scene(
+        objects=[
+            SceneObject(
+                id="box_03", label="cardboard_box", affordances=["graspable"], is_anomaly=True
+            ),
+            SceneObject(id="shelf_B", label="shelf", affordances=["placeable"]),
+            SceneObject(id="door_01", label="door", affordances=["door"], locked=True),
+            SceneObject(id="key_01", label="key", affordances=["graspable"], weight_kg=0.1),
+            SceneObject(id="table_01", label="table", affordances=["placeable"]),
+            SceneObject(id="floor_01", label="floor"),
+            SceneObject(id="go2", label="robot"),
+        ],
+        relations=[
+            ("box_03", "on", "floor_01"),
+            ("key_01", "on", "table_01"),
+            ("door_01", "state", "closed"),
+            ("shelf_B", "behind", "door_01"),
+        ],
+        gripper_empty=True,
+    )
+
+
+def _blocked_path_scene() -> Scene:
+    """T3: a pushable crate blocks the direct path to the shelf."""
+    return Scene(
+        objects=[
+            SceneObject(
+                id="box_03", label="cardboard_box", affordances=["graspable"], is_anomaly=True
+            ),
+            SceneObject(id="shelf_A", label="shelf", affordances=["placeable"]),
+            SceneObject(id="crate_01", label="crate", pushable=True, weight_kg=20.0),
+            SceneObject(id="floor_01", label="floor"),
+            SceneObject(id="go2", label="robot"),
+        ],
+        relations=[
+            ("box_03", "on", "floor_01"),
+            ("crate_01", "blocking", "path_to_shelf_A"),
+        ],
+        gripper_empty=True,
+    )
+
+
+def _sequential_delivery_scene() -> Scene:
+    """T4: two boxes, shelf_B occupied by box_05 which must be cleared first."""
+    return Scene(
+        objects=[
+            SceneObject(
+                id="box_03", label="cardboard_box", affordances=["graspable"], is_anomaly=True
+            ),
+            SceneObject(
+                id="box_04", label="cardboard_box", affordances=["graspable"], is_anomaly=True
+            ),
+            SceneObject(
+                id="box_05", label="cardboard_box", affordances=["graspable"]
+            ),
+            SceneObject(id="shelf_A", label="shelf", affordances=["placeable"]),
+            SceneObject(id="shelf_B", label="shelf", affordances=["placeable"]),
+            SceneObject(id="floor_01", label="floor"),
+            SceneObject(id="go2", label="robot"),
+        ],
+        relations=[
+            ("box_03", "on", "floor_01"),
+            ("box_04", "on", "floor_01"),
+            ("box_05", "on", "shelf_B"),
+        ],
+        gripper_empty=True,
+    )
+
+
+def _elevator_scene() -> Scene:
+    """T5: box on floor 1, shelf on floor 2, elevator available."""
+    return Scene(
+        objects=[
+            SceneObject(
+                id="box_03", label="cardboard_box", affordances=["graspable"],
+                is_anomaly=True, floor=1,
+            ),
+            SceneObject(id="shelf_A", label="shelf", affordances=["placeable"], floor=2),
+            SceneObject(id="elevator_01", label="elevator", affordances=["elevator"], floor=1),
+            SceneObject(id="floor_01", label="floor", floor=1),
+            SceneObject(id="floor_02", label="floor", floor=2),
+            SceneObject(id="go2", label="robot", floor=1),
+        ],
+        relations=[("box_03", "on", "floor_01")],
+        gripper_empty=True,
+    )
+
+
+def _heavy_object_scene() -> Scene:
+    """T6 (infeasible): anvil is 200kg, robot max carry is 5kg."""
+    return Scene(
+        objects=[
+            SceneObject(
+                id="anvil_01", label="anvil", affordances=[], weight_kg=200.0, is_anomaly=True
+            ),
+            SceneObject(id="shelf_A", label="shelf", affordances=["placeable"]),
+            SceneObject(id="floor_01", label="floor"),
+            SceneObject(id="go2", label="robot"),
+        ],
+        relations=[("anvil_01", "on", "floor_01")],
+        gripper_empty=True,
+    )
+
+
+def _sealed_room_scene() -> Scene:
+    """T6 (infeasible): room_C has no door — completely walled off."""
+    return Scene(
+        objects=[
+            SceneObject(
+                id="box_03", label="cardboard_box", affordances=["graspable"], is_anomaly=True
+            ),
+            SceneObject(id="shelf_C", label="shelf", affordances=["placeable"]),
+            SceneObject(id="wall_N", label="wall"),
+            SceneObject(id="wall_S", label="wall"),
+            SceneObject(id="wall_E", label="wall"),
+            SceneObject(id="wall_W", label="wall"),
+            SceneObject(id="floor_01", label="floor"),
+            SceneObject(id="go2", label="robot"),
+        ],
+        relations=[
+            ("box_03", "on", "floor_01"),
+            ("shelf_C", "enclosed_by", "wall_N"),
+            ("shelf_C", "enclosed_by", "wall_S"),
+            ("shelf_C", "enclosed_by", "wall_E"),
+            ("shelf_C", "enclosed_by", "wall_W"),
+        ],
+        gripper_empty=True,
+    )
+
+
+def _blocked_path_no_push_scene() -> Scene:
+    """T3 variant: path blocked by an immovable (non-pushable) object."""
+    return Scene(
+        objects=[
+            SceneObject(
+                id="box_03", label="cardboard_box", affordances=["graspable"], is_anomaly=True
+            ),
+            SceneObject(id="shelf_A", label="shelf", affordances=["placeable"]),
+            SceneObject(id="pillar_01", label="pillar", pushable=False, weight_kg=500.0),
+            SceneObject(id="floor_01", label="floor"),
+            SceneObject(id="go2", label="robot"),
+        ],
+        relations=[
+            ("box_03", "on", "floor_01"),
+            ("pillar_01", "blocking", "path_to_shelf_A"),
+        ],
+        gripper_empty=True,
+    )
+
+
+# ============================================= T2-T6 scenario definitions
+
+
+def _t2_t6_scenarios() -> list[OrchestrationScenario]:
+    """Multi-task scenarios added by the agent architecture upgrade."""
+    return [
+        # ---- T2: Locked Room Delivery ----
+        OrchestrationScenario(
+            scenario_id="t2_locked_door_delivery",
+            category="locked_door",
+            description=(
+                "T2: shelf_B is behind a locked door. Agent must find key on table, "
+                "pick key, unlock door, open door, then deliver box."
+            ),
+            task="deliver box_03 to shelf_B; shelf_B is behind locked door_01; key_01 is on table_01",
+            scene=_locked_door_scene(),
+            expected_outcome="done",
+            required_final_relations=(("box_03", "on", "shelf_B"),),
+        ),
+        OrchestrationScenario(
+            scenario_id="t2_locked_door_no_key_escalate",
+            category="locked_door",
+            description=(
+                "T2 infeasible: locked door but no key in scene — agent must escalate"
+            ),
+            task="deliver box_03 to shelf_B; shelf_B is behind locked door_01",
+            scene=Scene(
+                objects=[
+                    SceneObject(
+                        id="box_03", label="cardboard_box",
+                        affordances=["graspable"], is_anomaly=True,
+                    ),
+                    SceneObject(id="shelf_B", label="shelf", affordances=["placeable"]),
+                    SceneObject(id="door_01", label="door", affordances=["door"], locked=True),
+                    SceneObject(id="floor_01", label="floor"),
+                    SceneObject(id="go2", label="robot"),
+                ],
+                relations=[
+                    ("box_03", "on", "floor_01"),
+                    ("door_01", "state", "closed"),
+                    ("shelf_B", "behind", "door_01"),
+                ],
+                gripper_empty=True,
+            ),
+            expected_outcome="escalated",
+        ),
+        # ---- T3: Blocked Path Clearance ----
+        OrchestrationScenario(
+            scenario_id="t3_blocked_path_push",
+            category="blocked_path",
+            description=(
+                "T3: direct path to shelf blocked by a pushable crate. Agent must "
+                "inspect the crate, push it aside, then deliver."
+            ),
+            task="deliver box_03 to shelf_A; the path is blocked by crate_01",
+            scene=_blocked_path_scene(),
+            expected_outcome="done",
+            required_final_relations=(("box_03", "on", "shelf_A"),),
+        ),
+        OrchestrationScenario(
+            scenario_id="t3_blocked_path_immovable",
+            category="blocked_path",
+            description=(
+                "T3 hard: path blocked by an immovable pillar — agent must find "
+                "alternate route or escalate"
+            ),
+            task="deliver box_03 to shelf_A; the path is blocked by pillar_01 (immovable)",
+            scene=_blocked_path_no_push_scene(),
+            expected_outcome="escalated",
+        ),
+        # ---- T4: Multi-Object Sequential Delivery ----
+        OrchestrationScenario(
+            scenario_id="t4_sequential_delivery",
+            category="sequential",
+            description=(
+                "T4: deliver box_03 to shelf_A, box_04 to shelf_B. But shelf_B has "
+                "box_05 on it — must clear shelf_B first, respecting ordering."
+            ),
+            task=(
+                "deliver box_03 to shelf_A and box_04 to shelf_B; "
+                "shelf_B currently has box_05 on it — clear it first"
+            ),
+            scene=_sequential_delivery_scene(),
+            expected_outcome="done",
+            required_final_relations=(
+                ("box_03", "on", "shelf_A"),
+                ("box_04", "on", "shelf_B"),
+            ),
+        ),
+        # ---- T5: Elevator Floor Transfer ----
+        OrchestrationScenario(
+            scenario_id="t5_elevator_delivery",
+            category="elevator",
+            description=(
+                "T5: box on floor 1, shelf on floor 2. Agent must pick box, "
+                "call elevator, ride to floor 2, then deliver."
+            ),
+            task="move box_03 from floor 1 to shelf_A on floor 2 using elevator_01",
+            scene=_elevator_scene(),
+            expected_outcome="done",
+            required_final_relations=(("box_03", "on", "shelf_A"),),
+        ),
+        # ---- T6: Infeasible Task Recognition ----
+        OrchestrationScenario(
+            scenario_id="t6_too_heavy",
+            category="assistance",
+            description=(
+                "T6: anvil is 200kg, robot can carry 5kg max. Agent must inspect, "
+                "recognize infeasibility, and call request_assistance."
+            ),
+            task="deliver anvil_01 to shelf_A",
+            scene=_heavy_object_scene(),
+            expected_outcome="escalated",
+        ),
+        OrchestrationScenario(
+            scenario_id="t6_sealed_room",
+            category="assistance",
+            description=(
+                "T6: shelf_C is in a fully sealed room with no door. Agent must "
+                "recognize there is no way in and call request_assistance."
+            ),
+            task="deliver box_03 to shelf_C in room_C (fully walled off)",
+            scene=_sealed_room_scene(),
+            expected_outcome="escalated",
         ),
     ]
