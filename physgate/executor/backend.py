@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from typing import Any, Protocol, runtime_checkable
 
-from physgate.gate.schemas import Scene
+from physgate.gate.schemas import Scene, SceneObject
 from physgate.planner.schemas import RelationChange
 from physgate.world.scene_graph import apply_effects, objects_with_affordance
 
@@ -30,6 +30,20 @@ class WorldBackend(Protocol):
     def move_to_pose(self, target: str, standoff_m: float = 0.3, **kwargs: Any) -> dict[str, Any]: ...
 
     def execute_skill(self, skill: str, target: str, **kwargs: Any) -> dict[str, Any]: ...
+
+    def open_door(self, door_id: str, **kwargs: Any) -> dict[str, Any]: ...
+
+    def unlock_door(self, door_id: str, key_id: str, **kwargs: Any) -> dict[str, Any]: ...
+
+    def press_button(self, button_id: str, **kwargs: Any) -> dict[str, Any]: ...
+
+    def call_elevator(self, elevator_id: str, target_floor: int, **kwargs: Any) -> dict[str, Any]: ...
+
+    def push_object(self, object_id: str, direction: str, **kwargs: Any) -> dict[str, Any]: ...
+
+    def inspect_object(self, object_id: str, **kwargs: Any) -> dict[str, Any]: ...
+
+    def request_assistance(self, message: str, **kwargs: Any) -> dict[str, Any]: ...
 
 
 class MockWorldBackend:
@@ -119,3 +133,168 @@ class MockWorldBackend:
         ]
         self._scene = apply_effects(scene, effects)
         return {"success": True, "skill": "place", "target": target, "placed_object": held_object}
+
+    # ----- new tools (agent architecture upgrade) -----
+
+    def _get_object(self, object_id: str) -> SceneObject | None:
+        return next((o for o in self._scene.objects if o.id == object_id), None)
+
+    def open_door(self, door_id: str, **kwargs: Any) -> dict[str, Any]:
+        obj = self._get_object(door_id)
+        if obj is None:
+            return {"success": False, "error": f"door '{door_id}' not in scene"}
+        if "door" not in obj.affordances:
+            return {"success": False, "error": f"'{door_id}' is not a door"}
+        if not self._scene.has_relation("robot", "near", door_id):
+            return {"success": False, "error": f"robot is not near '{door_id}'"}
+        if obj.locked:
+            return {"success": False, "error": f"door '{door_id}' is locked — unlock it first"}
+        if self._scene.has_relation(door_id, "state", "open"):
+            return {"success": True, "door_id": door_id, "note": "door was already open"}
+
+        effects = [
+            RelationChange(op="remove", subject=door_id, predicate="state", object="closed"),
+            RelationChange(op="add", subject=door_id, predicate="state", object="open"),
+        ]
+        self._scene = apply_effects(self._scene, effects)
+        return {"success": True, "door_id": door_id}
+
+    def unlock_door(self, door_id: str, key_id: str, **kwargs: Any) -> dict[str, Any]:
+        obj = self._get_object(door_id)
+        if obj is None:
+            return {"success": False, "error": f"door '{door_id}' not in scene"}
+        if "door" not in obj.affordances:
+            return {"success": False, "error": f"'{door_id}' is not a door"}
+        if not self._scene.has_relation("robot", "near", door_id):
+            return {"success": False, "error": f"robot is not near '{door_id}'"}
+        if not self._scene.has_relation("gripper", "holding", key_id):
+            return {"success": False, "error": f"robot is not holding key '{key_id}'"}
+        if not obj.locked:
+            return {"success": True, "door_id": door_id, "note": "door was already unlocked"}
+
+        updated_objects = [
+            o.model_copy(update={"locked": False}) if o.id == door_id else o
+            for o in self._scene.objects
+        ]
+        self._scene = Scene(
+            objects=updated_objects,
+            relations=list(self._scene.relations),
+            gripper_empty=self._scene.gripper_empty,
+        )
+        return {"success": True, "door_id": door_id, "key_id": key_id}
+
+    def press_button(self, button_id: str, **kwargs: Any) -> dict[str, Any]:
+        obj = self._get_object(button_id)
+        if obj is None:
+            return {"success": False, "error": f"button '{button_id}' not in scene"}
+        if "button" not in obj.affordances:
+            return {"success": False, "error": f"'{button_id}' is not a button"}
+        if not self._scene.has_relation("robot", "near", button_id):
+            return {"success": False, "error": f"robot is not near '{button_id}'"}
+
+        activations: list[RelationChange] = []
+        for rel in self._scene.relations:
+            if rel[0] == button_id and rel[1] == "activates":
+                target_id = rel[2]
+                target_obj = self._get_object(target_id)
+                if target_obj is not None and "door" in target_obj.affordances:
+                    activations.append(
+                        RelationChange(op="remove", subject=target_id, predicate="state", object="closed")
+                    )
+                    activations.append(
+                        RelationChange(op="add", subject=target_id, predicate="state", object="open")
+                    )
+                elif target_obj is not None and "elevator" in target_obj.affordances:
+                    activations.append(
+                        RelationChange(op="add", subject=target_id, predicate="state", object="called")
+                    )
+
+        effects = [
+            RelationChange(op="add", subject=button_id, predicate="state", object="pressed"),
+        ] + activations
+        self._scene = apply_effects(self._scene, effects)
+        return {"success": True, "button_id": button_id, "activated": [a.object for a in activations]}
+
+    def call_elevator(self, elevator_id: str, target_floor: int, **kwargs: Any) -> dict[str, Any]:
+        obj = self._get_object(elevator_id)
+        if obj is None:
+            return {"success": False, "error": f"elevator '{elevator_id}' not in scene"}
+        if "elevator" not in obj.affordances:
+            return {"success": False, "error": f"'{elevator_id}' is not an elevator"}
+        if not self._scene.has_relation("robot", "near", elevator_id):
+            return {"success": False, "error": f"robot is not near '{elevator_id}'"}
+
+        robot_obj = self._get_object("go2")
+        robot_floor = robot_obj.floor if robot_obj else 1
+        if robot_floor != obj.floor:
+            return {
+                "success": False,
+                "error": f"elevator is on floor {obj.floor}, robot is on floor {robot_floor}",
+            }
+
+        updated_objects = []
+        for o in self._scene.objects:
+            if o.id == elevator_id:
+                updated_objects.append(o.model_copy(update={"floor": target_floor}))
+            elif o.id == "go2":
+                updated_objects.append(o.model_copy(update={"floor": target_floor}))
+            else:
+                updated_objects.append(o)
+
+        held = [rel[2] for rel in self._scene.relations if rel[0] == "gripper" and rel[1] == "holding"]
+        for o_idx, o in enumerate(updated_objects):
+            if o.id in held:
+                updated_objects[o_idx] = o.model_copy(update={"floor": target_floor})
+
+        self._scene = Scene(
+            objects=updated_objects,
+            relations=list(self._scene.relations),
+            gripper_empty=self._scene.gripper_empty,
+        )
+        return {"success": True, "elevator_id": elevator_id, "arrived_floor": target_floor}
+
+    def push_object(self, object_id: str, direction: str, **kwargs: Any) -> dict[str, Any]:
+        obj = self._get_object(object_id)
+        if obj is None:
+            return {"success": False, "error": f"object '{object_id}' not in scene"}
+        if not obj.pushable:
+            return {"success": False, "error": f"'{object_id}' is not pushable"}
+        if not self._scene.has_relation("robot", "near", object_id):
+            return {"success": False, "error": f"robot is not near '{object_id}'"}
+
+        valid_directions = {"north", "south", "east", "west"}
+        if direction not in valid_directions:
+            return {"success": False, "error": f"invalid direction '{direction}'; use {valid_directions}"}
+
+        effects = [
+            RelationChange(op="add", subject=object_id, predicate="pushed", object=direction),
+        ]
+        for rel in self._scene.relations:
+            if rel[0] == object_id and rel[1] == "blocking":
+                effects.append(
+                    RelationChange(op="remove", subject=object_id, predicate="blocking", object=rel[2])
+                )
+        self._scene = apply_effects(self._scene, effects)
+        return {"success": True, "object_id": object_id, "direction": direction}
+
+    def inspect_object(self, object_id: str, **kwargs: Any) -> dict[str, Any]:
+        obj = self._get_object(object_id)
+        if obj is None:
+            return {"success": False, "error": f"object '{object_id}' not in scene"}
+
+        max_carry_kg = 5.0
+        return {
+            "success": True,
+            "object_id": object_id,
+            "label": obj.label,
+            "weight_kg": obj.weight_kg,
+            "graspable": "graspable" in obj.affordances,
+            "carriable": obj.weight_kg <= max_carry_kg and "graspable" in obj.affordances,
+            "locked": obj.locked,
+            "pushable": obj.pushable,
+            "floor": obj.floor,
+            "affordances": obj.affordances,
+        }
+
+    def request_assistance(self, message: str, **kwargs: Any) -> dict[str, Any]:
+        return {"success": True, "assistance_requested": True, "message": message}

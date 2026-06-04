@@ -69,6 +69,10 @@ class SceneObject(BaseModel):
     label: str = ""
     affordances: list[str] = Field(default_factory=list)
     is_anomaly: bool = False
+    locked: bool = False
+    pushable: bool = False
+    weight_kg: float = 1.0
+    floor: int = 1
 
 
 class Scene(BaseModel):

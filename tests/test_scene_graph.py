@@ -112,7 +112,7 @@ def test_query_scene_payload_shape():
     """The MCP query_scene tool returns this JSON-able payload."""
     scene = _fetch_scene()
     payload = to_query_scene_payload(scene)
-    assert set(payload.keys()) == {"objects", "relations", "gripper_empty", "anomalies"}
+    assert set(payload.keys()) == {"objects", "relations", "gripper_empty", "anomalies", "available_tools"}
     assert payload["gripper_empty"] is True
     ids = [o["id"] for o in payload["objects"]]
     assert "box_03" in ids and "shelf_A" in ids

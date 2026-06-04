@@ -20,11 +20,18 @@ DEFAULT_NUM_CANDIDATES = 8
 
 
 class ToolName(str, Enum):
-    """The three MCP tools a plan step may call (architecture doc §5)."""
+    """MCP tools a plan step may call (architecture doc §5)."""
 
     QUERY_SCENE = "query_scene"
     MOVE_TO_POSE = "move_to_pose"
     EXECUTE_SKILL = "execute_skill"
+    OPEN_DOOR = "open_door"
+    UNLOCK_DOOR = "unlock_door"
+    PRESS_BUTTON = "press_button"
+    CALL_ELEVATOR = "call_elevator"
+    PUSH_OBJECT = "push_object"
+    INSPECT_OBJECT = "inspect_object"
+    REQUEST_ASSISTANCE = "request_assistance"
 
 
 class RelationChange(BaseModel):

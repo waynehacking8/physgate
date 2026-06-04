@@ -18,30 +18,62 @@ from mcp.server.fastmcp import FastMCP
 from physgate.executor.backend import MockWorldBackend, WorldBackend
 from physgate.gate.schemas import Scene, SceneObject
 from physgate.mcp_server.tools.core import (
+    call_elevator_tool,
     execute_skill_tool,
+    inspect_object_tool,
     move_to_pose_tool,
+    open_door_tool,
+    press_button_tool,
+    push_object_tool,
     query_scene_tool,
+    request_assistance_tool,
+    unlock_door_tool,
 )
 
 
 def create_server(backend: WorldBackend, name: str = "physgate") -> FastMCP:
-    """Create a FastMCP server exposing query_scene / move_to_pose / execute_skill."""
+    """Create a FastMCP server exposing all physgate tools."""
     server = FastMCP(name)
 
-    @server.tool(name="query_scene", description="Get the current scene graph: objects, relations, gripper state, anomalies.")
+    @server.tool(name="query_scene", description="Get the current scene graph: objects, relations, gripper state, anomalies, available tools.")
     def query_scene() -> dict[str, Any]:
-        """Return the current scene graph via the backend."""
         return query_scene_tool(backend)
 
     @server.tool(name="move_to_pose", description="Move the robot base to a standoff pose near a target object.")
     def move_to_pose(target: str, standoff_m: float = 0.3, speed: float = 0.5) -> dict[str, Any]:
-        """Move the robot to a standoff pose near the target object."""
         return move_to_pose_tool(backend, target=target, standoff_m=standoff_m, speed=speed)
 
     @server.tool(name="execute_skill", description="Execute a manipulation skill ('pick' or 'place') on a target object.")
     def execute_skill(skill: str, target: str) -> dict[str, Any]:
-        """Execute a pick or place skill on the target object."""
         return execute_skill_tool(backend, skill=skill, target=target)
+
+    @server.tool(name="open_door", description="Open a closed, unlocked door near the robot.")
+    def open_door(door_id: str) -> dict[str, Any]:
+        return open_door_tool(backend, door_id=door_id)
+
+    @server.tool(name="unlock_door", description="Unlock a locked door using a key the robot is holding.")
+    def unlock_door(door_id: str, key_id: str) -> dict[str, Any]:
+        return unlock_door_tool(backend, door_id=door_id, key_id=key_id)
+
+    @server.tool(name="press_button", description="Press a button near the robot; effect depends on what it activates.")
+    def press_button(button_id: str) -> dict[str, Any]:
+        return press_button_tool(backend, button_id=button_id)
+
+    @server.tool(name="call_elevator", description="Call the elevator to the target floor (robot must be near the elevator panel).")
+    def call_elevator(elevator_id: str, target_floor: int) -> dict[str, Any]:
+        return call_elevator_tool(backend, elevator_id=elevator_id, target_floor=target_floor)
+
+    @server.tool(name="push_object", description="Push a pushable object in a cardinal direction to clear a path.")
+    def push_object(object_id: str, direction: str) -> dict[str, Any]:
+        return push_object_tool(backend, object_id=object_id, direction=direction)
+
+    @server.tool(name="inspect_object", description="Inspect an object to learn weight, graspability, lock state, floor, etc.")
+    def inspect_object(object_id: str) -> dict[str, Any]:
+        return inspect_object_tool(backend, object_id=object_id)
+
+    @server.tool(name="request_assistance", description="Signal that the robot cannot complete the task alone and needs help.")
+    def request_assistance(message: str) -> dict[str, Any]:
+        return request_assistance_tool(backend, message=message)
 
     return server
 

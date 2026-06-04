@@ -21,9 +21,16 @@ from typing import Any
 from physgate.executor.backend import WorldBackend
 from physgate.gate.l3_scene import check_preconditions
 from physgate.mcp_server.tools.core import (
+    call_elevator_tool,
     execute_skill_tool,
+    inspect_object_tool,
     move_to_pose_tool,
+    open_door_tool,
+    press_button_tool,
+    push_object_tool,
     query_scene_tool,
+    request_assistance_tool,
+    unlock_door_tool,
 )
 from physgate.planner.schemas import Plan, PlanStep, ToolName
 
@@ -43,7 +50,32 @@ def _dispatch_step(step: PlanStep, backend: WorldBackend) -> dict[str, Any]:
         return execute_skill_tool(
             backend, skill=step.args["skill"], target=step.args["target"]
         )
-    return {"success": False, "error": f"unknown tool {step.tool}"}  # pragma: no cover
+    if step.tool == ToolName.OPEN_DOOR:
+        return open_door_tool(backend, door_id=step.args["door_id"])
+    if step.tool == ToolName.UNLOCK_DOOR:
+        return unlock_door_tool(
+            backend, door_id=step.args["door_id"], key_id=step.args["key_id"]
+        )
+    if step.tool == ToolName.PRESS_BUTTON:
+        return press_button_tool(backend, button_id=step.args["button_id"])
+    if step.tool == ToolName.CALL_ELEVATOR:
+        return call_elevator_tool(
+            backend,
+            elevator_id=step.args["elevator_id"],
+            target_floor=step.args["target_floor"],
+        )
+    if step.tool == ToolName.PUSH_OBJECT:
+        return push_object_tool(
+            backend,
+            object_id=step.args["object_id"],
+            direction=step.args["direction"],
+        )
+    if step.tool == ToolName.INSPECT_OBJECT:
+        result = inspect_object_tool(backend, object_id=step.args["object_id"])
+        return {**result, "success": result.get("success", True)}
+    if step.tool == ToolName.REQUEST_ASSISTANCE:
+        return request_assistance_tool(backend, message=step.args.get("message", ""))
+    return {"success": False, "error": f"unknown tool {step.tool}"}
 
 
 def execute_plan(plan: Plan, backend: WorldBackend) -> dict[str, Any]:

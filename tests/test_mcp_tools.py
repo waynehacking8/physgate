@@ -131,12 +131,17 @@ def test_execute_skill_tool_delegates():
 # ------------------------------------------------------------------ MCP server
 
 
-def test_server_registers_three_tools():
+def test_server_registers_all_tools():
     backend = MockWorldBackend(_scene())
     server = create_server(backend)
     tools = asyncio.run(server.list_tools())
     names = {t.name for t in tools}
-    assert names == {"query_scene", "move_to_pose", "execute_skill"}
+    assert names == {
+        "query_scene", "move_to_pose", "execute_skill",
+        "open_door", "unlock_door", "press_button",
+        "call_elevator", "push_object", "inspect_object",
+        "request_assistance",
+    }
 
 
 def test_server_tools_are_callable():

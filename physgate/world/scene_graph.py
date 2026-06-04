@@ -89,15 +89,41 @@ def apply_effects(scene: Scene, effects: list[RelationChange]) -> Scene:
     )
 
 
+def _compute_available_tools(scene: Scene) -> list[str]:
+    """Derive which tools are usable given the current scene objects."""
+    tools = ["query_scene", "move_to_pose", "execute_skill", "inspect_object"]
+
+    has_door = any("door" in o.affordances for o in scene.objects)
+    has_locked_door = any("door" in o.affordances and o.locked for o in scene.objects)
+    has_button = any("button" in o.affordances for o in scene.objects)
+    has_elevator = any("elevator" in o.affordances for o in scene.objects)
+    has_pushable = any(o.pushable for o in scene.objects)
+
+    if has_door:
+        tools.append("open_door")
+    if has_locked_door:
+        tools.append("unlock_door")
+    if has_button:
+        tools.append("press_button")
+    if has_elevator:
+        tools.append("call_elevator")
+    if has_pushable:
+        tools.append("push_object")
+
+    tools.append("request_assistance")
+    return tools
+
+
 def to_query_scene_payload(scene: Scene) -> dict[str, Any]:
     """Serialize a Scene into the ``query_scene`` MCP tool response payload.
 
-    JSON-safe dict with the object list, relation triples, gripper state, and
-    the ids of anomalous objects (things the task likely needs to fix).
+    JSON-safe dict with the object list, relation triples, gripper state,
+    the ids of anomalous objects, and the available tools for this scene.
     """
     return {
         "objects": [o.model_dump() for o in scene.objects],
         "relations": [list(r) for r in scene.relations],
         "gripper_empty": scene.gripper_empty,
         "anomalies": [o.id for o in scene.objects if o.is_anomaly],
+        "available_tools": _compute_available_tools(scene),
     }
