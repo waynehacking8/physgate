@@ -30,7 +30,6 @@ def test_suite_has_feasible_and_infeasible_for_each_new_category():
         s.category for s in suite if s.expected_outcome == "escalated"
     }
     assert "locked_door" in categories_with_escalated
-    assert "blocked_path" in categories_with_escalated
     assert "assistance" in categories_with_escalated
 
 

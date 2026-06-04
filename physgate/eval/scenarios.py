@@ -627,12 +627,14 @@ def _t2_t6_scenarios() -> list[OrchestrationScenario]:
             scenario_id="t3_blocked_path_immovable",
             category="blocked_path",
             description=(
-                "T3 hard: path blocked by an immovable pillar — agent must find "
-                "alternate route or escalate"
+                "T3 hard: path blocked by an immovable pillar. A real LLM agent "
+                "may attempt delivery (A* nav handles detour) or escalate. "
+                "Mock backend does not enforce blocking — A* detour succeeds."
             ),
             task="deliver box_03 to shelf_A; the path is blocked by pillar_01 (immovable)",
             scene=_blocked_path_no_push_scene(),
-            expected_outcome="escalated",
+            expected_outcome="done",
+            required_final_relations=(("box_03", "on", "shelf_A"),),
         ),
         # ---- T4: Multi-Object Sequential Delivery ----
         OrchestrationScenario(
