@@ -20,29 +20,31 @@
 </p>
 
 <p align="center">
-  <em><b>T2: Locked-door delivery</b> — the agent picks up the key, unlocks the door, opens it,
-  then delivers the box to the shelf behind it. 9 steps, 4 different tools
-  (move_to_pose, execute_skill, unlock_door, open_door).</em>
+  <em><b>T2: Locked-door delivery</b> (top-down plan visualization) — the agent picks up
+  the key, unlocks the door, opens it, then delivers the box. 9 steps, 4 tools
+  (move_to_pose, execute_skill, unlock_door, open_door). Tool selection shown
+  in the red badge per frame.</em>
 </p>
 
 <p align="center">
-  <img src="docs/media/t3_push_delivery.gif" alt="T3: Blocked-path clearance — push crate aside, then deliver" width="680">
+  <img src="docs/media/t3_push_delivery.gif" alt="T3: Blocked-path clearance — top-down plan visualization" width="680">
 </p>
 
 <p align="center">
-  <em><b>T3: Blocked-path clearance</b> — the agent inspects the blocking crate, pushes it
-  aside, then fetches the box and delivers it. Uses inspect_object + push_object
-  before the standard pick-and-place chain.</em>
+  <em><b>T3: Blocked-path clearance</b> (top-down plan visualization) — the agent
+  inspects the crate, pushes it east, then fetches the box and delivers it.
+  Uses inspect_object + push_object before the standard pick-and-place chain.</em>
 </p>
 
 <p align="center">
-  <img src="docs/media/isaac_rollout.gif" alt="T1: Go2 walking a validated fetch-and-place plan in Isaac Sim" width="640">
+  <img src="docs/media/isaac_rollout.gif" alt="T1: Go2 fetch-and-place in Isaac Sim 3D physics" width="640">
 </p>
 
 <p align="center">
-  <em><b>T1: Baseline fetch-and-place</b> (Isaac Sim) — a trained Go2 locomotion policy
-  walks an A*-planned route, picks the fallen box, carries it around the obstacle,
-  and places it on the shelf.</em>
+  <em><b>T1: Baseline fetch-and-place</b> (Isaac Sim 3D physics) — a trained Go2
+  locomotion policy walks an A*-planned route, picks the fallen box, carries it
+  around the obstacle, and places it on the shelf — validated by the Sim-Gate
+  before execution.</em>
 </p>
 
 > [!WARNING]

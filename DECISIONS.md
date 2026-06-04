@@ -524,3 +524,36 @@ implemented in 5 phases per AGENT_UPGRADE.md design document.
 **Revisit:** Isaac Sim integration of new tools (open_door, push_object need
 physics); LLM planner prompt optimization for T2-T6 tasks; negotiation protocol
 for multi-agent coordination beyond cooperative handoff.
+
+## D-027: Round 2 fixes — F1-F3, H1-H5, G1 (2026-06-04)
+
+**What:** Second-round fixes to upgrade from B+ to A+.
+
+**F1 — ClaudePlanner pure LLM tool selection:** system prompt rewritten as
+neutral tool registry (preconditions + effects per tool, no task-type hints).
+MockPlanner marked as "deterministic baseline, NOT an agent."
+
+**F2 — Failure analyst on first failure:** routing changed so analyst fires
+immediately after first execution failure (was: after retry exhaustion).
+
+**F3 — Floor-aware move_to_pose:** cross-floor movement rejected with error
+instructing agent to use call_elevator first.
+
+**H1+H2 — Backend forwarding:** SimBackend and FaultInjectionBackend forward
+all 7 new WorldBackend methods (symbolic fallback in Isaac env).
+
+**H3 — Hidden metadata:** query_scene only returns id/label/affordances/floor.
+weight_kg/locked/pushable hidden — agent must call inspect_object first.
+
+**H4 — 3 new metrics:** tool_selection_accuracy (0.714), failure_recognition
+precision (0.429) / recall (1.0), plan_prefix_preservation. All 18 scenarios
+run with results recorded.
+
+**H5 — A5 ablation:** targeted repair vs blind regeneration compared across 18
+scenarios. MockPlanner shows identical outcomes (expected: deterministic plans
+don't respond to feedback content). Value manifests with LLM planner.
+
+**G1 — Honest GIF labels:** T2/T3 GIFs are matplotlib 2D top-down plan
+visualizations, not Isaac Sim 3D physics. Labels updated to say "(top-down
+plan visualization)" vs "(Isaac Sim 3D physics)" for T1. Isaac Sim 3D
+recordings for T2-T6 require USD scene authoring (doors, elevators) — deferred.
