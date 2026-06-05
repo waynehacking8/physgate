@@ -270,14 +270,16 @@ each layer catches strictly more defect classes, with zero false positives.
 
 | Validation layer | Precision | Recall | F1 | False-positive rate | Wall time |
 |---|---|---|---|---|---|
-| LLM critic | 1.00 | 0.25 | 0.40 | 0.00 | 0.0 s |
-| + L1/L3 deterministic checks | 1.00 | 0.75 | 0.86 | 0.00 | 0.0 s |
-| + Symbolic L2 (full gate) | 1.00 | 1.00 | 1.00 | 0.00 | 0.0 s |
+| LLM critic | 1.00 | 0.20 | 0.33 | 0.00 | 0.0 s |
+| + L1/L3 deterministic checks | 1.00 | 0.60 | 0.75 | 0.00 | 0.0 s |
+| + Symbolic L2 (full gate) | 1.00 | 0.80 | 0.89 | 0.00 | 0.0 s |
+| + Nav-aware gate (symbolic + A*) | 1.00 | 1.00 | 1.00 | 0.00 | 0.7 s |
 | Isaac physics L2 | 1.00 | 1.00 | 1.00 | 0.00 | 76.4 s |
 
-The physics gate matches the symbolic gate on plan-level defects (consistency
-check) — its *unique* value is world-level infeasibility (E1's right panel) and
-physical outcome verification, which no symbolic layer can provide.
+The symbolic gate catches all plan-level defects (D1–D4) but misses
+world-level defects (D5 unreachable goal: 0% rejection). Only the nav-aware
+gate (A* path compilation) and physics gate catch D5 — this is the quantified,
+unique value of world-level validation.
 
 ### Feasibility — the 17% artifact is eliminated
 

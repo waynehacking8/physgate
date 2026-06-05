@@ -48,6 +48,7 @@ def evaluate_symbolic_layers(corpus, scene) -> dict:
         critic_rejects,
         evaluate_layer_on_corpus,
         l1_l3_rejects,
+        nav_aware_gate_rejects,
         symbolic_gate_rejects,
     )
     from physgate.planner.critic import MockCritic
@@ -56,6 +57,7 @@ def evaluate_symbolic_layers(corpus, scene) -> dict:
         "critic": critic_rejects(MockCritic(), scene),
         "l1_l3": l1_l3_rejects(scene),
         "symbolic_gate": symbolic_gate_rejects(scene),
+        "nav_aware_gate": nav_aware_gate_rejects(scene),
     }
     evaluations = {}
     for name, rejects_fn in layers.items():
